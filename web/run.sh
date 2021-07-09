@@ -126,6 +126,9 @@ __WELCOME__
 	
 	##Schedule to fetch all feeds at 1 am
 	{ crontab -l 2>/dev/null || true; echo "0 1 * * * /var/www/MISP/app/Console/cake Server fetchFeed 2 all"; } | crontab -
+	
+	##Schedule daily updates to warninglists, noticelists, taxonomies, galaxies
+	{ crontab -l 2>/dev/null || true; echo "10 2 * * * /var/www/MISP/app/Console/cake Admin updateJSON"; } | crontab -
         rm -f /.firstboot.tmp
 fi
 
