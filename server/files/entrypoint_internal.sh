@@ -232,11 +232,13 @@ echo "Customize MISP | Configure plugins ..." && configure_plugins
 
 # Create organizations (and silently fail if present already)
 echo "Customize MISP | Creating organizations ..."
-add_organization nuTAU true
-add_organization CBTAU true
-add_organization T-Rex true
-add_organization NDR true
-add_organization MDR true
+SPLITTED_ORGS=$(echo $ORGANIZATIONS | tr ',' '\n')
+for ORG in $SPLITTED_ORGS
+do
+    echo "Adding organization: $ORG"
+    add_organization $ORG true
+done
+
 
 # Create sync servers
 for ID in $SYNCSERVERS; do
