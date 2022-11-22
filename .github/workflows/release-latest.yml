@@ -15,9 +15,16 @@ jobs:
     - uses: actions/checkout@v3
 
     - name: Build the Docker images 
-      run: docker compose --file build-docker-compose.yml --env-file template.env build 
+      env:
+        GITHUB_CONTEXT: ${{ toJson(github) }}
+      run: |
+        docker compose --file build-docker-compose.yml --env-file template.env build
+        # Tag the image with the commit SHA[0:7]
+        DOCKER_IMG_TAG=`echo "${{ github.event.pull_request.head.sha }}" | cut -c 1-7`
+        docker tag ${{ secrets.DOCKER_USERNAME }}/misp-docker:core-latest ${{ secrets.DOCKER_USERNAME }}/misp-docker:core-$DOCKER_IMG_TAG
+        docker tag ${{ secrets.DOCKER_USERNAME }}/misp-docker:modules-latest ${{ secrets.DOCKER_USERNAME }}/misp-docker:modules-$DOCKER_IMG_TAG
       
     - name: Push the Docker images to Docker Hub
       run: |
         echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-        docker compose -f build-docker-compose.yml push 
+        docker push ${{ secrets.DOCKER_USERNAME }}/misp-docker --all-tags
