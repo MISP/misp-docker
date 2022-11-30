@@ -37,6 +37,14 @@ server {
     # Remove X-Powered-By, which is an information leak
     fastcgi_hide_header X-Powered-By;
 
+    location /public {
+        root /mnt;
+        autoindex on;
+        autoindex_exact_size off;
+        autoindex_format html;
+        autoindex_localtime on;
+    }
+
     location / {
         try_files $uri $uri/ /index.php$is_args$query_string;
     }

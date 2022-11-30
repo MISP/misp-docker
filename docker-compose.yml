@@ -41,6 +41,7 @@ services:
       - "./logs/:/var/www/MISP/app/tmp/logs/:delegated"
       - "./files/:/var/www/MISP/app/files/:delegated"
       - "./ssl/:/etc/nginx/certs/:delegated"
+      - "${PUBLIC_MOUNT_POINT}:/mnt/public/:delegated"
 #      - "./examples/custom-entrypoint.sh:/custom-entrypoint.sh" # Use the example custom-entrypoint.sh
       - "./.gnupg/:/var/www/MISP/.gnupg/:delegated"
     environment:
@@ -60,6 +61,7 @@ services:
           "pull_rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"url_params\":\"{\\\"searchanalysis\\\": \\\"2\\\"}\"}",
           "pull": true
         }
+      - "ORGANIZATIONS=${ORGANIZATIONS}"
       # Database Configuration (And their defaults)
 #      - "MYSQL_HOST=db"
 #      - "MYSQL_USER=misp"
