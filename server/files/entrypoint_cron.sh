@@ -1,12 +1,14 @@
 #!/bin/bash
 
-term_pipe_procs() {
-    echo "Cron entrypoint caught SIGTERM signal!"
+term_procs() {
+    echo "Entrypoint CRON caught SIGTERM signal!"
+    echo "Killing process $p1_pid"
     kill -TERM "$p1_pid" 2>/dev/null
+    echo "Killing process $p2_pid"
     kill -TERM "$p2_pid" 2>/dev/null
 }
 
-trap term_pipe_procs SIGTERM
+trap term_procs SIGTERM
 
 # Create the misp cron tab
 cat << EOF > /etc/cron.d/misp

@@ -1,5 +1,13 @@
 #!/bin/bash
 
+term_proc() {
+    echo "Entrypoint NGINX caught SIGTERM signal!"
+    echo "Killing process $master_pid"
+    kill -TERM "$master_pid" 2>/dev/null
+}
+
+trap term_proc SIGTERM
+
 MISP_APP_CONFIG_PATH=/var/www/MISP/app/Config
 [ -z "$MYSQL_HOST" ] && MYSQL_HOST=db
 [ -z "$MYSQL_PORT" ] && MYSQL_PORT=3306
@@ -150,7 +158,7 @@ echo "Configure MISP | Starting workers ..." && init_misp_workers
 # Work around https://github.com/MISP/MISP/issues/5608
 if [[ ! -f /var/www/MISP/PyMISP/pymisp/data/describeTypes.json ]]; then
     mkdir -p /var/www/MISP/PyMISP/pymisp/data/
-    ln -s /usr/local/lib/python3.7/dist-packages/pymisp/data/describeTypes.json /var/www/MISP/PyMISP/pymisp/data/describeTypes.json
+    ln -s /usr/local/lib/python3.9/dist-packages/pymisp/data/describeTypes.json /var/www/MISP/PyMISP/pymisp/data/describeTypes.json
 fi
 
 if [[ ! -L "/etc/nginx/sites-enabled/misp80" && "$NOREDIR" == true ]]; then
@@ -232,10 +240,13 @@ if [[ -x /entrypoint_internal.sh ]]; then
     #     export ${KEY}="${!KEY}"
     # done
     export MYSQLCMD=${MYSQLCMD}
-    nginx -g 'daemon on;'
+    nginx -g 'daemon off;' & master_pid=$!
     /entrypoint_internal.sh
-    killall nginx
+    kill -TERM "$master_pid" 2>/dev/null
 fi
 
 # Start NGINX
-nginx -g 'daemon off;'
+nginx -g 'daemon off;' & master_pid=$!
+
+# Wait for it
+wait "$master_pid"

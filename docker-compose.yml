@@ -37,12 +37,12 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - "./configs/:/var/www/MISP/app/Config/"
-      - "./logs/:/var/www/MISP/app/tmp/logs/"
-      - "./files/:/var/www/MISP/app/files"
-      - "./ssl/:/etc/nginx/certs"
+      - "./configs/:/var/www/MISP/app/Config/:delegated"
+      - "./logs/:/var/www/MISP/app/tmp/logs/:delegated"
+      - "./files/:/var/www/MISP/app/files/:delegated"
+      - "./ssl/:/etc/nginx/certs/:delegated"
 #      - "./examples/custom-entrypoint.sh:/custom-entrypoint.sh" # Use the example custom-entrypoint.sh
-      - "./.gnupg:/var/www/MISP/.gnupg"
+      - "./.gnupg/:/var/www/MISP/.gnupg/:delegated"
     environment:
       - "HOSTNAME=https://localhost"
       - "REDIS_FQDN=redis"
