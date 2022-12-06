@@ -34,26 +34,25 @@ init_misp_config(){
     sed -i "s/db\s*login/$MYSQL_USER/" $MISP_APP_CONFIG_PATH/database.php
     sed -i "s/db\s*password/$MYSQL_PASSWORD/" $MISP_APP_CONFIG_PATH/database.php
     sed -i "s/'database' => 'misp'/'database' => '$MYSQL_DATABASE'/" $MISP_APP_CONFIG_PATH/database.php
-
-    echo "Configure sane defaults"
-    /var/www/MISP/app/Console/cake Admin setSetting "MISP.redis_host" "$REDIS_FQDN"
-    /var/www/MISP/app/Console/cake Admin setSetting "MISP.baseurl" "$HOSTNAME"
-    /var/www/MISP/app/Console/cake Admin setSetting "MISP.python_bin" $(which python3)
-
-    /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_host" "$REDIS_FQDN"
-    /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" true
-
-    /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_services_enable" true
-    /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_services_url" "$MISP_MODULES_FQDN"
-
-    /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Import_services_enable" true
-    /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Import_services_url" "$MISP_MODULES_FQDN"
-
-    /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Export_services_enable" true
-    /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Export_services_url" "$MISP_MODULES_FQDN"
-
-    /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Cortex_services_enable" false
 }
+
+init_misp_defaults(){
+    # Note that we are doing this after enforcing permissions, so we need to use the www-data user for this
+    echo "Configure sane defaults"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "MISP.redis_host" "$REDIS_FQDN"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "MISP.baseurl" "$HOSTNAME"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "MISP.python_bin" $(which python3)
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_host" "$REDIS_FQDN"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" true
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_services_enable" true
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_services_url" "$MISP_MODULES_FQDN"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Import_services_enable" true
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Import_services_url" "$MISP_MODULES_FQDN"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Export_services_enable" true
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Export_services_url" "$MISP_MODULES_FQDN"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Cortex_services_enable" false
+}
+
 
 init_misp_workers(){
     # Note that we are doing this after enforcing permissions, so we need to use the www-data user for this
@@ -145,12 +144,20 @@ echo "Configure MISP | Initialize misp base config..." && init_misp_config
 echo "Configure MISP | Sync app files..." && sync_files
 
 echo "Configure MISP | Enforce permissions ..."
-echo "... chown -R www-data:www-data /var/www/MISP ..." && find /var/www/MISP -not -user www-data -exec chown www-data:www-data {} +
-echo "... chmod -R 0750 /var/www/MISP ..." && find /var/www/MISP -perm 550 -type f -exec chmod 0550 {} + && find /var/www/MISP -perm 770 -type d -exec chmod 0770 {} +
-echo "... chmod -R g+ws /var/www/MISP/app/tmp ..." && chmod -R g+ws /var/www/MISP/app/tmp
-echo "... chmod -R g+ws /var/www/MISP/app/files ..." && chmod -R g+ws /var/www/MISP/app/files
-echo "... chmod -R g+ws /var/www/MISP/app/files/scripts/tmp ..." && chmod -R g+ws /var/www/MISP/app/files/scripts/tmp
+# The spirit of the upstrem dockerization is to keep user and group aligned in terms of permissions
+echo "... chown -R www-data:www-data /var/www/MISP ..." && find /var/www/MISP \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
+# Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
+echo "... chmod -R 0550 files /var/www/MISP ..." && find /var/www/MISP -not -perm 550 -type f -exec chmod 0550 {} +
+# Directories are also writable, because there seems to be a requirement to add new files every once in a while
+echo "... chmod -R 0770 directories /var/www/MISP ..." && find /var/www/MISP -not -perm 770 -type d -exec chmod 0770 {} +
+# We make 'files' and 'tmp' (logs) directories and files user and group writable (we removed the SGID bit)
+echo "... chmod -R u+w,g+w /var/www/MISP/app/tmp ..." && chmod -R u+w,g+w /var/www/MISP/app/tmp
+echo "... chmod -R u+w,g+w /var/www/MISP/app/files ..." && chmod -R u+w,g+w /var/www/MISP/app/files
+# We also make other special files writable (should be 660)
 echo "... chmod 600 /var/www/MISP/app/Config/config.php /var/www/MISP/app/Config/database.php /var/www/MISP/app/Config/email.php ... " && chmod 600 /var/www/MISP/app/Config/config.php /var/www/MISP/app/Config/database.php /var/www/MISP/app/Config/email.php
+
+# Configuring defaults now
+echo "Configure MISP | Setting defaults ..." && init_misp_defaults
 
 # Workers are set to NOT auto start so we have time to enforce permissions on the cache first
 echo "Configure MISP | Starting workers ..." && init_misp_workers
@@ -219,26 +226,6 @@ if [[ "$WARNING53" == true ]]; then
 fi
 
 if [[ -x /entrypoint_internal.sh ]]; then
-    ## Re-exporting might not be necessary after all?
-    # export ADMIN_EMAIL=${ADMIN_EMAIL}
-    # export ADMIN_ORG=${ADMIN_ORG}
-    # export ADMIN_KEY=${ADMIN_KEY}
-    # export GPG_PASSPHRASE=${GPG_PASSPHRASE}
-    # export HOSTNAME=${HOSTNAME}
-    # export NSX_ANALYSIS_API_TOKEN=${NSX_ANALYSIS_API_TOKEN}
-    # export NSX_ANALYSIS_KEY=${NSX_ANALYSIS_KEY}
-    # export VIRUSTOTAL_KEY=${VIRUSTOTAL_KEY}
-    # export SYNCSERVERS=${SYNCSERVERS}
-    # for ID in $SYNCSERVERS; do
-    #     NAME="SYNCSERVERS_${ID}_NAME"
-    #     UUID="SYNCSERVERS_${ID}_UUID"
-    #     DATA="SYNCSERVERS_${ID}_DATA"
-    #     KEY="SYNCSERVERS_${ID}_KEY"
-    #     export ${NAME}="${!NAME}"
-    #     export ${UUID}="${!UUID}"
-    #     export ${DATA}="${!DATA}"
-    #     export ${KEY}="${!KEY}"
-    # done
     export MYSQLCMD=${MYSQLCMD}
     nginx -g 'daemon off;' & master_pid=$!
     /entrypoint_internal.sh

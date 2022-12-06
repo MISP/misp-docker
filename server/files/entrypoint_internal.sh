@@ -78,7 +78,7 @@ apply_critical_fixes() {
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "MISP.external_baseurl" "${HOSTNAME}"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "MISP.host_org_id" 1
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Action_services_enable" false
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_hover_enable" true
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_hover_enable" false
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_hover_popover_only" false
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Security.csp_enforce" true
 }
@@ -214,6 +214,13 @@ get_server() {
      -H "Content-type: application/json" ${HOSTNAME}/servers | jq -e -r ".[] | select(.Server[\"name\"] == \"${1}\") | .Server.id"
 }
 
+updateComponents() {
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateGalaxies
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateTaxonomies
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateWarningLists
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateNoticeLists
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateObjectTemplates "$CRON_USER_ID"
+}
 
 echo "Customize MISP | Configure email ..." && configure_email
 
@@ -233,15 +240,14 @@ echo "Customize MISP | Configure plugins ..." && configure_plugins
 # Create organizations (and silently fail if present already)
 echo "Customize MISP | Creating organizations ..."
 SPLITTED_ORGS=$(echo $ORGANIZATIONS | tr ',' '\n')
-for ORG in $SPLITTED_ORGS
-do
+for ORG in $SPLITTED_ORGS; do
     echo "Adding organization: $ORG"
     add_organization $ORG true
 done
 
-
-# Create sync servers
-for ID in $SYNCSERVERS; do
+echo "Customize MISP | Creating sync servers ..."
+SPLITTED_SYNCSERVERS=$(echo $SYNCSERVERS | tr ',' '\n')
+for ID in $SPLITTED_SYNCSERVERS; do
     NAME="SYNCSERVERS_${ID}_NAME"
     UUID="SYNCSERVERS_${ID}_UUID"
     DATA="SYNCSERVERS_${ID}_DATA"
@@ -254,6 +260,8 @@ for ID in $SYNCSERVERS; do
         add_server "$DATA"
     fi
 done
+
+echo "Customize MISP | Updating components ..." && updateComponents
 
 # Make the instance live
 sudo -u www-data /var/www/MISP/app/Console/cake Admin live 1

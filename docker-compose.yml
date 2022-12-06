@@ -30,6 +30,12 @@ services:
 
   misp:
     image: ostefano/misp-docker:core-latest
+    build:
+      context: server/.
+      args:
+          - MISP_TAG=${MISP_TAG}
+          - MISP_COMMIT=${MISP_COMMIT}
+          - PHP_VER=${PHP_VER}
     depends_on:
       - redis
       - db
@@ -37,48 +43,30 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - "./configs/:/var/www/MISP/app/Config/:delegated"
-      - "./logs/:/var/www/MISP/app/tmp/logs/:delegated"
-      - "./files/:/var/www/MISP/app/files/:delegated"
-      - "./ssl/:/etc/nginx/certs/:delegated"
-      - "${PUBLIC_MOUNT_POINT}:/mnt/public/:delegated"
+      - "./configs/:/var/www/MISP/app/Config/"
+      - "./logs/:/var/www/MISP/app/tmp/logs/"
+      - "./files/:/var/www/MISP/app/files/"
+      - "./ssl/:/etc/nginx/certs/"
+      - "./gnupg/:/var/www/MISP/.gnupg/"
+      - "${PUBLIC_MOUNT_POINT}:/mnt/public/"
 #      - "./examples/custom-entrypoint.sh:/custom-entrypoint.sh" # Use the example custom-entrypoint.sh
-      - "./.gnupg/:/var/www/MISP/.gnupg/:delegated"
     environment:
       - "HOSTNAME=https://localhost"
       - "REDIS_FQDN=redis"
       - "INIT=true"             # Initialze MISP, things includes, attempting to import SQL and the Files DIR
       - "CRON_USER_ID=1"        # The MISP user ID to run cron jobs as
       # Synchronization Servers settings
-      - "SYNCSERVERS=1"
+      - "SYNCSERVERS=${SYNCSERVERS}"
       - "SYNCSERVERS_1_NAME=${SYNCSERVERS_1_NAME}"
       - "SYNCSERVERS_1_UUID=${SYNCSERVERS_1_UUID}"
       - "SYNCSERVERS_1_KEY=${SYNCSERVERS_1_KEY}"
       - |
         SYNCSERVERS_1_DATA=
         {
-          "url": "https://intel.thedfirreport.com/",
+          "url": "${SYNCSERVERS_1_URL}",
           "pull_rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"url_params\":\"{\\\"searchanalysis\\\": \\\"2\\\"}\"}",
           "pull": true
         }
-      - "ORGANIZATIONS=${ORGANIZATIONS}"
-      # Database Configuration (And their defaults)
-#      - "MYSQL_HOST=db"
-#      - "MYSQL_USER=misp"
-#      - "MYSQL_PASSWORD=example" # NOTE: This should be AlphaNum with no Special Chars. Otherwise, edit config files after first run. 
-#      - "MYSQL_DATABASE=misp"
-      # Optional Settings
-#      - "NOREDIR=true" # Do not redirect port 80
-#      - "DISIPV6=true" # Disable IPV6 in nginx
-#      - "CERTAUTH=optional" # Can be set to optional or on - Step 2 of https://github.com/MISP/MISP/tree/2.4/app/Plugin/CertAuth is still required
-#      - "SECURESSL=true" # Enable higher security SSL in nginx
-#      - "MISP_MODULES_FQDN=http://misp-modules" # Set the MISP Modules FQDN, used for Enrichment_services_url/Import_services_url/Export_services_url
-#      - "WORKERS=1" # Legacy variable controlling the number of parallel workers (use variables below instead)
-#      - "NUM_WORKERS_DEFAULT=5"    # To set the number of default workers
-#      - "NUM_WORKERS_PRIO=5"       # To set the number of prio workers
-#      - "NUM_WORKERS_EMAIL=5"      # To set the number of email workers
-#      - "NUM_WORKERS_UPDATE=1"     # To set the number of update workers
-#      - "NUM_WORKERS_CACHE=5"      # To set the number of cache workers
       # Custom Settings
       - "ADMIN_EMAIL=${ADMIN_EMAIL}"
       - "ADMIN_KEY=${ADMIN_KEY}"
@@ -86,9 +74,15 @@ services:
       - "GPG_PASSPHRASE=${GPG_PASSPHRASE}"
       - "NSX_ANALYSIS_API_TOKEN=${NSX_ANALYSIS_API_TOKEN}"
       - "NSX_ANALYSIS_KEY=${NSX_ANALYSIS_KEY}"
+      - "ORGANIZATIONS=${ORGANIZATIONS}"
       - "VIRUSTOTAL_KEY=${VIRUSTOTAL_KEY}"
   misp-modules:
     image: ostefano/misp-docker:modules-latest
+    build:
+      context: modules/.
+      args:
+        - MODULES_TAG=${MODULES_TAG}
+        - MODULES_COMMIT=${MODULES_COMMIT}
     environment:
       - "REDIS_BACKEND=redis"
     depends_on:

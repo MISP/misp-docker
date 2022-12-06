@@ -136,7 +136,9 @@ ARG PHP_VER
     RUN git clone --branch ${MISP_TAG} --depth 1 https://github.com/MISP/MISP.git /var/www/MISP
     RUN if [ ! -z ${MISP_COMMIT} ]; then cd /var/www/MISP && git checkout ${MISP_COMMIT}; fi; \
         # We build the MISP modules outside, so we don't need to grab those submodules
-        cd /var/www/MISP/app || exit; git submodule update --init --recursive .;
+        cd /var/www/MISP/app || exit; git submodule update --init --recursive .; \
+        # Remove some old and broken links that pollute the log files
+        rm -rf /var/www/MISP/INSTALL/old
 
 # Python Modules
     COPY --from=python-build /wheels /wheels

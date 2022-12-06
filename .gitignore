@@ -1,7 +1,7 @@
-/logs/
-/files/
-/ssl/
 /configs/
+/files/
+/gnupg/
+/logs/
 /public/
-.gnupg
+/ssl/
 .env

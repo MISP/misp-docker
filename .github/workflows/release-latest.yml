@@ -18,7 +18,7 @@ jobs:
       env:
         GITHUB_CONTEXT: ${{ toJson(github) }}
       run: |
-        docker compose --file build-docker-compose.yml --env-file template.env build
+        docker compose --env-file template.env build
         # Tag the image with the commit SHA[0:7]
         DOCKER_IMG_TAG=`echo "${{ github.sha }}" | cut -c 1-7`
         docker tag ${{ secrets.DOCKER_USERNAME }}/misp-docker:core-latest ${{ secrets.DOCKER_USERNAME }}/misp-docker:core-$DOCKER_IMG_TAG
