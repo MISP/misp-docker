@@ -49,7 +49,6 @@ services:
       - "./ssl/:/etc/nginx/certs/"
       - "./gnupg/:/var/www/MISP/.gnupg/"
       - "${PUBLIC_MOUNT_POINT}:/mnt/public/"
-#      - "./examples/custom-entrypoint.sh:/custom-entrypoint.sh" # Use the example custom-entrypoint.sh
     environment:
       - "HOSTNAME=https://localhost"
       - "REDIS_FQDN=redis"

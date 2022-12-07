@@ -17,16 +17,24 @@ Like CoolAcid's MISP docker image, this is based on some of the work from the DS
 
 Additionally, this fork features the following improvements:
 
--   ARM (Apple M1) support
+-   ARM (M1) support: move mariadb for increase compatibility
+-   ARM (M1) support: move to updated and cross-platform mail exim4 image
 -   Fix and improve support for cron jobs
--   Fix Supervisor handling of entrypoints
--   Make schema update repeatable and completely offline
--   Fix missing MISP modules dependencies
--   New Background Job system, see https://github.com/MISP/MISP/blob/2.4/docs/background-jobs-migration-guide.md
--   Automatic configuration of MISP modules (see `entrypoint_internal.sh`)
--   Automatic configuration of sync servers (see `entrypoint_internal.sh`)
--   Automatic configuration of organizations (see `entrypoint_internal.sh`)
--   Autoamtic configuration of authentication keys (see `entrypoint_internal.sh`)
+-   Fix and improve support for syncservers
+-   Fix supervisord process control (processes are correctly terminated upon reload)
+-   Fix schema update by making it completely offline (no user interaction required)
+-   Fix enforcement of permissions
+-   Fix MISP modules loading of faup library
+-   Fix MISP modules loading of gl library
+-   Add support for new background job system (see https://github.com/MISP/MISP/blob/2.4/docs/background-jobs-migration-guide.md)
+-   Add support for exposing locally generated resources
+-   Add support for building specific MISP and MISP-modules commits
+-   Add automatic configuration of MISP modules (see `entrypoint_internal.sh`)
+-   Add automatic configuration of sync servers (see `entrypoint_internal.sh`)
+-   Add automatic configuration of organizations (see `entrypoint_internal.sh`)
+-   Add autoamtic configuration of authentication keys (see `entrypoint_internal.sh`)
+-   Add direct push of docker images to Docker Hub
+-   Consolidate docker compose files
 
 As a result, this image is not for everybody and does not (and will not) fit every use case.
 Nevertheless the underlying spirit of this fork is to allow "repeatable deployments", and all pull requests in this direction will be merged.
@@ -61,11 +69,11 @@ Pull the entire repository, you can build the images using `docker-compose build
 Once you have the docker container up you can access the container by running `docker-compose exec misp /bin/bash`.
 This will provide you with a root shell. You can use `apt update` and then install any tools you wish to use.
 Finally, copy any changes you make outside of the container for commiting to your branch. 
-`git diff -- [dir with changes]` could be used to reduce the number of changes in a patch file, however, becareful when using the `git diff` command.
+`git diff -- [dir with changes]` could be used to reduce the number of changes in a patch file, however, be careful when using the `git diff` command.
 
 ### Updating
 
-Updating the images should be as simple as `docker-compose pull` which, unless changed in the `docker-compose.yml` file will pull the latest built images.
+Updating the images should be as simple as `docker-compose pull` which, unless changed in the `docker-compose.yml` file, will pull the latest built images.
 
 ### Production
 -   It is recommended to specify which build you want to be running, and modify that version number when you would like to upgrade
@@ -102,7 +110,7 @@ If you are interested in building the project from scratch - `git clone` or down
 
 ### Configuration
 
-The `docker-compose.yml` file further allows the following configuration settings:
+The `docker-compose.yml` file allows further configuration settings:
 
 ```
 "MYSQL_HOST=db"

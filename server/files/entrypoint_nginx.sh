@@ -210,10 +210,6 @@ if [[ "$DISIPV6" == true ]]; then
     sed -i "s/listen \[\:\:\]/\#listen \[\:\:\]/" /etc/nginx/sites-enabled/misp
 fi
 
-if [[ -x /custom-entrypoint.sh ]]; then
-    /custom-entrypoint.sh
-fi
-
 # delete pid file
 [ -f $ENTRYPOINT_PID_FILE ] && rm $ENTRYPOINT_PID_FILE
 
