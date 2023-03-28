@@ -22,13 +22,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     RUN mkdir /wheel
     WORKDIR /srv
 
-    RUN git clone --branch ${MODULES_TAG} --depth 1  https://github.com/MISP/misp-modules.git /srv/misp-modules
-    RUN if [ ! -z ${MODULES_COMMIT} ]; then cd /srv/misp-modules && git checkout ${MODULES_COMMIT}; fi; \
-        # Fixed in master - even though __init__.py is not mandatory in py3, wheels skip packages without it
-        touch /srv/misp-modules/misp_modules/modules/action_mod/_utils/__init__.py; \
-        # Fixed in master - missing dependencies
-        echo "Jinja2==3.1.2\nmattermostdriver==7.3.2" >> /srv/misp-modules/REQUIREMENTS; \
-        cd /srv/misp-modules || exit; sed -i 's/-e //g' REQUIREMENTS; pip3 wheel -r REQUIREMENTS --no-cache-dir -w /wheel/
+    RUN if [ ! -z ${MODULES_COMMIT} ]; then \
+        git clone https://github.com/MISP/misp-modules.git /srv/misp-modules && cd /srv/misp-modules && git checkout ${MODULES_COMMIT}; \
+        else git clone --branch ${MODULES_TAG} --depth 1 https://github.com/MISP/misp-modules.git /srv/misp-modules; fi
+    RUN cd /srv/misp-modules || exit; sed -i 's/-e //g' REQUIREMENTS; pip3 wheel -r REQUIREMENTS --no-cache-dir -w /wheel/
 
     RUN git clone --depth 1 https://github.com/stricaud/faup.git /srv/faup; \
         cd /srv/faup/build || exit; cmake .. && make install; \
