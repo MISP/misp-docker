@@ -19,9 +19,9 @@ change_php_vars() {
     done
 }
 
-echo "Configure PHP  | Change PHP values ..." && change_php_vars
+echo "Configure PHP | Change PHP values ..." && change_php_vars
 
-echo "Starting PHP FPM"
+echo "Configure PHP | Starting PHP FPM"
 /usr/sbin/php-fpm7.4 -R -F & master_pid=$!
 
 # Wait for it

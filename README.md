@@ -29,10 +29,10 @@ Additionally, this fork features the following improvements:
 -   Add support for new background job system (see https://github.com/MISP/MISP/blob/2.4/docs/background-jobs-migration-guide.md)
 -   Add support for exposing locally generated resources
 -   Add support for building specific MISP and MISP-modules commits
--   Add automatic configuration of MISP modules (see `entrypoint_internal.sh`)
--   Add automatic configuration of sync servers (see `entrypoint_internal.sh`)
--   Add automatic configuration of organizations (see `entrypoint_internal.sh`)
--   Add autoamtic configuration of authentication keys (see `entrypoint_internal.sh`)
+-   Add automatic configuration of MISP modules (see `configure_misp.sh`)
+-   Add automatic configuration of sync servers (see `configure_misp.sh`)
+-   Add automatic configuration of organizations (see `configure_misp.sh`)
+-   Add autoamtic configuration of authentication keys (see `configure_misp.sh`)
 -   Add direct push of docker images to Docker Hub
 -   Consolidate docker compose files
 
@@ -117,10 +117,6 @@ The `docker-compose.yml` file allows further configuration settings:
 "MYSQL_USER=misp"
 "MYSQL_PASSWORD=example"    # NOTE: This should be AlphaNum with no Special Chars. Otherwise, edit config files after first run. 
 "MYSQL_DATABASE=misp"
-"NOREDIR=true"              # Do not redirect port 80
-"DISIPV6=true"              # Disable IPV6 in nginx
-"CERTAUTH=optional"         # Can be set to optional or on - Step 2 of https://github.com/MISP/MISP/tree/2.4/app/Plugin/CertAuth is still required
-"SECURESSL=true"            # Enable higher security SSL in nginx
 "MISP_MODULES_FQDN=http://misp-modules" # Set the MISP Modules FQDN, used for Enrichment_services_url/Import_services_url/Export_services_url
 "WORKERS=1"                 # Legacy variable controlling the number of parallel workers (use variables below instead)
 "NUM_WORKERS_DEFAULT=5"     # To set the number of default workers

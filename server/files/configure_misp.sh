@@ -2,6 +2,39 @@
 
 [ -z "$ADMIN_EMAIL" ] && ADMIN_EMAIL="admin@admin.test"
 [ -z "$GPG_PASSPHRASE" ] && GPG_PASSPHRASE="passphrase"
+[ -z "$REDIS_FQDN" ] && REDIS_FQDN=redis
+[ -z "$MISP_MODULES_FQDN" ] && MISP_MODULES_FQDN="http://misp-modules"
+
+init_misp_configuration(){
+    # Note that we are doing this after enforcing permissions, so we need to use the www-data user for this
+    echo "... configuring default settings"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "MISP.redis_host" "$REDIS_FQDN"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "MISP.baseurl" "$HOSTNAME"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "MISP.python_bin" $(which python3)
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_host" "$REDIS_FQDN"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" true
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_services_enable" true
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_services_url" "$MISP_MODULES_FQDN"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Import_services_enable" true
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Import_services_url" "$MISP_MODULES_FQDN"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Export_services_enable" true
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Export_services_url" "$MISP_MODULES_FQDN"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Cortex_services_enable" false
+}
+
+init_misp_workers(){
+    # Note that we are doing this after enforcing permissions, so we need to use the www-data user for this
+    echo "... configuring background workers"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "SimpleBackgroundJobs.enabled" true
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_host" "127.0.0.1"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_port" 9001
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_password" "supervisor"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_user" "supervisor"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_host" "$REDIS_FQDN"
+
+    echo "... starting background workers"
+    supervisorctl start misp-workers:*
+}
 
 init_gnupg() {
     GPG_DIR=/var/www/MISP/.gnupg
@@ -9,7 +42,7 @@ init_gnupg() {
     GPG_TMP=/tmp/gpg.tmp
 
     if [ ! -f "${GPG_DIR}/trustdb.gpg" ]; then
-        echo "Generating GPG key ... (please be patient, we need some entropy)"
+        echo "... generating new GPG key in ${GPG_DIR}"
         cat >${GPG_TMP} <<GPGEOF
 %echo Generating a basic OpenPGP key
 Key-Type: RSA
@@ -25,7 +58,7 @@ GPGEOF
         gpg --homedir ${GPG_DIR} --gen-key --batch ${GPG_TMP}
         rm -f ${GPG_TMP}
     else
-        echo "Using pre-generated GPG key in ${GPG_DIR}"
+        echo "... found pre-generated GPG key in ${GPG_DIR}"
     fi
 
     # Fix permissions
@@ -34,10 +67,10 @@ GPGEOF
     find ${GPG_DIR} -type d -exec chmod 700 {} \;
 
     if [ ! -f ${GPG_ASC} ]; then
-        echo "Exporting GPG key ..."
+        echo "... exporting GPG key"
         sudo -u www-data gpg --homedir ${GPG_DIR} --export --armor ${ADMIN_EMAIL} > ${GPG_ASC}
     else
-        echo "Found exported key ${GPG_ASC}"
+        echo "... found exported key ${GPG_ASC}"
     fi
 
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "GnuPG.email" "${ADMIN_EMAIL}"
@@ -64,14 +97,14 @@ init_user() {
         echo "UPDATE misp.organisations SET name = \"${ADMIN_ORG}\" where id = 1;" | ${MYSQLCMD}
     fi
     if [ ! -z "$ADMIN_KEY" ]; then
-        echo "Customize MISP | Setting admin key to '${ADMIN_KEY}'"
+        echo "... setting admin key to '${ADMIN_KEY}'"
         CHANGE_CMD=(sudo -u www-data /var/www/MISP/app/Console/cake User change_authkey 1 "${ADMIN_KEY}")
     else
-        echo "Customize MISP | Regenerating admin key"
+        echo "... regenerating admin key"
         CHANGE_CMD=(sudo -u www-data /var/www/MISP/app/Console/cake User change_authkey 1)
     fi
     ADMIN_KEY=`${CHANGE_CMD[@]} | awk 'END {print $NF; exit}'`
-    echo "Customize MISP | Admin user key set to '${ADMIN_KEY}'"
+    echo "... admin user key set to '${ADMIN_KEY}'"
 }
 
 apply_critical_fixes() {
@@ -81,9 +114,19 @@ apply_critical_fixes() {
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_hover_enable" false
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_hover_popover_only" false
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Security.csp_enforce" true
+    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+        \"Security\": {
+            \"rest_client_baseurl\": \"${HOSTNAME}\"
+        }
+    }" > /dev/null
+    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+        \"Security\": {
+            \"auth\": \"\"
+        }
+    }" > /dev/null
 }
 
-apply_custom_settings() {
+apply_optional_fixes() {
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting --force "MISP.welcome_text_top" ""
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting --force "MISP.welcome_text_bottom" ""
     
@@ -99,9 +142,9 @@ apply_custom_settings() {
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_hover_timeout" 5
 }
 
-configure_plugins() {
+configure_optional_plugins() {
     if [ ! -z "$VIRUSTOTAL_KEY" ]; then
-        echo "Customize MISP | Enabling 'virustotal' module ..."
+        echo "... enabling 'virustotal' module ..."
         sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
             \"Plugin\": {
                 \"Enrichment_virustotal_enabled\": true,
@@ -111,7 +154,7 @@ configure_plugins() {
     fi
 
     if [ ! -z "$VIRUSTOTAL_KEY" ] && [ ! -z "$NSX_ANALYSIS_KEY" ] && [ ! -z "$NSX_ANALYSIS_API_TOKEN" ] && [ ! -z "$ADMIN_KEY" ]; then
-        echo "Customize MISP | Enabling 'vmware_nsx' module ..."
+        echo "... enabling 'vmware_nsx' module ..."
         sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
             \"Plugin\": {
                 \"Enrichment_vmware_nsx_enabled\": true,
@@ -127,56 +170,12 @@ configure_plugins() {
     fi
 }
 
-configure_email() {
-    sudo -u www-data tee /var/www/MISP/app/Config/email.php > /dev/null <<EOT
-<?php
-class EmailConfig {
-    public \$default = array(
-        'transport'     => 'Smtp',
-        'from'          => array('misp-dev@admin.test' => 'Misp DEV'),
-        'host'          => 'mail',
-        'port'          => 25,
-        'timeout'       => 30,
-        'client'        => null,
-        'log'           => false,
-    );
-    public \$smtp = array(
-        'transport'     => 'Smtp',
-        'from'          => array('misp-dev@admin.test' => 'Misp DEV'),
-        'host'          => 'mail',
-        'port'          => 25,
-        'timeout'       => 30,
-        'client'        => null,
-        'log'           => false,
-    );
-    public \$fast = array(
-        'from'          => 'misp-dev@admin.test',
-        'sender'        => null,
-        'to'            => null,
-        'cc'            => null,
-        'bcc'           => null,
-        'replyTo'       => null,
-        'readReceipt'   => null,
-        'returnPath'    => null,
-        'messageId'     => true,
-        'subject'       => null,
-        'message'       => null,
-        'headers'       => null,
-        'viewRender'    => null,
-        'template'      => false,
-        'layout'        => false,
-        'viewVars'      => null,
-        'attachments'   => null,
-        'emailFormat'   => null,
-        'transport'     => 'Smtp',
-        'host'          => 'mail',
-        'port'          => 25,
-        'timeout'       => 30,
-        'client'        => null,
-        'log'           => true,
-    );
-}
-EOT
+updateComponents() {
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateGalaxies
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateTaxonomies
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateWarningLists
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateNoticeLists
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateObjectTemplates "$CRON_USER_ID"
 }
 
 add_organization() {
@@ -196,7 +195,7 @@ get_organization() {
     curl -s --show-error -k \
      -H "Authorization: ${ADMIN_KEY}" \
      -H "Accept: application/json" \
-     -H "Content-type: application/json" ${HOSTNAME}/organisations/view/${1} | jq -e -r ".Organisation.id"
+     -H "Content-type: application/json" ${HOSTNAME}/organisations/view/${1} | jq -e -r ".Organisation.id // empty"
 }
 
 add_server() {
@@ -214,54 +213,58 @@ get_server() {
      -H "Content-type: application/json" ${HOSTNAME}/servers | jq -e -r ".[] | select(.Server[\"name\"] == \"${1}\") | .Server.id"
 }
 
-updateComponents() {
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateGalaxies
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateTaxonomies
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateWarningLists
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateNoticeLists
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateObjectTemplates "$CRON_USER_ID"
+create_organizations() {
+    SPLITTED_ORGS=$(echo $ORGANIZATIONS | tr ',' '\n')
+    for ORG in $SPLITTED_ORGS; do
+        ORG_ID=$(get_organization ${ORG})
+        if [[ -z $ORG_ID ]]; then
+            echo "... adding organization: $ORG"
+            add_organization $ORG true
+        else
+            echo "... organization $ORG already exists"
+        fi
+    done
 }
 
-echo "Customize MISP | Configure email ..." && configure_email
+create_sync_servers() {
+    SPLITTED_SYNCSERVERS=$(echo $SYNCSERVERS | tr ',' '\n')
+    for ID in $SPLITTED_SYNCSERVERS; do
+        NAME="SYNCSERVERS_${ID}_NAME"
+        UUID="SYNCSERVERS_${ID}_UUID"
+        DATA="SYNCSERVERS_${ID}_DATA"
+        KEY="SYNCSERVERS_${ID}_KEY"
+        if ! get_server ${!NAME}; then
+            echo "... configuring sync server ${!NAME}..."
+            add_organization ${!NAME} false ${!UUID}
+            ORG_ID=$(get_organization ${!UUID})
+            DATA=$(echo "${!DATA}" | jq --arg org_id ${ORG_ID} --arg name ${!NAME} --arg key ${!KEY} '. + {remote_org_id: $org_id, name: $name, authkey: $key}')
+            add_server "$DATA"
+        fi
+    done   
+}
 
-echo "Customize MISP | Configure GPG key ..." && init_gnupg
 
-echo "Customize MISP | Running updates ..." && apply_updates
+echo "MISP | Initialize configuration ..." && init_misp_configuration
 
-echo "Customize MISP | Init default user and organization ..." && init_user
+echo "MISP | Initialize workers ..." && init_misp_workers
 
-echo "Customize MISP | Resolve critical issues ..." && apply_critical_fixes
+echo "MISP | Configure GPG key ..." && init_gnupg
 
-echo "Customize MISP | Customize installation ..." && apply_custom_settings
+echo "MISP | Running updates ..." && apply_updates
 
-# This item last so we had a chance to create the ADMIN_KEY if not specified
-echo "Customize MISP | Configure plugins ..." && configure_plugins
+echo "MISP | Init default user and organization ..." && init_user
 
-# Create organizations (and silently fail if present already)
-echo "Customize MISP | Creating organizations ..."
-SPLITTED_ORGS=$(echo $ORGANIZATIONS | tr ',' '\n')
-for ORG in $SPLITTED_ORGS; do
-    echo "Adding organization: $ORG"
-    add_organization $ORG true
-done
+echo "MISP | Resolve critical issues ..." && apply_critical_fixes
 
-echo "Customize MISP | Creating sync servers ..."
-SPLITTED_SYNCSERVERS=$(echo $SYNCSERVERS | tr ',' '\n')
-for ID in $SPLITTED_SYNCSERVERS; do
-    NAME="SYNCSERVERS_${ID}_NAME"
-    UUID="SYNCSERVERS_${ID}_UUID"
-    DATA="SYNCSERVERS_${ID}_DATA"
-    KEY="SYNCSERVERS_${ID}_KEY"
-    if ! get_server ${!NAME}; then
-        echo "Customize MISP | Configuring sync server ${!NAME}..."
-        add_organization ${!NAME} false ${!UUID}
-        ORG_ID=$(get_organization ${!UUID})
-        DATA=$(echo "${!DATA}" | jq --arg org_id ${ORG_ID} --arg name ${!NAME} --arg key ${!KEY} '. + {remote_org_id: $org_id, name: $name, authkey: $key}')
-        add_server "$DATA"
-    fi
-done
+echo "MISP | Resolve non-critical issues ..." && apply_optional_fixes
 
-echo "Customize MISP | Updating components ..." && updateComponents
+echo "MISP | Creating organizations ..." && create_organizations
 
-# Make the instance live
+echo "MISP | Creating sync servers ..." && create_sync_servers
+
+echo "MISP | Updating components ..." && updateComponents
+
+echo "MISP | Configure plugins with newly generate admin key ..." && configure_optional_plugins
+
+echo "MISP | Marking instance live"
 sudo -u www-data /var/www/MISP/app/Console/cake Admin live 1

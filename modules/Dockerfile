@@ -25,7 +25,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     RUN if [ ! -z ${MODULES_COMMIT} ]; then \
         git clone https://github.com/MISP/misp-modules.git /srv/misp-modules && cd /srv/misp-modules && git checkout ${MODULES_COMMIT}; \
         else git clone --branch ${MODULES_TAG} --depth 1 https://github.com/MISP/misp-modules.git /srv/misp-modules; fi
-    RUN cd /srv/misp-modules || exit; sed -i 's/-e //g' REQUIREMENTS; pip3 wheel -r REQUIREMENTS --no-cache-dir -w /wheel/
+    RUN cd /srv/misp-modules; \
+        echo "pyeti" >> REQUIREMENTS; \
+        echo "git+https://github.com/abenassi/Google-Search-API" >> REQUIREMENTS; \
+        sed -i 's/-e //g' REQUIREMENTS; \
+        pip3 wheel -r REQUIREMENTS --no-cache-dir -w /wheel/
 
     RUN git clone --depth 1 https://github.com/stricaud/faup.git /srv/faup; \
         cd /srv/faup/build || exit; cmake .. && make install; \
@@ -55,5 +59,13 @@ RUN pip install --use-deprecated=legacy-resolver /wheel/*.whl; ldconfig
 #   and skip the pre-compiled blob to improve compatibility with other architectures like arm
 RUN sed -i s/LoadLibrary\(LOAD_LIB\)/LoadLibrary\(\"\\/usr\\/local\\/lib\\/libfaupl.so\"\)/ \
     /usr/local/lib/python3.9/site-packages/pyfaup/__init__.py
+
+# Remove double logging
+RUN sed -i "/logging.basicConfig/d" \
+        /usr/local/lib/python3.9/site-packages/apiosintDS/apiosintDS.py; \
+    sed -i "/logging.basicConfig/d" \
+        /usr/local/lib/python3.9/site-packages/apiosintDS/modules/dosearch.py; \
+    sed -i "/logging.basicConfig/d" \
+        /usr/local/lib/python3.9/site-packages/apiosintDS/modules/listutils.py
 
 ENTRYPOINT [ "/usr/local/bin/misp-modules", "-l", "0.0.0.0"]

@@ -42,19 +42,19 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      # customization
+      - "3030:3030"
     volumes:
       - "./configs/:/var/www/MISP/app/Config/"
       - "./logs/:/var/www/MISP/app/tmp/logs/"
       - "./files/:/var/www/MISP/app/files/"
       - "./ssl/:/etc/nginx/certs/"
       - "./gnupg/:/var/www/MISP/.gnupg/"
-      - "${PUBLIC_MOUNT_POINT}:/mnt/public/"
     environment:
       - "HOSTNAME=https://localhost"
       - "REDIS_FQDN=redis"
-      - "INIT=true"             # Initialze MISP, things includes, attempting to import SQL and the Files DIR
-      - "CRON_USER_ID=1"        # The MISP user ID to run cron jobs as
-      # Synchronization Servers settings
+      - "CRON_USER_ID=1"
+      # sync server settings
       - "SYNCSERVERS=${SYNCSERVERS}"
       - "SYNCSERVERS_1_NAME=${SYNCSERVERS_1_NAME}"
       - "SYNCSERVERS_1_UUID=${SYNCSERVERS_1_UUID}"
@@ -66,7 +66,7 @@ services:
           "pull_rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"url_params\":\"{\\\"searchanalysis\\\": \\\"2\\\"}\"}",
           "pull": true
         }
-      # Custom Settings
+      # standard settings
       - "ADMIN_EMAIL=${ADMIN_EMAIL}"
       - "ADMIN_KEY=${ADMIN_KEY}"
       - "ADMIN_ORG=${ADMIN_ORG}"
@@ -75,6 +75,7 @@ services:
       - "NSX_ANALYSIS_KEY=${NSX_ANALYSIS_KEY}"
       - "ORGANIZATIONS=${ORGANIZATIONS}"
       - "VIRUSTOTAL_KEY=${VIRUSTOTAL_KEY}"
+  
   misp-modules:
     image: ostefano/misp-docker:modules-latest
     build:

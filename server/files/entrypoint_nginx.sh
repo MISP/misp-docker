@@ -8,80 +8,13 @@ term_proc() {
 
 trap term_proc SIGTERM
 
-MISP_APP_CONFIG_PATH=/var/www/MISP/app/Config
 [ -z "$MYSQL_HOST" ] && MYSQL_HOST=db
 [ -z "$MYSQL_PORT" ] && MYSQL_PORT=3306
 [ -z "$MYSQL_USER" ] && MYSQL_USER=misp
 [ -z "$MYSQL_PASSWORD" ] && MYSQL_PASSWORD=example
 [ -z "$MYSQL_DATABASE" ] && MYSQL_DATABASE=misp
-[ -z "$REDIS_FQDN" ] && REDIS_FQDN=redis
-[ -z "$MISP_MODULES_FQDN" ] && MISP_MODULES_FQDN="http://misp-modules"
-[ -z "$MYSQLCMD" ] && MYSQLCMD="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD -P $MYSQL_PORT -h $MYSQL_HOST -r -N  $MYSQL_DATABASE"
+[ -z "$MYSQLCMD" ] && export MYSQLCMD="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD -P $MYSQL_PORT -h $MYSQL_HOST -r -N  $MYSQL_DATABASE"
 
-ENTRYPOINT_PID_FILE="/entrypoint_apache.install"
-[ ! -f $ENTRYPOINT_PID_FILE ] && touch $ENTRYPOINT_PID_FILE
-
-init_misp_config(){
-    [ -f $MISP_APP_CONFIG_PATH/bootstrap.php ] || cp $MISP_APP_CONFIG_PATH.dist/bootstrap.default.php $MISP_APP_CONFIG_PATH/bootstrap.php
-    [ -f $MISP_APP_CONFIG_PATH/database.php ] || cp $MISP_APP_CONFIG_PATH.dist/database.default.php $MISP_APP_CONFIG_PATH/database.php
-    [ -f $MISP_APP_CONFIG_PATH/core.php ] || cp $MISP_APP_CONFIG_PATH.dist/core.default.php $MISP_APP_CONFIG_PATH/core.php
-    [ -f $MISP_APP_CONFIG_PATH/config.php ] || cp $MISP_APP_CONFIG_PATH.dist/config.default.php $MISP_APP_CONFIG_PATH/config.php
-    [ -f $MISP_APP_CONFIG_PATH/email.php ] || cp $MISP_APP_CONFIG_PATH.dist/email.php $MISP_APP_CONFIG_PATH/email.php
-    [ -f $MISP_APP_CONFIG_PATH/routes.php ] || cp $MISP_APP_CONFIG_PATH.dist/routes.php $MISP_APP_CONFIG_PATH/routes.php
-
-    echo "Configure MISP | Set DB User, Password and Host in database.php"
-    sed -i "s/localhost/$MYSQL_HOST/" $MISP_APP_CONFIG_PATH/database.php
-    sed -i "s/db\s*login/$MYSQL_USER/" $MISP_APP_CONFIG_PATH/database.php
-    sed -i "s/db\s*password/$MYSQL_PASSWORD/" $MISP_APP_CONFIG_PATH/database.php
-    sed -i "s/'database' => 'misp'/'database' => '$MYSQL_DATABASE'/" $MISP_APP_CONFIG_PATH/database.php
-}
-
-init_misp_defaults(){
-    # Note that we are doing this after enforcing permissions, so we need to use the www-data user for this
-    echo "Configure sane defaults"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "MISP.redis_host" "$REDIS_FQDN"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "MISP.baseurl" "$HOSTNAME"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "MISP.python_bin" $(which python3)
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_redis_host" "$REDIS_FQDN"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.ZeroMQ_enable" true
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_services_enable" true
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_services_url" "$MISP_MODULES_FQDN"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Import_services_enable" true
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Import_services_url" "$MISP_MODULES_FQDN"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Export_services_enable" true
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Export_services_url" "$MISP_MODULES_FQDN"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Cortex_services_enable" false
-}
-
-
-init_misp_workers(){
-    # Note that we are doing this after enforcing permissions, so we need to use the www-data user for this
-    echo "Configuring background workers"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "SimpleBackgroundJobs.enabled" true
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_host" "127.0.0.1"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_port" 9001
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_password" "supervisor"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "SimpleBackgroundJobs.supervisor_user" "supervisor"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "SimpleBackgroundJobs.redis_host" "$REDIS_FQDN"
-
-    echo "Starting background workers"
-    supervisorctl start misp-workers:*
-}
-
-init_misp_files(){
-    if [ ! -f /var/www/MISP/app/files/INIT ]; then
-        cp -R /var/www/MISP/app/files.dist/* /var/www/MISP/app/files
-        touch /var/www/MISP/app/files/INIT
-    fi
-}
-
-init_ssl() {
-    if [[ (! -f /etc/nginx/certs/cert.pem) || (! -f /etc/nginx/certs/key.pem) ]];
-    then
-        cd /etc/nginx/certs
-        openssl req -x509 -subj '/CN=localhost' -nodes -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365
-    fi
-}
 
 init_mysql(){
     # Test when MySQL is ready....
@@ -99,137 +32,209 @@ init_mysql(){
 
     RETRY=100
     until [ $(isDBup) -eq 0 ] || [ $RETRY -le 0 ] ; do
-        echo "Waiting for database to come up"
+        echo "... waiting for database to come up"
         sleep 5
         RETRY=$(( RETRY - 1))
     done
     if [ $RETRY -le 0 ]; then
-        >&2 echo "Error: Could not connect to Database on $MYSQL_HOST:$MYSQL_PORT"
+        >&2 echo "... error: Could not connect to Database on $MYSQL_HOST:$MYSQL_PORT"
         exit 1
     fi
 
     if [ $(isDBinitDone) -eq 0 ]; then
-        echo "Database has already been initialized"
+        echo "... database has already been initialized"
     else
-        echo "Database has not been initialized, importing MySQL scheme..."
+        echo "... database has not been initialized, importing MySQL scheme..."
         $MYSQLCMD < /var/www/MISP/INSTALL/MYSQL.sql
     fi
 }
 
-sync_files(){
+init_misp_data_files(){
+    # Init config (shared with host)
+    echo "... initializing configuration files"
+    MISP_APP_CONFIG_PATH=/var/www/MISP/app/Config
+    [ -f $MISP_APP_CONFIG_PATH/bootstrap.php ] || cp $MISP_APP_CONFIG_PATH.dist/bootstrap.default.php $MISP_APP_CONFIG_PATH/bootstrap.php
+    [ -f $MISP_APP_CONFIG_PATH/database.php ] || cp $MISP_APP_CONFIG_PATH.dist/database.default.php $MISP_APP_CONFIG_PATH/database.php
+    [ -f $MISP_APP_CONFIG_PATH/core.php ] || cp $MISP_APP_CONFIG_PATH.dist/core.default.php $MISP_APP_CONFIG_PATH/core.php
+    [ -f $MISP_APP_CONFIG_PATH/config.php ] || cp $MISP_APP_CONFIG_PATH.dist/config.default.php $MISP_APP_CONFIG_PATH/config.php
+    [ -f $MISP_APP_CONFIG_PATH/email.php ] || cp $MISP_APP_CONFIG_PATH.dist/email.php $MISP_APP_CONFIG_PATH/email.php
+    [ -f $MISP_APP_CONFIG_PATH/routes.php ] || cp $MISP_APP_CONFIG_PATH.dist/routes.php $MISP_APP_CONFIG_PATH/routes.php
+    
+    echo "... initializing database.php settings"
+    sed -i "s/localhost/$MYSQL_HOST/" $MISP_APP_CONFIG_PATH/database.php
+    sed -i "s/db\s*login/$MYSQL_USER/" $MISP_APP_CONFIG_PATH/database.php
+    sed -i "s/db\s*password/$MYSQL_PASSWORD/" $MISP_APP_CONFIG_PATH/database.php
+    sed -i "s/'database' => 'misp'/'database' => '$MYSQL_DATABASE'/" $MISP_APP_CONFIG_PATH/database.php
+
+    echo "... initializing email.php settings"
+    sudo -u www-data tee /var/www/MISP/app/Config/email.php > /dev/null <<EOT
+<?php
+class EmailConfig {
+    public \$default = array(
+        'transport'     => 'Smtp',
+        'from'          => array('misp-dev@admin.test' => 'Misp DEV'),
+        'host'          => 'mail',
+        'port'          => 25,
+        'timeout'       => 30,
+        'client'        => null,
+        'log'           => false,
+    );
+    public \$smtp = array(
+        'transport'     => 'Smtp',
+        'from'          => array('misp-dev@admin.test' => 'Misp DEV'),
+        'host'          => 'mail',
+        'port'          => 25,
+        'timeout'       => 30,
+        'client'        => null,
+        'log'           => false,
+    );
+    public \$fast = array(
+        'from'          => 'misp-dev@admin.test',
+        'sender'        => null,
+        'to'            => null,
+        'cc'            => null,
+        'bcc'           => null,
+        'replyTo'       => null,
+        'readReceipt'   => null,
+        'returnPath'    => null,
+        'messageId'     => true,
+        'subject'       => null,
+        'message'       => null,
+        'headers'       => null,
+        'viewRender'    => null,
+        'template'      => false,
+        'layout'        => false,
+        'viewVars'      => null,
+        'attachments'   => null,
+        'emailFormat'   => null,
+        'transport'     => 'Smtp',
+        'host'          => 'mail',
+        'port'          => 25,
+        'timeout'       => 30,
+        'client'        => null,
+        'log'           => true,
+    );
+}
+EOT
+
+    # Init files (shared with host)
+    echo "... initializing app files"
+    MISP_APP_FILES_PATH=/var/www/MISP/app/files
+    if [ ! -f ${MISP_APP_FILES_PATH}/INIT ]; then
+        cp -R ${MISP_APP_FILES_PATH}.dist/* ${MISP_APP_FILES_PATH}
+        touch ${MISP_APP_FILES_PATH}/INIT
+    fi
+}
+
+update_misp_data_files(){
     for DIR in $(ls /var/www/MISP/app/files.dist); do
+        echo "... rsync -azh --delete \"/var/www/MISP/app/files.dist/$DIR\" \"/var/www/MISP/app/files/\""
         rsync -azh --delete "/var/www/MISP/app/files.dist/$DIR" "/var/www/MISP/app/files/"
     done
 }
 
-# Ensure SSL certs are where we expect them, for backward comparibility See issue #53
-for CERT in cert.pem dhparams.pem key.pem; do
-    echo "/etc/nginx/certs/$CERT /etc/ssl/certs/$CERT"
-    if [[ ! -f "/etc/nginx/certs/$CERT" && -f "/etc/ssl/certs/$CERT" ]]; then
-        WARNING53=true
-        cp /etc/ssl/certs/$CERT /etc/nginx/certs/$CERT
+enforce_misp_data_permissions(){
+    echo "... chown -R www-data:www-data /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
+    # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
+    echo "... chmod -R 0550 files /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp -not -perm 550 -type f -exec chmod 0550 {} +
+    # Directories are also writable, because there seems to be a requirement to add new files every once in a while
+    echo "... chmod -R 0770 directories /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp -not -perm 770 -type d -exec chmod 0770 {} +
+    # We make 'files' and 'tmp' (logs) directories and files user and group writable (we removed the SGID bit)
+    echo "... chmod -R u+w,g+w /var/www/MISP/app/tmp" && chmod -R u+w,g+w /var/www/MISP/app/tmp
+    
+    echo "... chown -R www-data:www-data /var/www/MISP/app/files" && find /var/www/MISP/app/files \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
+    # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
+    echo "... chmod -R 0550 files /var/www/MISP/app/files" && find /var/www/MISP/app/files -not -perm 550 -type f -exec chmod 0550 {} +
+    # Directories are also writable, because there seems to be a requirement to add new files every once in a while
+    echo "... chmod -R 0770 directories /var/www/MISP/app/files" && find /var/www/MISP/app/files -not -perm 770 -type d -exec chmod 0770 {} +
+    # We make 'files' and 'tmp' (logs) directories and files user and group writable (we removed the SGID bit)
+    echo "... chmod -R u+w,g+w /var/www/MISP/app/files" && chmod -R u+w,g+w /var/www/MISP/app/files
+    
+    echo "... chown -R www-data:www-data /var/www/MISP/app/Config" && find /var/www/MISP/app/Config \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
+    # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
+    echo "... chmod -R 0550 files /var/www/MISP/app/Config ..." && find /var/www/MISP/app/Config -not -perm 550 -type f -exec chmod 0550 {} +
+    # Directories are also writable, because there seems to be a requirement to add new files every once in a while
+    echo "... chmod -R 0770 directories /var/www/MISP/app/Config" && find /var/www/MISP/app/Config -not -perm 770 -type d -exec chmod 0770 {} +
+    # We make configuration files read only
+    echo "... chmod 600 /var/www/MISP/app/Config/{config,database,email}.php" && chmod 600 /var/www/MISP/app/Config/{config,database,email}.php
+}
+
+flip_nginx() {
+    local live="$1";
+    local reload="$2";
+
+    if [[ "$live" = "true" ]]; then
+        NGINX_DOC_ROOT=/var/www/MISP/app/webroot
+    elif [[ -x /custom/files/var/www/html/index.php ]]; then
+        NGINX_DOC_ROOT=/custom/files/var/www/html/
+    else
+        NGINX_DOC_ROOT=/var/www/html/
     fi
-done
 
-# Things we should do when we have the INITIALIZE Env Flag
-if [[ "$INIT" == true ]]; then
-    echo "Setup MySQL..." && init_mysql
-    echo "Setup MISP files dir..." && init_misp_files
-    echo "Ensure SSL certs exist..." && init_ssl
-fi
+    # must be valid for all roots
+    echo "... nginx docroot set to ${NGINX_DOC_ROOT}"
+    sed -i "s|root.*var/www.*|root ${NGINX_DOC_ROOT};|" /etc/nginx/sites-available/misp
 
-# Things we should do if we're configuring MISP via ENV
-echo "Configure MISP | Initialize misp base config..." && init_misp_config
+    if [[ "$reload" = "true" ]]; then
+        echo "... nginx reloaded"
+        nginx -s reload
+    fi
+}
 
-echo "Configure MISP | Sync app files..." && sync_files
+init_nginx() {
+    if [[ ! -L "/etc/nginx/sites-enabled/misp80" ]]; then
+        echo "... enabling port 80 redirect"
+        ln -s /etc/nginx/sites-available/misp80 /etc/nginx/sites-enabled/misp80
+    else
+        echo "... port 80 already configured"
+    fi
 
-echo "Configure MISP | Enforce permissions ..."
-# The spirit of the upstrem dockerization is to keep user and group aligned in terms of permissions
-echo "... chown -R www-data:www-data /var/www/MISP ..." && find /var/www/MISP \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
-# Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
-echo "... chmod -R 0550 files /var/www/MISP ..." && find /var/www/MISP -not -perm 550 -type f -exec chmod 0550 {} +
-# Directories are also writable, because there seems to be a requirement to add new files every once in a while
-echo "... chmod -R 0770 directories /var/www/MISP ..." && find /var/www/MISP -not -perm 770 -type d -exec chmod 0770 {} +
-# We make 'files' and 'tmp' (logs) directories and files user and group writable (we removed the SGID bit)
-echo "... chmod -R u+w,g+w /var/www/MISP/app/tmp ..." && chmod -R u+w,g+w /var/www/MISP/app/tmp
-echo "... chmod -R u+w,g+w /var/www/MISP/app/files ..." && chmod -R u+w,g+w /var/www/MISP/app/files
-# We also make other special files writable (should be 660)
-echo "... chmod 600 /var/www/MISP/app/Config/config.php /var/www/MISP/app/Config/database.php /var/www/MISP/app/Config/email.php ... " && chmod 600 /var/www/MISP/app/Config/config.php /var/www/MISP/app/Config/database.php /var/www/MISP/app/Config/email.php
+    if [[ ! -L "/etc/nginx/sites-enabled/misp" ]]; then
+        echo "... enabling port 443"
+        ln -s /etc/nginx/sites-available/misp /etc/nginx/sites-enabled/misp
+    else
+        echo "... port 443 already configured"
+    fi
+    
+    if [[ ! -f /etc/nginx/certs/cert.pem || ! -f /etc/nginx/certs/key.pem ]]; then
+        echo "... generating new self-signed TLS certificate"
+        openssl req -x509 -subj '/CN=localhost' -nodes -newkey rsa:4096 -keyout /etc/nginx/certs/key.pem -out /etc/nginx/certs/cert.pem -days 365
+    else
+        echo "... TLS certificates found"
+    fi
+    
+    if [[ ! -f /etc/nginx/certs/dhparams.pem ]]; then
+        echo "... generating new DH parameters"
+        openssl dhparam -out /etc/nginx/certs/dhparams.pem 2048
+    else
+        echo "... DH parameters found"
+    fi
 
-# Configuring defaults now
-echo "Configure MISP | Setting defaults ..." && init_misp_defaults
+    flip_nginx false false
+}
 
-# Workers are set to NOT auto start so we have time to enforce permissions on the cache first
-echo "Configure MISP | Starting workers ..." && init_misp_workers
 
-# Work around https://github.com/MISP/MISP/issues/5608
-if [[ ! -f /var/www/MISP/PyMISP/pymisp/data/describeTypes.json ]]; then
-    mkdir -p /var/www/MISP/PyMISP/pymisp/data/
-    ln -s /usr/local/lib/python3.9/dist-packages/pymisp/data/describeTypes.json /var/www/MISP/PyMISP/pymisp/data/describeTypes.json
-fi
+# Initialize MySQL
+echo "INIT | Initialize MySQL ..." && init_mysql
 
-if [[ ! -L "/etc/nginx/sites-enabled/misp80" && "$NOREDIR" == true ]]; then
-    echo "Configure NGINX | Disabling Port 80 Redirect"
-    ln -s /etc/nginx/sites-available/misp80-noredir /etc/nginx/sites-enabled/misp80
-elif [[ ! -L "/etc/nginx/sites-enabled/misp80" ]]; then
-    echo "Configure NGINX | Enable Port 80 Redirect"
-    ln -s /etc/nginx/sites-available/misp80 /etc/nginx/sites-enabled/misp80
-else
-    echo "Configure NGINX | Port 80 already configured"
-fi
-
-if [[ ! -L "/etc/nginx/sites-enabled/misp" && "$SECURESSL" == true ]]; then
-    echo "Configure NGINX | Using Secure SSL"
-    ln -s /etc/nginx/sites-available/misp-secure /etc/nginx/sites-enabled/misp
-elif [[ ! -L "/etc/nginx/sites-enabled/misp" ]]; then
-    echo "Configure NGINX | Using Standard SSL"
-    ln -s /etc/nginx/sites-available/misp /etc/nginx/sites-enabled/misp
-else
-    echo "Configure NGINX | SSL already configured"
-fi
-
-if [[ ! "$SECURESSL" == true && ! -f /etc/nginx/certs/dhparams.pem ]]; then
-    echo "Configure NGINX | Building dhparams.pem"
-    openssl dhparam -out /etc/nginx/certs/dhparams.pem 2048
-fi
-
-if [[ $CERTAUTH = @(optional|on) ]]; then
-    echo "Configure NGINX | Enabling SSL Cert Authentication"
-    grep -qF "fastcgi_param SSL_CLIENT_I_DN \$ssl_client_i_dn;" /etc/nginx/snippets/fastcgi-php.conf || echo "fastcgi_param SSL_CLIENT_I_DN \$ssl_client_i_dn;" >> /etc/nginx/snippets/fastcgi-php.conf
-    grep -qF "fastcgi_param SSL_CLIENT_S_DN \$ssl_client_s_dn;" /etc/nginx/snippets/fastcgi-php.conf || echo "fastcgi_param SSL_CLIENT_S_DN \$ssl_client_s_dn;" >> /etc/nginx/snippets/fastcgi-php.conf
-    grep -qF 'ssl_client_certificate' /etc/nginx/sites-enabled/misp || sed -i '/ssl_prefer_server_ciphers/a \\    ssl_client_certificate /etc/nginx/certs/ca.pem;' /etc/nginx/sites-enabled/misp
-    grep -qF 'ssl_verify_client' /etc/nginx/sites-enabled/misp || sed -i "/ssl_prefer_server_ciphers/a \\    ssl_verify_client $CERTAUTH;" /etc/nginx/sites-enabled/misp 
-
-    echo "Configure bootstrap | Enabling Cert Auth Plugin - Don't forget to configure it https://github.com/MISP/MISP/tree/2.4/app/Plugin/CertAuth (Step 2)" 
-    sed -i "s/\/\/ CakePlugin::load('CertAuth');/CakePlugin::load('CertAuth');/" $MISP_APP_CONFIG_PATH/bootstrap.php
-fi
-
-if [[ "$DISIPV6" == true ]]; then
-    echo "Configure NGINX | Disabling IPv6"
-    sed -i "s/listen \[\:\:\]/\#listen \[\:\:\]/" /etc/nginx/sites-enabled/misp80
-    sed -i "s/listen \[\:\:\]/\#listen \[\:\:\]/" /etc/nginx/sites-enabled/misp
-fi
-
-# delete pid file
-[ -f $ENTRYPOINT_PID_FILE ] && rm $ENTRYPOINT_PID_FILE
-
-if [[ "$WARNING53" == true ]]; then
-    echo "WARNING - WARNING - WARNING"
-    echo "The SSL certs have moved. You currently have them mounted to /etc/ssl/certs."
-    echo "This needs to be changed to /etc/nginx/certs."
-    echo "See: https://github.com/coolacid/docker-misp/issues/53"
-    echo "WARNING - WARNING - WARNING"
-fi
-
-if [[ -x /entrypoint_internal.sh ]]; then
-    export MYSQLCMD=${MYSQLCMD}
-    nginx -g 'daemon off;' & master_pid=$!
-    /entrypoint_internal.sh
-    kill -TERM "$master_pid" 2>/dev/null
-fi
-
-# Start NGINX
+# Initialize NGINX
+echo "INIT | Initialize NGINX ..." && init_nginx
 nginx -g 'daemon off;' & master_pid=$!
+
+# Initialize MISP
+echo "INIT | Initialize MISP files and configurations ..." && init_misp_data_files
+echo "INIT | Updating MISP app/files directory ..." && update_misp_data_files
+echo "INIT | Enforce MISP permissions ..." && enforce_misp_data_permissions
+echo "INIT | Flipping NGINX live ..." && flip_nginx true true
+
+# Run configure MISP script
+echo "INIT | Configuring MISP installation ..."
+/configure_misp.sh
+
+if [[ -x /custom/files/customize_misp.sh ]]; then
+    echo "INIT | Customizing MISP installation ..."
+    /custom/files/customize_misp.sh
+fi
 
 # Wait for it
 wait "$master_pid"

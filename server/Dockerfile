@@ -7,11 +7,13 @@ FROM "${DOCKER_HUB_PROXY}composer:2.1.14" as composer-build
     RUN composer install --ignore-platform-reqs && \
      composer require jakub-onderka/openid-connect-php:1.0.0-rc1 --ignore-platform-reqs && \
      composer require --with-all-dependencies supervisorphp/supervisor:^4.0 \
-      guzzlehttp/guzzle php-http/message lstrojny/fxmlrpc --ignore-platform-reqs
+      guzzlehttp/guzzle php-http/message lstrojny/fxmlrpc --ignore-platform-reqs && \
+     composer require --with-all-dependencies elasticsearch/elasticsearch:^8.7.0 aws/aws-sdk-php --ignore-platform-reqs
 
 FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as php-build
     RUN apt-get update; apt-get install -y --no-install-recommends \
         gcc \
+        g++ \
         make \
         libfuzzy-dev \
         ca-certificates \
@@ -19,13 +21,13 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as php-build
         php-dev \
         php-pear \
         librdkafka-dev \
+        libsimdjson-dev \
         git \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
         
         RUN pecl channel-update pecl.php.net
-        RUN cp "/usr/lib/$(gcc -dumpmachine)"/libfuzzy.* /usr/lib; pecl install ssdeep && pecl install rdkafka
+        RUN cp "/usr/lib/$(gcc -dumpmachine)"/libfuzzy.* /usr/lib; pecl install ssdeep && pecl install rdkafka && pecl install simdjson
         RUN git clone --recursive --depth=1 https://github.com/kjdev/php-ext-brotli.git && cd php-ext-brotli && phpize && ./configure && make && make install
-        
 
 FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as python-build
     RUN apt-get update; apt-get install -y --no-install-recommends \
@@ -78,7 +80,7 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as python-build
         cd pydeep || exit; python3 setup.py bdist_wheel -d /wheels
 
     # Grab other modules we need
-    RUN pip3 wheel --no-cache-dir -w /wheels/ plyara pyzmq redis python-magic lief
+    RUN pip3 wheel --no-cache-dir -w /wheels/ plyara pyzmq redis python-magic lief==0.12.3
 
     # Remove extra packages due to incompatible requirements.txt files
     WORKDIR /wheels
@@ -125,6 +127,7 @@ ARG PHP_VER
         php-zip \
         librdkafka1 \
         libbrotli1 \
+        libsimdjson5 \
         # Unsure we need these
         zip unzip \
         # Require for advanced an unattended configuration
@@ -136,7 +139,7 @@ ARG PHP_VER
     RUN if [ ! -z ${MISP_COMMIT} ]; then \
      git clone https://github.com/MISP/MISP.git /var/www/MISP && cd /var/www/MISP && git checkout ${MISP_COMMIT}; \
      else git clone --branch ${MISP_TAG} --depth 1 https://github.com/MISP/MISP.git /var/www/MISP; fi
-    RUN cd /var/www/MISP/app || exit; git submodule update --init --recursive .; \
+    RUN cd /var/www/MISP; git submodule update --init --recursive .; cd /var/www/MISP/app; \
         # Remove some old and broken links that pollute the log files
         rm -rf /var/www/MISP/INSTALL/old
 
@@ -149,24 +152,21 @@ ARG PHP_VER
     COPY --from=php-build /usr/lib/php/${PHP_VER}/ssdeep.so /usr/lib/php/${PHP_VER}/ssdeep.so
     COPY --from=php-build /usr/lib/php/${PHP_VER}/rdkafka.so /usr/lib/php/${PHP_VER}/rdkafka.so
     COPY --from=php-build /usr/lib/php/${PHP_VER}/brotli.so /usr/lib/php/${PHP_VER}/brotli.so
+    COPY --from=php-build /usr/lib/php/${PHP_VER}/simdjson.so /usr/lib/php/${PHP_VER}/simdjson.so
 
     COPY --from=composer-build /tmp/Vendor /var/www/MISP/app/Vendor
     COPY --from=composer-build /tmp/Plugin /var/www/MISP/app/Plugin
     
     RUN for dir in /etc/php/*; do echo "extension=rdkafka.so" > "$dir/mods-available/rdkafka.ini"; done; phpenmod rdkafka
     RUN for dir in /etc/php/*; do echo "extension=brotli.so" > "$dir/mods-available/brotli.ini"; done; phpenmod brotli
-
-    RUN for dir in /etc/php/*; do echo "extension=ssdeep.so" > "$dir/mods-available/ssdeep.ini"; done \
-            ;phpenmod redis \
-    # Enable ssdeep we build earlier
-        ;phpenmod ssdeep
+    RUN for dir in /etc/php/*; do echo "extension=ssdeep.so" > "$dir/mods-available/ssdeep.ini"; done; phpenmod ssdeep
+    RUN for dir in /etc/php/*; do echo "extension=simdjson.so" > "$dir/mods-available/simdjson.ini"; done; phpenmod simdjson
+    RUN phpenmod redis
 
 # nginx
     RUN rm /etc/nginx/sites-enabled/*; mkdir /run/php /etc/nginx/certs
     COPY files/etc/nginx/misp /etc/nginx/sites-available/misp
-    COPY files/etc/nginx/misp-secure /etc/nginx/sites-available/misp-secure
     COPY files/etc/nginx/misp80 /etc/nginx/sites-available/misp80
-    COPY files/etc/nginx/misp80-noredir /etc/nginx/sites-available/misp80-noredir
 
 # Make a copy of the file store, so we can sync from it
     RUN cp -R /var/www/MISP/app/files /var/www/MISP/app/files.dist
@@ -174,10 +174,18 @@ ARG PHP_VER
 # Make a copy of the configurations, so we can sync from it
     RUN cp -R /var/www/MISP/app/Config /var/www/MISP/app/Config.dist
 
+# The spirit of the upstrem dockerization is to keep user and group aligned in terms of permissions
+    RUN find /var/www/MISP \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
+# Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
+    RUN find /var/www/MISP -not -perm 550 -type f -exec chmod 0550 {} +
+# Directories are also writable, because there seems to be a requirement to add new files every once in a while
+    RUN find /var/www/MISP -not -perm 770 -type d -exec chmod 0770 {} +
+
 # Entrypoints
     COPY files/etc/supervisor/supervisor.conf /etc/supervisor/conf.d/10-supervisor.conf
     COPY files/etc/supervisor/workers.conf /etc/supervisor/conf.d/50-workers.conf
-    COPY files/entrypoint_internal.sh /
+    COPY files/var/www/html/index.php /var/www/html/index.php
+    COPY files/configure_misp.sh /
     COPY files/entrypoint_fpm.sh /
     COPY files/entrypoint_nginx.sh /
     COPY files/entrypoint_cron.sh /
