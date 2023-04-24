@@ -42,8 +42,6 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      # customization
-      - "3030:3030"
     volumes:
       - "./configs/:/var/www/MISP/app/Config/"
       - "./logs/:/var/www/MISP/app/tmp/logs/"
