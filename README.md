@@ -27,11 +27,8 @@ Additionally, this fork features the following improvements:
 -   Fix MISP modules loading of faup library
 -   Fix MISP modules loading of gl library
 -   Add support for new background job system (see https://github.com/MISP/MISP/blob/2.4/docs/background-jobs-migration-guide.md)
--   Add support for exposing locally generated resources
 -   Add support for building specific MISP and MISP-modules commits
--   Add automatic configuration of MISP modules (see `configure_misp.sh`)
 -   Add automatic configuration of sync servers (see `configure_misp.sh`)
--   Add automatic configuration of organizations (see `configure_misp.sh`)
 -   Add autoamtic configuration of authentication keys (see `configure_misp.sh`)
 -   Add direct push of docker images to Docker Hub
 -   Consolidate docker compose files
@@ -85,11 +82,13 @@ Updating the images should be as simple as `docker-compose pull` which, unless c
     -   Certificate Key File: `key.pem`
     -   CA File for Cert Authentication (optional) `ca.pem`
 
--   Directory volume mount and create configs: `/var/www/MISP/app/Config/`
-
 -   Additional directory volume mounts:
-    -   `/var/www/MISP/app/files`
-    -   `/var/www/MISP/.gnupg`
+    -   `./configs`: `/var/www/MISP/app/Config/`
+    -   `./logs`: `/var/www/MISP/app/tmp/logs/`
+    -   `./files`: `/var/www/MISP/app/files/`
+    -   `./gnupg`: `/var/www/MISP/.gnupg/`
+
+-   If you need to automatically run additional steps each time the container starts, create a new file `files/customize_misp.sh`, and replace the variable `${CUSTOM_PATH}` inside `docker-compose.yml` with its parent path.
 
 ### Building
 

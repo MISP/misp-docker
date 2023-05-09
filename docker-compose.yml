@@ -48,10 +48,17 @@ services:
       - "./files/:/var/www/MISP/app/files/"
       - "./ssl/:/etc/nginx/certs/"
       - "./gnupg/:/var/www/MISP/.gnupg/"
+      # customize by replacing ${CUSTOM_PATH} with a path containing 'files/customize_misp.sh'
+      # - "${CUSTOM_PATH}/:/custom/"
     environment:
       - "HOSTNAME=https://localhost"
       - "REDIS_FQDN=redis"
       - "CRON_USER_ID=1"
+      # standard settings
+      - "ADMIN_EMAIL=${ADMIN_EMAIL}"
+      - "ADMIN_KEY=${ADMIN_KEY}"
+      - "ADMIN_ORG=${ADMIN_ORG}"
+      - "GPG_PASSPHRASE=${GPG_PASSPHRASE}"
       # sync server settings
       - "SYNCSERVERS=${SYNCSERVERS}"
       - "SYNCSERVERS_1_NAME=${SYNCSERVERS_1_NAME}"
@@ -64,15 +71,6 @@ services:
           "pull_rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"url_params\":\"{\\\"searchanalysis\\\": \\\"2\\\"}\"}",
           "pull": true
         }
-      # standard settings
-      - "ADMIN_EMAIL=${ADMIN_EMAIL}"
-      - "ADMIN_KEY=${ADMIN_KEY}"
-      - "ADMIN_ORG=${ADMIN_ORG}"
-      - "GPG_PASSPHRASE=${GPG_PASSPHRASE}"
-      - "NSX_ANALYSIS_API_TOKEN=${NSX_ANALYSIS_API_TOKEN}"
-      - "NSX_ANALYSIS_KEY=${NSX_ANALYSIS_KEY}"
-      - "ORGANIZATIONS=${ORGANIZATIONS}"
-      - "VIRUSTOTAL_KEY=${VIRUSTOTAL_KEY}"
   
   misp-modules:
     image: ostefano/misp-docker:modules-latest

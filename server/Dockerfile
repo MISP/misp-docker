@@ -186,6 +186,7 @@ ARG PHP_VER
     COPY files/etc/supervisor/workers.conf /etc/supervisor/conf.d/50-workers.conf
     COPY files/var/www/html/index.php /var/www/html/index.php
     COPY files/configure_misp.sh /
+    COPY files/rest_client.sh /
     COPY files/entrypoint_fpm.sh /
     COPY files/entrypoint_nginx.sh /
     COPY files/entrypoint_cron.sh /

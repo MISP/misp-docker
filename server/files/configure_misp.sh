@@ -1,11 +1,13 @@
 #!/bin/bash
 
+source /rest_client.sh
+
 [ -z "$ADMIN_EMAIL" ] && ADMIN_EMAIL="admin@admin.test"
 [ -z "$GPG_PASSPHRASE" ] && GPG_PASSPHRASE="passphrase"
 [ -z "$REDIS_FQDN" ] && REDIS_FQDN=redis
 [ -z "$MISP_MODULES_FQDN" ] && MISP_MODULES_FQDN="http://misp-modules"
 
-init_misp_configuration(){
+init_configuration(){
     # Note that we are doing this after enforcing permissions, so we need to use the www-data user for this
     echo "... configuring default settings"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "MISP.redis_host" "$REDIS_FQDN"
@@ -22,7 +24,7 @@ init_misp_configuration(){
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Cortex_services_enable" false
 }
 
-init_misp_workers(){
+init_workers(){
     # Note that we are doing this after enforcing permissions, so we need to use the www-data user for this
     echo "... configuring background workers"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "SimpleBackgroundJobs.enabled" true
@@ -36,7 +38,7 @@ init_misp_workers(){
     supervisorctl start misp-workers:*
 }
 
-init_gnupg() {
+configure_gnupg() {
     GPG_DIR=/var/www/MISP/.gnupg
     GPG_ASC=/var/www/MISP/app/webroot/gpg.asc
     GPG_TMP=/tmp/gpg.tmp
@@ -142,88 +144,12 @@ apply_optional_fixes() {
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Plugin.Enrichment_hover_timeout" 5
 }
 
-configure_optional_plugins() {
-    if [ ! -z "$VIRUSTOTAL_KEY" ]; then
-        echo "... enabling 'virustotal' module ..."
-        sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
-            \"Plugin\": {
-                \"Enrichment_virustotal_enabled\": true,
-                \"Enrichment_virustotal_apikey\": \"${VIRUSTOTAL_KEY}\"
-            }
-        }" > /dev/null
-    fi
-
-    if [ ! -z "$VIRUSTOTAL_KEY" ] && [ ! -z "$NSX_ANALYSIS_KEY" ] && [ ! -z "$NSX_ANALYSIS_API_TOKEN" ] && [ ! -z "$ADMIN_KEY" ]; then
-        echo "... enabling 'vmware_nsx' module ..."
-        sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
-            \"Plugin\": {
-                \"Enrichment_vmware_nsx_enabled\": true,
-                \"Enrichment_vmware_nsx_analysis_verify_ssl\": \"True\",
-                \"Enrichment_vmware_nsx_analysis_key\": \"${NSX_ANALYSIS_KEY}\",
-                \"Enrichment_vmware_nsx_analysis_api_token\": \"${NSX_ANALYSIS_API_TOKEN}\",
-                \"Enrichment_vmware_nsx_vt_key\": \"${VIRUSTOTAL_KEY}\",
-                \"Enrichment_vmware_nsx_misp_url\": \"${HOSTNAME}\",
-                \"Enrichment_vmware_nsx_misp_verify_ssl\": \"False\",
-                \"Enrichment_vmware_nsx_misp_key\": \"${ADMIN_KEY}\"
-            }
-        }" > /dev/null
-    fi
-}
-
-updateComponents() {
+update_components() {
     sudo -u www-data /var/www/MISP/app/Console/cake Admin updateGalaxies
     sudo -u www-data /var/www/MISP/app/Console/cake Admin updateTaxonomies
     sudo -u www-data /var/www/MISP/app/Console/cake Admin updateWarningLists
     sudo -u www-data /var/www/MISP/app/Console/cake Admin updateNoticeLists
     sudo -u www-data /var/www/MISP/app/Console/cake Admin updateObjectTemplates "$CRON_USER_ID"
-}
-
-add_organization() {
-    # empty uuid fallbacks to auto-generate
-    curl -s --show-error -k \
-     -H "Authorization: ${ADMIN_KEY}" \
-     -H "Accept: application/json" \
-     -H "Content-type: application/json" \
-     -d "{ \
-        \"uuid\": \"${3}\", \
-        \"name\": \"${1}\", \
-        \"local\": ${2} \
-     }" ${HOSTNAME}/admin/organisations/add
-}
-
-get_organization() {
-    curl -s --show-error -k \
-     -H "Authorization: ${ADMIN_KEY}" \
-     -H "Accept: application/json" \
-     -H "Content-type: application/json" ${HOSTNAME}/organisations/view/${1} | jq -e -r ".Organisation.id // empty"
-}
-
-add_server() {
-    curl -s --show-error -k \
-     -H "Authorization: ${ADMIN_KEY}" \
-     -H "Accept: application/json" \
-     -H "Content-type: application/json" \
-     -d "${1}" ${HOSTNAME}/servers/add
-}
-
-get_server() {
-    curl -s --show-error -k \
-     -H "Authorization: ${ADMIN_KEY}" \
-     -H "Accept: application/json" \
-     -H "Content-type: application/json" ${HOSTNAME}/servers | jq -e -r ".[] | select(.Server[\"name\"] == \"${1}\") | .Server.id"
-}
-
-create_organizations() {
-    SPLITTED_ORGS=$(echo $ORGANIZATIONS | tr ',' '\n')
-    for ORG in $SPLITTED_ORGS; do
-        ORG_ID=$(get_organization ${ORG})
-        if [[ -z $ORG_ID ]]; then
-            echo "... adding organization: $ORG"
-            add_organization $ORG true
-        else
-            echo "... organization $ORG already exists"
-        fi
-    done
 }
 
 create_sync_servers() {
@@ -233,24 +159,27 @@ create_sync_servers() {
         UUID="SYNCSERVERS_${ID}_UUID"
         DATA="SYNCSERVERS_${ID}_DATA"
         KEY="SYNCSERVERS_${ID}_KEY"
-        if ! get_server ${!NAME}; then
-            echo "... configuring sync server ${!NAME}..."
-            add_organization ${!NAME} false ${!UUID}
-            ORG_ID=$(get_organization ${!UUID})
+        echo "... searching sync server ${!NAME}..."
+        if ! get_server ${HOSTNAME} ${ADMIN_KEY} ${!NAME}; then
+            echo "... adding new sync server ${!NAME}..."
+            add_organization ${HOSTNAME} ${ADMIN_KEY} ${!NAME} false ${!UUID}
+            ORG_ID=$(get_organization ${HOSTNAME} ${ADMIN_KEY} ${!UUID})
             DATA=$(echo "${!DATA}" | jq --arg org_id ${ORG_ID} --arg name ${!NAME} --arg key ${!KEY} '. + {remote_org_id: $org_id, name: $name, authkey: $key}')
-            add_server "$DATA"
+            add_server ${HOSTNAME} ${ADMIN_KEY} "$DATA"
+        else
+            echo "... found existing sync server ${!NAME}..."
         fi
     done   
 }
 
 
-echo "MISP | Initialize configuration ..." && init_misp_configuration
+echo "MISP | Initialize configuration ..." && init_configuration
 
-echo "MISP | Initialize workers ..." && init_misp_workers
+echo "MISP | Initialize workers ..." && init_workers
 
-echo "MISP | Configure GPG key ..." && init_gnupg
+echo "MISP | Configure GPG key ..." && configure_gnupg
 
-echo "MISP | Running updates ..." && apply_updates
+echo "MISP | Apply updates ..." && apply_updates
 
 echo "MISP | Init default user and organization ..." && init_user
 
@@ -258,13 +187,9 @@ echo "MISP | Resolve critical issues ..." && apply_critical_fixes
 
 echo "MISP | Resolve non-critical issues ..." && apply_optional_fixes
 
-echo "MISP | Creating organizations ..." && create_organizations
+echo "MISP | Create sync servers ..." && create_sync_servers
 
-echo "MISP | Creating sync servers ..." && create_sync_servers
+echo "MISP | Update components ..." && update_components
 
-echo "MISP | Updating components ..." && updateComponents
-
-echo "MISP | Configure plugins with newly generate admin key ..." && configure_optional_plugins
-
-echo "MISP | Marking instance live"
+echo "MISP | Mark instance live"
 sudo -u www-data /var/www/MISP/app/Console/cake Admin live 1
