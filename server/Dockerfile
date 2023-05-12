@@ -41,6 +41,7 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as python-build
         libfuzzy-dev \
         libffi-dev \
         ca-certificates \
+        curl \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
     RUN mkdir /wheels
@@ -72,8 +73,9 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as python-build
         echo "-e ." > requirements.txt; pip3 wheel -r requirements.txt --no-cache-dir -w /wheels/
 
     # install PyMISP
+    RUN curl -sSL https://install.python-poetry.org | POETRY_HOME=/usr/local/ python3 -
     RUN git clone --depth 1 https://github.com/MISP/PyMISP.git; \
-        cd PyMISP || exit; python3 setup.py bdist_wheel -d /wheels
+        cd PyMISP || exit; poetry build -f wheel; cp dist/*.whl /wheels/
 
     # install pydeep
     RUN git clone --depth 1 https://github.com/coolacid/pydeep.git; \
