@@ -77,11 +77,11 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as python-build
     RUN git clone --depth 1 https://github.com/MISP/PyMISP.git; \
         cd PyMISP || exit; poetry build -f wheel; cp dist/*.whl /wheels/
 
-    # install pydeep
-    RUN git clone --depth 1 https://github.com/coolacid/pydeep.git; \
+    # install pydeep2 (drop-in replacement for pydeep)
+    RUN git clone --depth 1 https://github.com/JakubOnderka/pydeep.git; \
         cd pydeep || exit; python3 setup.py bdist_wheel -d /wheels
 
-    # Grab other modules we need
+    # Grab other modules we need (and pin lief until https://github.com/lief-project/LIEF/issues/901 is released)
     RUN pip3 wheel --no-cache-dir -w /wheels/ plyara pyzmq redis python-magic lief==0.12.3
 
     # Remove extra packages due to incompatible requirements.txt files
