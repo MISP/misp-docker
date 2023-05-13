@@ -59,16 +59,15 @@ services:
       - "ADMIN_KEY=${ADMIN_KEY}"
       - "ADMIN_ORG=${ADMIN_ORG}"
       - "GPG_PASSPHRASE=${GPG_PASSPHRASE}"
-      # sync server settings
+      # sync server settings (see https://www.misp-project.org/openapi/#tag/Servers for more options)
       - "SYNCSERVERS=${SYNCSERVERS}"
-      - "SYNCSERVERS_1_NAME=${SYNCSERVERS_1_NAME}"
-      - "SYNCSERVERS_1_UUID=${SYNCSERVERS_1_UUID}"
-      - "SYNCSERVERS_1_KEY=${SYNCSERVERS_1_KEY}"
       - |
         SYNCSERVERS_1_DATA=
         {
+          "remote_org_uuid": "${SYNCSERVERS_1_UUID}",
+          "name": "${SYNCSERVERS_1_NAME}",
+          "authkey": "${SYNCSERVERS_1_KEY}",
           "url": "${SYNCSERVERS_1_URL}",
-          "pull_rules": "{\"tags\":{\"OR\":[],\"NOT\":[]},\"orgs\":{\"OR\":[],\"NOT\":[]},\"url_params\":\"{\\\"searchanalysis\\\": \\\"2\\\"}\"}",
           "pull": true
         }
   

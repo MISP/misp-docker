@@ -155,20 +155,44 @@ update_components() {
 create_sync_servers() {
     SPLITTED_SYNCSERVERS=$(echo $SYNCSERVERS | tr ',' '\n')
     for ID in $SPLITTED_SYNCSERVERS; do
-        NAME="SYNCSERVERS_${ID}_NAME"
-        UUID="SYNCSERVERS_${ID}_UUID"
         DATA="SYNCSERVERS_${ID}_DATA"
-        KEY="SYNCSERVERS_${ID}_KEY"
-        echo "... searching sync server ${!NAME}..."
-        if ! get_server ${HOSTNAME} ${ADMIN_KEY} ${!NAME}; then
-            echo "... adding new sync server ${!NAME}..."
-            add_organization ${HOSTNAME} ${ADMIN_KEY} ${!NAME} false ${!UUID}
-            ORG_ID=$(get_organization ${HOSTNAME} ${ADMIN_KEY} ${!UUID})
-            DATA=$(echo "${!DATA}" | jq --arg org_id ${ORG_ID} --arg name ${!NAME} --arg key ${!KEY} '. + {remote_org_id: $org_id, name: $name, authkey: $key}')
-            add_server ${HOSTNAME} ${ADMIN_KEY} "$DATA"
-        else
-            echo "... found existing sync server ${!NAME}..."
+
+        # Validate #1
+        NAME=$(echo "${!DATA}" | jq -r '.name')
+        if [[ -z $NAME ]]; then
+            echo "... error missing sync server name"
+            continue
         fi
+
+        # Skip sync server if we can
+        echo "... searching sync server ${NAME}"
+        if get_server ${HOSTNAME} ${ADMIN_KEY} ${NAME}; then
+            echo "... found existing sync server ${NAME}"
+            continue
+        fi
+
+        # Validate #2
+        UUID=$(echo "${!DATA}" | jq -r '.remote_org_uuid')
+        if [[ -z $UUID ]]; then
+            echo "... error missing sync server remote_org_uuid"
+            continue
+        fi
+
+        # Get remote organization
+        echo "... searching remote organization ${UUID}"
+        ORG_ID=$(get_organization ${HOSTNAME} ${ADMIN_KEY} ${UUID})
+        if [[ -z $ORG_ID ]]; then
+            # Add remote organization if missing
+            echo "... adding missing organization ${UUID}"
+            add_organization ${HOSTNAME} ${ADMIN_KEY} ${NAME} false ${UUID}
+            ORG_ID=$(get_organization ${HOSTNAME} ${ADMIN_KEY} ${UUID})
+        fi
+
+        # Add sync server
+        echo "... adding new sync server ${NAME} with organization id ${ORG_ID}"
+        JSON_DATA=$(echo "${!DATA}" | jq --arg org_id ${ORG_ID} 'del(.remote_org_uuid) | . + {remote_org_id: $org_id}')
+        echo "... adding new sync server ${JSON_DATA}"
+        add_server ${HOSTNAME} ${ADMIN_KEY} "$JSON_DATA"
     done   
 }
 
