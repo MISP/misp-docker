@@ -67,7 +67,8 @@ init_misp_data_files(){
     sed -i "s/'database' => 'misp'/'database' => '$MYSQL_DATABASE'/" $MISP_APP_CONFIG_PATH/database.php
 
     echo "... initializing email.php settings"
-    sudo -u www-data tee /var/www/MISP/app/Config/email.php > /dev/null <<EOT
+    chmod +w $MISP_APP_CONFIG_PATH/email.php
+    tee $MISP_APP_CONFIG_PATH/email.php > /dev/null <<EOT
 <?php
 class EmailConfig {
     public \$default = array(
@@ -116,6 +117,7 @@ class EmailConfig {
     );
 }
 EOT
+    chmod -w $MISP_APP_CONFIG_PATH/email.php
 
     # Init files (shared with host)
     echo "... initializing app files"

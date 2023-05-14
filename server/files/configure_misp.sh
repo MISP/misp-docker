@@ -93,7 +93,6 @@ init_user() {
     # Create the main user if it is not there already
     sudo -u www-data /var/www/MISP/app/Console/cake userInit -q
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "MISP.email" ${ADMIN_EMAIL}
-    echo 'UPDATE misp.users SET change_pw = 0 WHERE id = 1;' | ${MYSQLCMD}
     echo "UPDATE misp.users SET email = \"${ADMIN_EMAIL}\" WHERE id = 1;" | ${MYSQLCMD}
     if [ ! -z "$ADMIN_ORG" ]; then
         echo "UPDATE misp.organisations SET name = \"${ADMIN_ORG}\" where id = 1;" | ${MYSQLCMD}
@@ -107,6 +106,20 @@ init_user() {
     fi
     ADMIN_KEY=`${CHANGE_CMD[@]} | awk 'END {print $NF; exit}'`
     echo "... admin user key set to '${ADMIN_KEY}'"
+
+    if [ ! -z "$ADMIN_PASSWORD" ]; then
+        echo "... setting admin password to '${ADMIN_PASSWORD}'"
+        PASSWORD_POLICY=$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting "Security.password_policy_complexity" | jq ".value" -r)
+        PASSWORD_LENGTH=$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting "Security.password_policy_length" | jq ".value")
+        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Security.password_policy_length" 1
+        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Security.password_policy_complexity" '/.*/'
+        sudo -u www-data /var/www/MISP/app/Console/cake user change_pw ${ADMIN_EMAIL} ${ADMIN_PASSWORD}
+        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Security.password_policy_complexity" ${PASSWORD_POLICY}
+        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting "Security.password_policy_length" ${PASSWORD_LENGTH}
+    else
+        echo "... leaving admin password as-is"
+    fi
+    echo 'UPDATE misp.users SET change_pw = 0 WHERE id = 1;' | ${MYSQLCMD}
 }
 
 apply_critical_fixes() {

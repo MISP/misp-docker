@@ -52,10 +52,10 @@ services:
       # - "${CUSTOM_PATH}/:/custom/"
     environment:
       - "HOSTNAME=https://localhost"
-      - "REDIS_FQDN=redis"
       - "CRON_USER_ID=1"
       # standard settings
       - "ADMIN_EMAIL=${ADMIN_EMAIL}"
+      - "ADMIN_PASSWORD=${ADMIN_PASSWORD}"
       - "ADMIN_KEY=${ADMIN_KEY}"
       - "ADMIN_ORG=${ADMIN_ORG}"
       - "GPG_PASSPHRASE=${GPG_PASSPHRASE}"
@@ -82,7 +82,6 @@ services:
       - "REDIS_BACKEND=redis"
     depends_on:
       - redis
-      - db
 
 volumes:
     mysql_data:
