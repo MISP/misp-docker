@@ -1,5 +1,7 @@
 #!/bin/bash
 
+[ -z "$CRON_USER_ID" ] && CRON_USER_ID=1
+
 term_procs() {
     echo "Entrypoint CRON caught SIGTERM signal!"
     echo "Killing process $p1_pid"

@@ -13,8 +13,9 @@ trap term_proc SIGTERM
 [ -z "$MYSQL_USER" ] && MYSQL_USER=misp
 [ -z "$MYSQL_PASSWORD" ] && MYSQL_PASSWORD=example
 [ -z "$MYSQL_DATABASE" ] && MYSQL_DATABASE=misp
-[ -z "$MYSQLCMD" ] && export MYSQLCMD="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD -P $MYSQL_PORT -h $MYSQL_HOST -r -N  $MYSQL_DATABASE"
-
+[ -z "$MYSQLCMD" ] && export MYSQLCMD="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD -P $MYSQL_PORT -h $MYSQL_HOST -r -N $MYSQL_DATABASE"
+[ -z "$CRON_USER_ID" ] && CRON_USER_ID="1"
+[ -z "$HOSTNAME" ] && HOSTNAME="https://localhost"
 
 init_mysql(){
     # Test when MySQL is ready....
@@ -51,7 +52,7 @@ init_mysql(){
 
 init_misp_data_files(){
     # Init config (shared with host)
-    echo "... initializing configuration files"
+    echo "... initialize configuration files"
     MISP_APP_CONFIG_PATH=/var/www/MISP/app/Config
     [ -f $MISP_APP_CONFIG_PATH/bootstrap.php ] || cp $MISP_APP_CONFIG_PATH.dist/bootstrap.default.php $MISP_APP_CONFIG_PATH/bootstrap.php
     [ -f $MISP_APP_CONFIG_PATH/database.php ] || cp $MISP_APP_CONFIG_PATH.dist/database.default.php $MISP_APP_CONFIG_PATH/database.php
@@ -60,13 +61,13 @@ init_misp_data_files(){
     [ -f $MISP_APP_CONFIG_PATH/email.php ] || cp $MISP_APP_CONFIG_PATH.dist/email.php $MISP_APP_CONFIG_PATH/email.php
     [ -f $MISP_APP_CONFIG_PATH/routes.php ] || cp $MISP_APP_CONFIG_PATH.dist/routes.php $MISP_APP_CONFIG_PATH/routes.php
     
-    echo "... initializing database.php settings"
+    echo "... initialize database.php settings"
     sed -i "s/localhost/$MYSQL_HOST/" $MISP_APP_CONFIG_PATH/database.php
     sed -i "s/db\s*login/$MYSQL_USER/" $MISP_APP_CONFIG_PATH/database.php
     sed -i "s/db\s*password/$MYSQL_PASSWORD/" $MISP_APP_CONFIG_PATH/database.php
     sed -i "s/'database' => 'misp'/'database' => '$MYSQL_DATABASE'/" $MISP_APP_CONFIG_PATH/database.php
 
-    echo "... initializing email.php settings"
+    echo "... initialize email.php settings"
     chmod +w $MISP_APP_CONFIG_PATH/email.php
     tee $MISP_APP_CONFIG_PATH/email.php > /dev/null <<EOT
 <?php
@@ -120,7 +121,7 @@ EOT
     chmod -w $MISP_APP_CONFIG_PATH/email.php
 
     # Init files (shared with host)
-    echo "... initializing app files"
+    echo "... initialize app files"
     MISP_APP_FILES_PATH=/var/www/MISP/app/files
     if [ ! -f ${MISP_APP_FILES_PATH}/INIT ]; then
         cp -R ${MISP_APP_FILES_PATH}.dist/* ${MISP_APP_FILES_PATH}
@@ -225,16 +226,16 @@ nginx -g 'daemon off;' & master_pid=$!
 
 # Initialize MISP
 echo "INIT | Initialize MISP files and configurations ..." && init_misp_data_files
-echo "INIT | Updating MISP app/files directory ..." && update_misp_data_files
+echo "INIT | Update MISP app/files directory ..." && update_misp_data_files
 echo "INIT | Enforce MISP permissions ..." && enforce_misp_data_permissions
-echo "INIT | Flipping NGINX live ..." && flip_nginx true true
+echo "INIT | Flip NGINX live ..." && flip_nginx true true
 
 # Run configure MISP script
-echo "INIT | Configuring MISP installation ..."
+echo "INIT | Configure MISP installation ..."
 /configure_misp.sh
 
 if [[ -x /custom/files/customize_misp.sh ]]; then
-    echo "INIT | Customizing MISP installation ..."
+    echo "INIT | Customize MISP installation ..."
     /custom/files/customize_misp.sh
 fi
 

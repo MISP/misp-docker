@@ -51,8 +51,8 @@ services:
       # customize by replacing ${CUSTOM_PATH} with a path containing 'files/customize_misp.sh'
       # - "${CUSTOM_PATH}/:/custom/"
     environment:
-      - "HOSTNAME=https://localhost"
-      - "CRON_USER_ID=1"
+      - "HOSTNAME=${HOSTNAME}"
+      - "CRON_USER_ID=${CRON_USER_ID}"
       # standard settings
       - "ADMIN_EMAIL=${ADMIN_EMAIL}"
       - "ADMIN_PASSWORD=${ADMIN_PASSWORD}"

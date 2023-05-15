@@ -150,7 +150,7 @@ ARG PHP_VER
     RUN pip3 install --no-cache-dir /wheels/*.whl && rm -rf /wheels
 
 # PHP
-    # Install ssdeep prebuild, latest composer, then install the app's PHP deps
+    # Install prebuilt libraries, latest composer, then install the app's PHP deps
     COPY --from=php-build /usr/lib/php/${PHP_VER}/ssdeep.so /usr/lib/php/${PHP_VER}/ssdeep.so
     COPY --from=php-build /usr/lib/php/${PHP_VER}/rdkafka.so /usr/lib/php/${PHP_VER}/rdkafka.so
     COPY --from=php-build /usr/lib/php/${PHP_VER}/brotli.so /usr/lib/php/${PHP_VER}/brotli.so
@@ -159,9 +159,9 @@ ARG PHP_VER
     COPY --from=composer-build /tmp/Vendor /var/www/MISP/app/Vendor
     COPY --from=composer-build /tmp/Plugin /var/www/MISP/app/Plugin
     
+    RUN for dir in /etc/php/*; do echo "extension=ssdeep.so" > "$dir/mods-available/ssdeep.ini"; done; phpenmod ssdeep
     RUN for dir in /etc/php/*; do echo "extension=rdkafka.so" > "$dir/mods-available/rdkafka.ini"; done; phpenmod rdkafka
     RUN for dir in /etc/php/*; do echo "extension=brotli.so" > "$dir/mods-available/brotli.ini"; done; phpenmod brotli
-    RUN for dir in /etc/php/*; do echo "extension=ssdeep.so" > "$dir/mods-available/ssdeep.ini"; done; phpenmod ssdeep
     RUN for dir in /etc/php/*; do echo "extension=simdjson.so" > "$dir/mods-available/simdjson.ini"; done; phpenmod simdjson
     RUN phpenmod redis
 
