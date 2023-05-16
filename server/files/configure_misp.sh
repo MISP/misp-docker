@@ -117,7 +117,7 @@ init_user() {
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_complexity" ${PASSWORD_POLICY}
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_length" ${PASSWORD_LENGTH}
     else
-        echo "... leaving admin password as-is"
+        echo "... setting adming password skipped"
     fi
     echo 'UPDATE misp.users SET change_pw = 0 WHERE id = 1;' | ${MYSQLCMD}
 }
@@ -199,15 +199,14 @@ create_sync_servers() {
         if [[ -z "$ORG_ID" ]]; then
             # Add remote organization if missing
             echo "... adding missing organization ${UUID}"
-            add_organization ${HOSTNAME} ${ADMIN_KEY} ${NAME} false ${UUID}
+            add_organization ${HOSTNAME} ${ADMIN_KEY} ${NAME} false ${UUID} > /dev/null
             ORG_ID=$(get_organization ${HOSTNAME} ${ADMIN_KEY} ${UUID})
         fi
 
         # Add sync server
         echo "... adding new sync server ${NAME} with organization id ${ORG_ID}"
         JSON_DATA=$(echo "${!DATA}" | jq --arg org_id ${ORG_ID} 'del(.remote_org_uuid) | . + {remote_org_id: $org_id}')
-        echo "... adding new sync server ${JSON_DATA}"
-        add_server ${HOSTNAME} ${ADMIN_KEY} "$JSON_DATA"
+        add_server ${HOSTNAME} ${ADMIN_KEY} "$JSON_DATA" > /dev/null
     done   
 }
 

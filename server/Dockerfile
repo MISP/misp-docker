@@ -73,6 +73,8 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as python-build
         echo "-e ." > requirements.txt; pip3 wheel -r requirements.txt --no-cache-dir -w /wheels/
 
     # install PyMISP
+    # note: when using poetry the missing wheels are installed at installation time
+    #   which is something we might need to fix
     RUN curl -sSL https://install.python-poetry.org | POETRY_HOME=/usr/local/ python3 -
     RUN git clone --depth 1 https://github.com/MISP/PyMISP.git; \
         cd PyMISP || exit; poetry build -f wheel; cp dist/*.whl /wheels/
@@ -90,14 +92,13 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as python-build
 
 
 FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim"
-ENV DEBIAN_FRONTEND noninteractive
-ARG MISP_TAG
-ARG MISP_COMMIT
-ARG PHP_VER
+    ENV DEBIAN_FRONTEND noninteractive
+    ARG MISP_TAG
+    ARG MISP_COMMIT
+    ARG PHP_VER
 
-# OS Packages
+    # OS Packages
     RUN apt-get update; apt-get install -y --no-install-recommends \
-        # Requirements:
         procps \
         sudo \
         nginx \
@@ -136,7 +137,6 @@ ARG PHP_VER
         curl jq \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# MISP code
     # Download MISP using git in the /var/www/ directory.
     RUN if [ ! -z ${MISP_COMMIT} ]; then \
      git clone https://github.com/MISP/MISP.git /var/www/MISP && cd /var/www/MISP && git checkout ${MISP_COMMIT}; \
@@ -145,12 +145,11 @@ ARG PHP_VER
         # Remove some old and broken links that pollute the log files
         rm -rf /var/www/MISP/INSTALL/old
 
-# Python Modules
+    # Python Modules
     COPY --from=python-build /wheels /wheels
     RUN pip3 install --no-cache-dir /wheels/*.whl && rm -rf /wheels
 
-# PHP
-    # Install prebuilt libraries, latest composer, then install the app's PHP deps
+    # PHP: install prebuilt libraries, latest composer, then install the app's PHP deps
     COPY --from=php-build /usr/lib/php/${PHP_VER}/ssdeep.so /usr/lib/php/${PHP_VER}/ssdeep.so
     COPY --from=php-build /usr/lib/php/${PHP_VER}/rdkafka.so /usr/lib/php/${PHP_VER}/rdkafka.so
     COPY --from=php-build /usr/lib/php/${PHP_VER}/brotli.so /usr/lib/php/${PHP_VER}/brotli.so
@@ -165,25 +164,24 @@ ARG PHP_VER
     RUN for dir in /etc/php/*; do echo "extension=simdjson.so" > "$dir/mods-available/simdjson.ini"; done; phpenmod simdjson
     RUN phpenmod redis
 
-# nginx
+    # nginx
     RUN rm /etc/nginx/sites-enabled/*; mkdir /run/php /etc/nginx/certs
     COPY files/etc/nginx/misp /etc/nginx/sites-available/misp
     COPY files/etc/nginx/misp80 /etc/nginx/sites-available/misp80
 
-# Make a copy of the file store, so we can sync from it
+    # Make a copy of the file store, so we can sync from it
     RUN cp -R /var/www/MISP/app/files /var/www/MISP/app/files.dist
-
-# Make a copy of the configurations, so we can sync from it
+    # Make a copy of the configurations, so we can sync from it
     RUN cp -R /var/www/MISP/app/Config /var/www/MISP/app/Config.dist
 
-# The spirit of the upstrem dockerization is to keep user and group aligned in terms of permissions
+    # The spirit of the upstrem dockerization is to keep user and group aligned in terms of permissions
     RUN find /var/www/MISP \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
-# Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
+    # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
     RUN find /var/www/MISP -not -perm 550 -type f -exec chmod 0550 {} +
-# Directories are also writable, because there seems to be a requirement to add new files every once in a while
+    # Directories are also writable, because there seems to be a requirement to add new files every once in a while
     RUN find /var/www/MISP -not -perm 770 -type d -exec chmod 0770 {} +
 
-# Entrypoints
+    # Entrypoints
     COPY files/etc/supervisor/supervisor.conf /etc/supervisor/conf.d/10-supervisor.conf
     COPY files/etc/supervisor/workers.conf /etc/supervisor/conf.d/50-workers.conf
     COPY files/var/www/html/index.php /var/www/html/index.php
@@ -195,5 +193,5 @@ ARG PHP_VER
     COPY files/entrypoint.sh /
     ENTRYPOINT [ "/entrypoint.sh" ]
 
-# Change Workdirectory
+    # Change Workdirectory
     WORKDIR /var/www/MISP
