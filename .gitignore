@@ -5,3 +5,4 @@
 /public/
 /ssl/
 .env
+env.hcl

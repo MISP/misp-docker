@@ -7,7 +7,7 @@ FROM "${DOCKER_HUB_PROXY}composer:2.1.14" as composer-build
     RUN composer install --ignore-platform-reqs && \
      composer require jakub-onderka/openid-connect-php:1.0.0-rc1 --ignore-platform-reqs && \
      composer require --with-all-dependencies supervisorphp/supervisor:^4.0 \
-      guzzlehttp/guzzle php-http/message lstrojny/fxmlrpc --ignore-platform-reqs && \
+      guzzlehttp/guzzle php-http/message php-http/message-factory lstrojny/fxmlrpc --ignore-platform-reqs && \
      composer require --with-all-dependencies elasticsearch/elasticsearch:^8.7.0 aws/aws-sdk-php --ignore-platform-reqs
 
 FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as php-build
