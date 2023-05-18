@@ -7,12 +7,18 @@ on:
 
 jobs:
   build:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
     steps:
-      # checkout the repository in the ubuntu-latest environment
-    - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Build the Docker images
-      run: docker compose --env-file template.env build 
+      - name: Set up QEMU (for ARM emulation)
+        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Build Docker images
+        run: |
+          docker-compose --env-file template.env build --parallel
