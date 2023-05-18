@@ -7,24 +7,29 @@ on:
 
 jobs:
   deploy:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
 
     steps:
-      # checkout the repository in the ubuntu-latest environment
-    - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Build the Docker images 
-      env:
-        GITHUB_CONTEXT: ${{ toJson(github) }}
-      run: |
-        docker compose --env-file template.env build
-        # Tag the image with the commit SHA[0:7]
-        DOCKER_IMG_TAG=`echo "${{ github.sha }}" | cut -c 1-7`
-        docker tag ${{ secrets.DOCKER_USERNAME }}/misp-docker:core-latest ${{ secrets.DOCKER_USERNAME }}/misp-docker:core-$DOCKER_IMG_TAG
-        docker tag ${{ secrets.DOCKER_USERNAME }}/misp-docker:modules-latest ${{ secrets.DOCKER_USERNAME }}/misp-docker:modules-$DOCKER_IMG_TAG
-      
-    - name: Push the Docker images to Docker Hub
-      run: |
-        echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-        docker push ${{ secrets.DOCKER_USERNAME }}/misp-docker --all-tags
+      - name: Set up QEMU (for ARM emulation)
+        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Build the Docker images 
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: |
+          docker compose --env-file template.env build --parallel
+          # Tag the image with the commit SHA[0:7]
+          DOCKER_IMG_TAG=`echo "${{ github.sha }}" | cut -c 1-7`
+          docker tag ${{ secrets.DOCKER_USERNAME }}/misp-docker:core-latest ${{ secrets.DOCKER_USERNAME }}/misp-docker:core-$DOCKER_IMG_TAG
+          docker tag ${{ secrets.DOCKER_USERNAME }}/misp-docker:modules-latest ${{ secrets.DOCKER_USERNAME }}/misp-docker:modules-$DOCKER_IMG_TAG
+        
+      - name: Push the Docker images to Docker Hub
+        run: |
+          echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+          docker push ${{ secrets.DOCKER_USERNAME }}/misp-docker --all-tags
