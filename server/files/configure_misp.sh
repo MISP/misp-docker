@@ -57,7 +57,7 @@ Passphrase: $GPG_PASSPHRASE
 %commit
 %echo Done
 GPGEOF
-        mkdir ${GPG_DIR}
+        mkdir -p ${GPG_DIR}
         gpg --homedir ${GPG_DIR} --gen-key --batch ${GPG_TMP}
         rm -f ${GPG_TMP}
     else
@@ -114,7 +114,7 @@ init_user() {
         PASSWORD_LENGTH=$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting "Security.password_policy_length" | jq ".value")
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_length" 1
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_complexity" '/.*/'
-        sudo -u www-data /var/www/MISP/app/Console/cake User -q change_pw ${ADMIN_EMAIL} ${ADMIN_PASSWORD}
+        sudo -u www-data /var/www/MISP/app/Console/cake User change_pw ${ADMIN_EMAIL} ${ADMIN_PASSWORD}
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_complexity" ${PASSWORD_POLICY}
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_length" ${PASSWORD_LENGTH}
     else

@@ -3,12 +3,17 @@ ARG DOCKER_HUB_PROXY=""
 FROM "${DOCKER_HUB_PROXY}composer:2.1.14" as composer-build
     ARG MISP_TAG
     WORKDIR /tmp
-    ADD https://raw.githubusercontent.com/MISP/MISP/${MISP_TAG}/app/composer.json /tmp
+    ADD https://raw.githubusercontent.com/MISP/MISP/${MISP_COMMIT:-${MISP_TAG}}/app/composer.json /tmp
     RUN composer install --ignore-platform-reqs && \
-     composer require jakub-onderka/openid-connect-php:1.0.0-rc1 --ignore-platform-reqs && \
-     composer require --with-all-dependencies supervisorphp/supervisor:^4.0 \
-      guzzlehttp/guzzle php-http/message php-http/message-factory lstrojny/fxmlrpc --ignore-platform-reqs && \
-     composer require --with-all-dependencies elasticsearch/elasticsearch:^8.7.0 aws/aws-sdk-php --ignore-platform-reqs
+        composer require --with-all-dependencies --ignore-platform-reqs \
+            supervisorphp/supervisor:^4.0 \
+            guzzlehttp/guzzle \
+            php-http/message \
+            php-http/message-factory \
+            lstrojny/fxmlrpc \
+            elasticsearch/elasticsearch:^8.7.0 \
+            jakub-onderka/openid-connect-php:1.0.0-rc1 \
+            aws/aws-sdk-php
 
 FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as php-build
     RUN apt-get update; apt-get install -y --no-install-recommends \
@@ -24,7 +29,7 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as php-build
         libsimdjson-dev \
         git \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-        
+
         RUN pecl channel-update pecl.php.net
         RUN cp "/usr/lib/$(gcc -dumpmachine)"/libfuzzy.* /usr/lib; pecl install ssdeep && pecl install rdkafka && pecl install simdjson
         RUN git clone --recursive --depth=1 https://github.com/kjdev/php-ext-brotli.git && cd php-ext-brotli && phpize && ./configure && make && make install
@@ -37,6 +42,7 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as python-build
         python3-dev \
         python3-pip \
         python3-setuptools \
+        python3-venv \
         python3-wheel \
         libfuzzy-dev \
         libffi-dev \
@@ -72,12 +78,12 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as python-build
         cd cti-python-stix2 || exit; python3 setup.py bdist_wheel -d /wheels; \
         echo "-e ." > requirements.txt; pip3 wheel -r requirements.txt --no-cache-dir -w /wheels/
 
+    # Install the new build tool
+    RUN pip3 install build
+
     # install PyMISP
-    # note: when using poetry the missing wheels are installed at installation time
-    #   which is something we might need to fix
-    RUN curl -sSL https://install.python-poetry.org | POETRY_HOME=/usr/local/ python3 -
     RUN git clone --depth 1 https://github.com/MISP/PyMISP.git; \
-        cd PyMISP || exit; poetry build -f wheel; cp dist/*.whl /wheels/
+        cd PyMISP || exit; python3 -m build --wheel --outdir /wheels
 
     # install pydeep2 (drop-in replacement for pydeep)
     RUN git clone --depth 1 https://github.com/JakubOnderka/pydeep.git; \
@@ -138,9 +144,9 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim"
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
     # Download MISP using git in the /var/www/ directory.
-    RUN if [ ! -z ${MISP_COMMIT} ]; then \
-     git clone https://github.com/MISP/MISP.git /var/www/MISP && cd /var/www/MISP && git checkout ${MISP_COMMIT}; \
-     else git clone --branch ${MISP_TAG} --depth 1 https://github.com/MISP/MISP.git /var/www/MISP; fi
+    RUN if [ -n ${MISP_COMMIT} ]; then \
+        git clone https://github.com/MISP/MISP.git /var/www/MISP && cd /var/www/MISP && git checkout ${MISP_COMMIT}; \
+        else git clone --branch ${MISP_TAG} --depth 1 https://github.com/MISP/MISP.git /var/www/MISP; fi
     RUN cd /var/www/MISP; git submodule update --init --recursive .; cd /var/www/MISP/app; \
         # Remove some old and broken links that pollute the log files
         rm -rf /var/www/MISP/INSTALL/old
@@ -155,9 +161,10 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim"
     COPY --from=php-build /usr/lib/php/${PHP_VER}/brotli.so /usr/lib/php/${PHP_VER}/brotli.so
     COPY --from=php-build /usr/lib/php/${PHP_VER}/simdjson.so /usr/lib/php/${PHP_VER}/simdjson.so
 
-    COPY --from=composer-build /tmp/Vendor /var/www/MISP/app/Vendor
-    COPY --from=composer-build /tmp/Plugin /var/www/MISP/app/Plugin
-    
+    # Do an early chown to limit image size
+    COPY --from=composer-build --chown=www-data:www-data /tmp/Vendor /var/www/MISP/app/Vendor
+    COPY --from=composer-build --chown=www-data:www-data /tmp/Plugin /var/www/MISP/app/Plugin
+
     RUN for dir in /etc/php/*; do echo "extension=ssdeep.so" > "$dir/mods-available/ssdeep.ini"; done; phpenmod ssdeep
     RUN for dir in /etc/php/*; do echo "extension=rdkafka.so" > "$dir/mods-available/rdkafka.ini"; done; phpenmod rdkafka
     RUN for dir in /etc/php/*; do echo "extension=brotli.so" > "$dir/mods-available/brotli.ini"; done; phpenmod brotli
@@ -169,17 +176,17 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim"
     COPY files/etc/nginx/misp /etc/nginx/sites-available/misp
     COPY files/etc/nginx/misp80 /etc/nginx/sites-available/misp80
 
-    # Make a copy of the file store, so we can sync from it
-    RUN cp -R /var/www/MISP/app/files /var/www/MISP/app/files.dist
-    # Make a copy of the configurations, so we can sync from it
-    RUN cp -R /var/www/MISP/app/Config /var/www/MISP/app/Config.dist
+    # Make a copy of the file and configuration stores, so we can sync from it
+    RUN cp -R /var/www/MISP/app/files /var/www/MISP/app/files.dist; \
+        cp -R /var/www/MISP/app/Config /var/www/MISP/app/Config.dist;
 
-    # The spirit of the upstrem dockerization is to keep user and group aligned in terms of permissions
-    RUN find /var/www/MISP \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
-    # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
-    RUN find /var/www/MISP -not -perm 550 -type f -exec chmod 0550 {} +
-    # Directories are also writable, because there seems to be a requirement to add new files every once in a while
-    RUN find /var/www/MISP -not -perm 770 -type d -exec chmod 0770 {} +
+    # The spirit of the upstrem dockerization is to make:
+    #   1) User and group aligned in terms of permissions
+    #   2) Files executable and read only, because of some rogue scripts like 'cake'
+    #   3) Directories writable, because sometimes MISP add new new files
+    RUN find /var/www/MISP \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data '{}' +; \
+        find /var/www/MISP -not -perm 550 -type f -exec chmod 0550 '{}' +; \
+        find /var/www/MISP -not -perm 770 -type d -exec chmod 0770 '{}' +;
 
     # Entrypoints
     COPY files/etc/supervisor/supervisor.conf /etc/supervisor/conf.d/10-supervisor.conf
