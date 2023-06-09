@@ -1,11 +1,28 @@
 ARG DOCKER_HUB_PROXY=""
 
-FROM "${DOCKER_HUB_PROXY}composer:2.1.14" as composer-build
+FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as composer-build
+    ENV DEBIAN_FRONTEND noninteractive
     ARG MISP_TAG
     WORKDIR /tmp
+    RUN apt-get update; apt-get install -y --no-install-recommends \
+        ca-certificates \
+        php \
+        php-apcu \
+        php-curl \
+        php-xml \
+        php-intl \
+        php-bcmath \
+        php-mbstring \
+        php-mysql \
+        php-redis \
+        php-gd \
+        php-fpm \
+        php-zip \
+        && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
     ADD https://raw.githubusercontent.com/MISP/MISP/${MISP_COMMIT:-${MISP_TAG}}/app/composer.json /tmp
-    RUN composer install --ignore-platform-reqs && \
-        composer require --with-all-dependencies --ignore-platform-reqs \
+    COPY --from=composer:2.1.14 /usr/bin/composer /usr/bin/composer
+    RUN composer install
+    RUN composer require --with-all-dependencies \
             supervisorphp/supervisor:^4.0 \
             guzzlehttp/guzzle \
             php-http/message \
@@ -16,6 +33,7 @@ FROM "${DOCKER_HUB_PROXY}composer:2.1.14" as composer-build
             aws/aws-sdk-php
 
 FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as php-build
+    ENV DEBIAN_FRONTEND noninteractive
     RUN apt-get update; apt-get install -y --no-install-recommends \
         gcc \
         g++ \
@@ -30,11 +48,13 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as php-build
         git \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-        RUN pecl channel-update pecl.php.net
-        RUN cp "/usr/lib/$(gcc -dumpmachine)"/libfuzzy.* /usr/lib; pecl install ssdeep && pecl install rdkafka && pecl install simdjson
-        RUN git clone --recursive --depth=1 https://github.com/kjdev/php-ext-brotli.git && cd php-ext-brotli && phpize && ./configure && make && make install
+    RUN pecl channel-update pecl.php.net
+    RUN cp "/usr/lib/$(gcc -dumpmachine)"/libfuzzy.* /usr/lib; pecl install ssdeep && pecl install rdkafka && pecl install simdjson
+    RUN git clone --recursive --depth=1 https://github.com/kjdev/php-ext-brotli.git && \
+        cd php-ext-brotli && phpize && ./configure && make && make install
 
 FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as python-build
+    ENV DEBIAN_FRONTEND noninteractive
     RUN apt-get update; apt-get install -y --no-install-recommends \
         gcc \
         git \
@@ -89,8 +109,8 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as python-build
     RUN git clone --depth 1 https://github.com/JakubOnderka/pydeep.git; \
         cd pydeep || exit; python3 setup.py bdist_wheel -d /wheels
 
-    # Grab other modules we need (and pin lief until https://github.com/lief-project/LIEF/issues/901 is released)
-    RUN pip3 wheel --no-cache-dir -w /wheels/ plyara pyzmq redis python-magic lief==0.12.3
+    # Grab other modules we need
+    RUN pip3 wheel --no-cache-dir -w /wheels/ plyara pyzmq redis python-magic lief>=0.13.1
 
     # Remove extra packages due to incompatible requirements.txt files
     WORKDIR /wheels
@@ -144,7 +164,7 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim"
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
     # Download MISP using git in the /var/www/ directory.
-    RUN if [ -n ${MISP_COMMIT} ]; then \
+    RUN if [ ! -z ${MISP_COMMIT} ]; then \
         git clone https://github.com/MISP/MISP.git /var/www/MISP && cd /var/www/MISP && git checkout ${MISP_COMMIT}; \
         else git clone --branch ${MISP_TAG} --depth 1 https://github.com/MISP/MISP.git /var/www/MISP; fi
     RUN cd /var/www/MISP; git submodule update --init --recursive .; cd /var/www/MISP/app; \

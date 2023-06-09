@@ -29,6 +29,7 @@ FROM "${DOCKER_HUB_PROXY}python:3.9-slim-bullseye" as builder
 
     RUN cd /srv/misp-modules; \
         echo "pyeti" >> REQUIREMENTS; \
+        echo "greynoise" >> REQUIREMENTS; \
         echo "git+https://github.com/abenassi/Google-Search-API" >> REQUIREMENTS; \
         sed -i 's/-e //g' REQUIREMENTS; \
         pip3 wheel -r REQUIREMENTS --no-cache-dir -w /wheel/
