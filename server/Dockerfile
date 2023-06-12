@@ -3,7 +3,7 @@ ARG DOCKER_HUB_PROXY=""
 FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as composer-build
     ENV DEBIAN_FRONTEND noninteractive
     ARG MISP_TAG
-    WORKDIR /tmp
+    ARG MISP_COMMIT
     RUN apt-get update; apt-get install -y --no-install-recommends \
         ca-certificates \
         php \
@@ -19,6 +19,8 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as composer-build
         php-fpm \
         php-zip \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+    
+    WORKDIR /tmp
     ADD https://raw.githubusercontent.com/MISP/MISP/${MISP_COMMIT:-${MISP_TAG}}/app/composer.json /tmp
     COPY --from=composer:2.1.14 /usr/bin/composer /usr/bin/composer
     RUN composer install
@@ -122,8 +124,6 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim"
     ARG MISP_TAG
     ARG MISP_COMMIT
     ARG PHP_VER
-
-    # OS Packages
     RUN apt-get update; apt-get install -y --no-install-recommends \
         procps \
         sudo \
@@ -175,7 +175,7 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim"
     COPY --from=python-build /wheels /wheels
     RUN pip3 install --no-cache-dir /wheels/*.whl && rm -rf /wheels
 
-    # PHP: install prebuilt libraries, latest composer, then install the app's PHP deps
+    # PHP: install prebuilt libraries, then install the app's PHP deps
     COPY --from=php-build /usr/lib/php/${PHP_VER}/ssdeep.so /usr/lib/php/${PHP_VER}/ssdeep.so
     COPY --from=php-build /usr/lib/php/${PHP_VER}/rdkafka.so /usr/lib/php/${PHP_VER}/rdkafka.so
     COPY --from=php-build /usr/lib/php/${PHP_VER}/brotli.so /usr/lib/php/${PHP_VER}/brotli.so
