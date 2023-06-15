@@ -93,6 +93,7 @@ apply_updates() {
 init_user() {
     # Create the main user if it is not there already
     sudo -u www-data /var/www/MISP/app/Console/cake userInit -q 2>&1 > /dev/null
+    echo "... setting admin email to '${ADMIN_EMAIL}'"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.email" ${ADMIN_EMAIL}
     echo "UPDATE misp.users SET email = \"${ADMIN_EMAIL}\" WHERE id = 1;" | ${MYSQLCMD}
     if [ ! -z "$ADMIN_ORG" ]; then
@@ -118,7 +119,7 @@ init_user() {
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_complexity" ${PASSWORD_POLICY}
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_length" ${PASSWORD_LENGTH}
     else
-        echo "... setting adming password skipped"
+        echo "... setting admin password skipped"
     fi
     echo 'UPDATE misp.users SET change_pw = 0 WHERE id = 1;' | ${MYSQLCMD}
 }

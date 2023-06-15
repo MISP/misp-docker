@@ -2,6 +2,7 @@ ARG DOCKER_HUB_PROXY=""
 
 FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as composer-build
     ENV DEBIAN_FRONTEND noninteractive
+    ENV COMPOSER_ALLOW_SUPERUSER 1
     ARG MISP_TAG
     ARG MISP_COMMIT
     RUN apt-get update; apt-get install -y --no-install-recommends \
@@ -22,16 +23,18 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as composer-build
     
     WORKDIR /tmp
     ADD https://raw.githubusercontent.com/MISP/MISP/${MISP_COMMIT:-${MISP_TAG}}/app/composer.json /tmp
-    COPY --from=composer:2.1.14 /usr/bin/composer /usr/bin/composer
+    COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+    RUN composer config --no-interaction allow-plugins.composer/installers true
     RUN composer install
     RUN composer require --with-all-dependencies \
             supervisorphp/supervisor:^4.0 \
             guzzlehttp/guzzle \
-            php-http/message \
-            php-http/message-factory \
             lstrojny/fxmlrpc \
+            php-http/message \
+            php-http/message-factory
+    RUN composer require --with-all-dependencies \
             elasticsearch/elasticsearch:^8.7.0 \
-            jakub-onderka/openid-connect-php:1.0.0-rc1 \
+            jakub-onderka/openid-connect-php:^1.0.0 \
             aws/aws-sdk-php
 
 FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as php-build
