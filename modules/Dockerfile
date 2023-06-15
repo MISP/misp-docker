@@ -1,12 +1,9 @@
 ARG DOCKER_HUB_PROXY=""
 
-FROM "${DOCKER_HUB_PROXY}python:3.9-slim-bullseye" as builder
-    
+FROM "${DOCKER_HUB_PROXY}python:3.9-slim-bullseye" as python-build
     ENV DEBIAN_FRONTEND noninteractive
     ARG MODULES_TAG
     ARG MODULES_COMMIT
-    
-    # Install development environment
     RUN apt-get update && apt-get install -y --no-install-recommends \
         cmake \
         git \
@@ -20,7 +17,7 @@ FROM "${DOCKER_HUB_PROXY}python:3.9-slim-bullseye" as builder
         libssl-dev \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
     
-    RUN mkdir /wheel
+    RUN mkdir /wheels
     WORKDIR /srv
 
     RUN if [ ! -z ${MODULES_COMMIT} ]; then \
@@ -32,20 +29,19 @@ FROM "${DOCKER_HUB_PROXY}python:3.9-slim-bullseye" as builder
         echo "greynoise" >> REQUIREMENTS; \
         echo "git+https://github.com/abenassi/Google-Search-API" >> REQUIREMENTS; \
         sed -i 's/-e //g' REQUIREMENTS; \
-        pip3 wheel -r REQUIREMENTS --no-cache-dir -w /wheel/
+        pip3 wheel -r REQUIREMENTS --no-cache-dir -w /wheels/
 
     RUN git clone --depth 1 https://github.com/stricaud/faup.git /srv/faup; \
         cd /srv/faup/build || exit; cmake .. && make install; \
-        cd /srv/faup/src/lib/bindings/python || exit; pip3 wheel --no-cache-dir -w /wheel/ .
+        cd /srv/faup/src/lib/bindings/python || exit; pip3 wheel --no-cache-dir -w /wheels/ .
 
     # Remove extra packages due to incompatible requirements.txt files
-    WORKDIR /wheel
+    WORKDIR /wheels
     RUN find . -name "chardet*" | grep -v "chardet-4.0.0" | xargs rm -f
 
 
 FROM "${DOCKER_HUB_PROXY}python:3.9-slim-bullseye"
-    
-    # Install runtime environment
+    ENV DEBIAN_FRONTEND noninteractive
     RUN apt-get update && apt-get install -y --no-install-recommends \
         libglib2.0-0 \
         libzbar0 \
@@ -53,11 +49,15 @@ FROM "${DOCKER_HUB_PROXY}python:3.9-slim-bullseye"
         libxext6 \
         libpoppler-cpp0v5 \
         libgl1 \
+        # Python Requirements
+        python3 \
+        python3-setuptools \
+        python3-pip \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
     
-    COPY --from=builder /wheel /wheel
-    COPY --from=builder /usr/local/lib/libfaupl* /usr/local/lib/
-    RUN pip install --use-deprecated=legacy-resolver /wheel/*.whl; ldconfig
+    COPY --from=python-build /wheels /wheels
+    COPY --from=python-build /usr/local/lib/libfaupl* /usr/local/lib/
+    RUN pip3 install --no-cache-dir --use-deprecated=legacy-resolver /wheels/*.whl; ldconfig && rm -rf /wheels
     
     # Since we compile faup ourselves and lua is not required anymore, we can load our own library 
     #   and skip the pre-compiled blob to improve compatibility with other architectures like ARM
@@ -74,6 +74,6 @@ FROM "${DOCKER_HUB_PROXY}python:3.9-slim-bullseye"
 
     # Disable (all) warnings raised when using 'future'
     RUN sed -i '/import sys/a import warnings\nwarnings.warn = lambda *args, **kwargs: None' \
-            /usr/local/bin/misp-modules
+        /usr/local/bin/misp-modules
 
     ENTRYPOINT [ "/usr/local/bin/misp-modules", "-l", "0.0.0.0"]
