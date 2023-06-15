@@ -49,10 +49,6 @@ FROM "${DOCKER_HUB_PROXY}python:3.9-slim-bullseye"
         libxext6 \
         libpoppler-cpp0v5 \
         libgl1 \
-        # Python Requirements
-        python3 \
-        python3-setuptools \
-        python3-pip \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
     
     COPY --from=python-build /wheels /wheels
