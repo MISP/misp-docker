@@ -28,6 +28,7 @@ FROM "${DOCKER_HUB_PROXY}python:3.9-slim-bullseye" as python-build
         echo "pyeti" >> REQUIREMENTS; \
         echo "greynoise" >> REQUIREMENTS; \
         echo "git+https://github.com/abenassi/Google-Search-API" >> REQUIREMENTS; \
+        sed -i 's|apiosintds.*|git+https://github.com/davidonzo/apiosintDS\@misp|g' REQUIREMENTS; \
         sed -i 's/-e //g' REQUIREMENTS; \
         pip3 wheel -r REQUIREMENTS --no-cache-dir -w /wheels/
 
@@ -59,14 +60,6 @@ FROM "${DOCKER_HUB_PROXY}python:3.9-slim-bullseye"
     #   and skip the pre-compiled blob to improve compatibility with other architectures like ARM
     RUN sed -i s/LoadLibrary\(LOAD_LIB\)/LoadLibrary\(\"\\/usr\\/local\\/lib\\/libfaupl.so\"\)/ \
         /usr/local/lib/python3.9/site-packages/pyfaup/__init__.py
-    
-    # Remove double logging configuration from 'apiosintDS'
-    RUN sed -i "/logging.basicConfig/d" \
-            /usr/local/lib/python3.9/site-packages/apiosintDS/apiosintDS.py; \
-        sed -i "/logging.basicConfig/d" \
-            /usr/local/lib/python3.9/site-packages/apiosintDS/modules/dosearch.py; \
-        sed -i "/logging.basicConfig/d" \
-            /usr/local/lib/python3.9/site-packages/apiosintDS/modules/listutils.py
 
     # Disable (all) warnings raised when using 'future'
     RUN sed -i '/import sys/a import warnings\nwarnings.warn = lambda *args, **kwargs: None' \
