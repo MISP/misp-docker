@@ -15,6 +15,8 @@ init_configuration(){
     # Note that we are doing this after enforcing permissions, so we need to use the www-data user for this
     echo "... configuring default settings"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.baseurl" "$HOSTNAME"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.email" "${MISP_EMAIL-$ADMIN_EMAIL}"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.contact" "${MISP_CONTACT-$ADMIN_EMAIL}"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.redis_host" "$REDIS_FQDN"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.python_bin" $(which python3)
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -f "MISP.ca_path" "/etc/ssl/certs/ca-certificates.crt"
@@ -60,7 +62,7 @@ configure_gnupg() {
 Key-Type: RSA
 Key-Length: 3072
 Name-Real: MISP Admin
-Name-Email: $ADMIN_EMAIL
+Name-Email: ${MISP_EMAIL-$ADMIN_EMAIL}
 Expire-Date: 0
 Passphrase: $GPG_PASSPHRASE
 %commit
@@ -80,12 +82,12 @@ GPGEOF
 
     if [ ! -f ${GPG_ASC} ]; then
         echo "... exporting GPG key"
-        sudo -u www-data gpg --homedir ${GPG_DIR} --export --armor ${ADMIN_EMAIL} > ${GPG_ASC}
+        sudo -u www-data gpg --homedir ${GPG_DIR} --export --armor ${MISP_EMAIL-$ADMIN_EMAIL} > ${GPG_ASC}
     else
         echo "... found exported key ${GPG_ASC}"
     fi
 
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "GnuPG.email" "${ADMIN_EMAIL}"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "GnuPG.email" "${MISP_EMAIL-$ADMIN_EMAIL}"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "GnuPG.homedir" "${GPG_DIR}"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "GnuPG.password" "${GPG_PASSPHRASE}"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "GnuPG.binary" "$(which gpg)"
@@ -101,26 +103,26 @@ apply_updates() {
 init_user() {
     # Create the main user if it is not there already
     sudo -u www-data /var/www/MISP/app/Console/cake userInit -q 2>&1 > /dev/null
-    echo "... setting admin email to '${ADMIN_EMAIL}'"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.email" ${ADMIN_EMAIL}
+
     echo "UPDATE misp.users SET email = \"${ADMIN_EMAIL}\" WHERE id = 1;" | ${MYSQLCMD}
+
     if [ ! -z "$ADMIN_ORG" ]; then
         echo "UPDATE misp.organisations SET name = \"${ADMIN_ORG}\" where id = 1;" | ${MYSQLCMD}
     fi
 
-    if [ "$AUTOCONF_ADMIN_KEY" == "true" ]; then
-        if [ ! -z "$ADMIN_KEY" ]; then
-            echo "... setting admin key to '${ADMIN_KEY}'"
-            CHANGE_CMD=(sudo -u www-data /var/www/MISP/app/Console/cake User change_authkey 1 "${ADMIN_KEY}")
-        else
-            echo "... regenerating admin key (set \$ADMIN_KEY if you want it to change)"
-            CHANGE_CMD=(sudo -u www-data /var/www/MISP/app/Console/cake User change_authkey 1)
-        fi
-        ADMIN_KEY=`${CHANGE_CMD[@]} | awk 'END {print $NF; exit}'`
-        echo "... admin user key set to '${ADMIN_KEY}'"
+    if [ -n "$ADMIN_KEY" ]; then
+        echo "... setting admin key to '${ADMIN_KEY}'"
+        CHANGE_CMD=(sudo -u www-data /var/www/MISP/app/Console/cake User change_authkey 1 "${ADMIN_KEY}")
+    elif [ -z "$ADMIN_KEY" ] && [ "$AUTOGEN_ADMIN_KEY" == "true" ]; then
+        echo "... regenerating admin key (set \$ADMIN_KEY if you want it to change)"
+        CHANGE_CMD=(sudo -u www-data /var/www/MISP/app/Console/cake User change_authkey 1)
     else
-        ADMIN_KEY=""
-        echo "... admin user key auto configuration disabled"
+        echo "... admin user key auto generation disabled"
+    fi
+
+    if [[ -v CHANGE_CMD[@] ]]; then
+        ADMIN_KEY=$("${CHANGE_CMD[@]}" | awk 'END {print $NF; exit}')
+        echo "... admin user key set to '${ADMIN_KEY}'"
     fi
 
     if [ ! -z "$ADMIN_PASSWORD" ]; then
@@ -129,9 +131,9 @@ init_user() {
         PASSWORD_LENGTH=$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting "Security.password_policy_length" | jq ".value")
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_length" 1
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_complexity" '/.*/'
-        sudo -u www-data /var/www/MISP/app/Console/cake User change_pw ${ADMIN_EMAIL} ${ADMIN_PASSWORD}
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_complexity" ${PASSWORD_POLICY}
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_length" ${PASSWORD_LENGTH}
+        sudo -u www-data /var/www/MISP/app/Console/cake User change_pw "${ADMIN_EMAIL}" "${ADMIN_PASSWORD}"
+        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_complexity" "${PASSWORD_POLICY}"
+        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_length" "${PASSWORD_LENGTH}"
     else
         echo "... setting admin password skipped"
     fi

@@ -65,7 +65,7 @@ Pull the entire repository, you can build the images using `docker-compose build
 
 Once you have the docker container up you can access the container by running `docker-compose exec misp /bin/bash`.
 This will provide you with a root shell. You can use `apt update` and then install any tools you wish to use.
-Finally, copy any changes you make outside of the container for commiting to your branch. 
+Finally, copy any changes you make outside of the container for commiting to your branch.
 `git diff -- [dir with changes]` could be used to reduce the number of changes in a patch file, however, be careful when using the `git diff` command.
 
 ### Updating
@@ -92,7 +92,7 @@ Updating the images should be as simple as `docker-compose pull` which, unless c
 
 ### Building
 
-If you are interested in building the project from scratch - `git clone` or download the entire repo and run `docker-compose build` 
+If you are interested in building the project from scratch - `git clone` or download the entire repo and run `docker-compose build`
 
 ## Image file sizes
 
@@ -114,7 +114,7 @@ The `docker-compose.yml` file allows further configuration settings:
 ```
 "MYSQL_HOST=db"
 "MYSQL_USER=misp"
-"MYSQL_PASSWORD=example"    # NOTE: This should be AlphaNum with no Special Chars. Otherwise, edit config files after first run. 
+"MYSQL_PASSWORD=example"    # NOTE: This should be AlphaNum with no Special Chars. Otherwise, edit config files after first run.
 "MYSQL_DATABASE=misp"
 "MISP_MODULES_FQDN=http://misp-modules" # Set the MISP Modules FQDN, used for Enrichment_services_url/Import_services_url/Export_services_url
 "WORKERS=1"                 # Legacy variable controlling the number of parallel workers (use variables below instead)
