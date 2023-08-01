@@ -185,14 +185,16 @@ flip_nginx() {
 }
 
 init_nginx() {
-    if [[ ! -L "/etc/nginx/sites-enabled/misp80" ]]; then
+    # Testing for files also test for links, and generalize better to mounted files
+    if [[ ! -f "/etc/nginx/sites-enabled/misp80" ]]; then
         echo "... enabling port 80 redirect"
         ln -s /etc/nginx/sites-available/misp80 /etc/nginx/sites-enabled/misp80
     else
         echo "... port 80 already configured"
     fi
 
-    if [[ ! -L "/etc/nginx/sites-enabled/misp" ]]; then
+    # Testing for files also test for links, and generalize better to mounted files
+    if [[ ! -f "/etc/nginx/sites-enabled/misp" ]]; then
         echo "... enabling port 443"
         ln -s /etc/nginx/sites-available/misp /etc/nginx/sites-enabled/misp
     else
