@@ -18,6 +18,10 @@ variable "MODULES_COMMIT" {
   default = ""
 }
 
+variable "LIBFAUP_COMMIT" {
+  default = null
+}
+
 variable "MISP_TAG" {
   default = ""
 }
