@@ -44,7 +44,9 @@ EOF
     RUN <<-EOF
         git clone --depth 1 https://github.com/stricaud/faup.git /srv/faup
         cd /srv/faup
-        git checkout ${LIBFAUP_COMMIT}
+        if [ ! -z ${LIBFAUP_COMMIT} ]; then
+            git checkout ${LIBFAUP_COMMIT}
+        fi
         cd /srv/faup/build
         cmake -G "Ninja" ../
         ninja
