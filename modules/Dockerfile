@@ -23,22 +23,22 @@ FROM "${DOCKER_HUB_PROXY}python:3.11-slim-bullseye" as python-build
     WORKDIR /srv
 
     RUN <<-EOF
-            if [ ! -z ${MODULES_COMMIT} ]; then
-                git clone https://github.com/MISP/misp-modules.git /srv/misp-modules && cd /srv/misp-modules && git checkout ${MODULES_COMMIT}
-            else
-                git clone --branch ${MODULES_TAG} --depth 1 https://github.com/MISP/misp-modules.git /srv/misp-modules
-            fi
+        if [ ! -z ${MODULES_COMMIT} ]; then
+            git clone https://github.com/MISP/misp-modules.git /srv/misp-modules && cd /srv/misp-modules && git checkout ${MODULES_COMMIT}
+        else
+            git clone --branch ${MODULES_TAG} --depth 1 https://github.com/MISP/misp-modules.git /srv/misp-modules
+        fi
 
-            cd /srv/misp-modules
-            echo "pyeti" >> REQUIREMENTS
-            echo "greynoise" >> REQUIREMENTS
-            echo "git+https://github.com/abenassi/Google-Search-API" >> REQUIREMENTS
-            sed -i 's|.*apiosintDS.*|apiosintDS==2.0.1|g' REQUIREMENTS
-            # let apiosintDS decide since misp-modules doesn't actually use this package anyway
-            sed -i '/validators.*/d' REQUIREMENTS
-            sed -i 's/-e //g' REQUIREMENTS
-            pip3 wheel -r REQUIREMENTS --no-cache-dir -w /wheels/
-            rm -rf /srv/misp-modules
+        cd /srv/misp-modules
+        echo "pyeti" >> REQUIREMENTS
+        echo "greynoise" >> REQUIREMENTS
+        echo "git+https://github.com/abenassi/Google-Search-API" >> REQUIREMENTS
+        sed -i 's|.*apiosintDS.*|apiosintDS==2.0.1|g' REQUIREMENTS
+        # let apiosintDS decide since misp-modules doesn't actually use this package anyway
+        sed -i '/validators.*/d' REQUIREMENTS
+        sed -i 's/-e //g' REQUIREMENTS
+        pip3 wheel -r REQUIREMENTS --no-cache-dir -w /wheels/
+        rm -rf /srv/misp-modules
 EOF
 
     RUN <<-EOF
@@ -47,6 +47,7 @@ EOF
         if [ ! -z ${LIBFAUP_COMMIT} ]; then
             git checkout ${LIBFAUP_COMMIT}
         fi
+
         cd /srv/faup/build
         cmake -G "Ninja" ../
         ninja
