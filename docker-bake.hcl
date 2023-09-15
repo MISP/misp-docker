@@ -2,6 +2,38 @@ variable "PLATFORMS" {
   default = ["linux/amd64", "linux/arm64"]
 }
 
+variable "PYPI_REDIS_VERSION" {
+  default = ""
+}
+
+variable "PYPI_LIEF_VERSION" {
+  default = ""
+}
+
+variable "PYPI_PYDEEP2_VERSION" {
+  default = ""
+}
+
+variable "PYPI_PYTHON_MAGIC_VERSION" {
+  default = ""
+}
+
+variable "PYPI_MISP_LIB_STIX2_VERSION" {
+  default = ""
+}
+
+variable "PYPI_MAEC_VERSION" {
+  default = ""
+}
+
+variable "PYPI_MIXBOX_VERSION" {
+  default = ""
+}
+
+variable "PYPI_CYBOX_VERSION" {
+  default = ""
+}
+
 variable "DOCKER_USERNAME" {
   default = null
 }
@@ -44,10 +76,10 @@ group "default" {
 target "misp-modules" {
   context = "modules/."
   dockerfile = "Dockerfile"
-  tags = ["${DOCKER_USERNAME}/misp-docker:modules-latest", "${DOCKER_USERNAME}/misp-docker:modules-${DOCKER_IMG_TAG}", "${DOCKER_USERNAME}/misp-docker:modules-${MODULES_TAG}"]
+  tags = flatten(["${DOCKER_USERNAME}/misp-docker:modules-latest", "${DOCKER_USERNAME}/misp-docker:modules-${DOCKER_IMG_TAG}", MODULES_TAG != "" ? ["${DOCKER_USERNAME}/misp-docker:modules-${MODULES_TAG}"] : []])
   args = {
     "MODULES_TAG": "${MODULES_TAG}",
-    "MODULES_COMMIT": "${MODULES_COMMIT}"
+    "MODULES_COMMIT": "${MODULES_COMMIT}",
   }
   platforms = "${PLATFORMS}"
 }
@@ -55,11 +87,19 @@ target "misp-modules" {
 target "misp" {
   context = "server/."
   dockerfile = "Dockerfile"
-  tags = ["${DOCKER_USERNAME}/misp-docker:core-latest", "${DOCKER_USERNAME}/misp-docker:core-${DOCKER_IMG_TAG}", "${DOCKER_USERNAME}/misp-docker:core-${MISP_TAG}"]
+  tags = flatten(["${DOCKER_USERNAME}/misp-docker:core-latest", "${DOCKER_USERNAME}/misp-docker:core-${DOCKER_IMG_TAG}", MISP_TAG != "" ? ["${DOCKER_USERNAME}/misp-docker:core-${MISP_TAG}"] : []])
   args = {
     "MISP_TAG": "${MISP_TAG}",
     "MISP_COMMIT": "${MISP_COMMIT}",
     "PHP_VER": "${PHP_VER}",
+    "PYPI_REDIS_VERSION": "${PYPI_REDIS_VERSION}",
+    "PYPI_LIEF_VERSION": "${PYPI_LIEF_VERSION}",
+    "PYPI_PYDEEP2_VERSION": "${PYPI_PYDEEP2_VERSION}",
+    "PYPI_PYTHON_MAGIC_VERSION": "${PYPI_PYTHON_MAGIC_VERSION}",
+    "PYPI_MISP_LIB_STIX2_VERSION": "${PYPI_MISP_LIB_STIX2_VERSION}",
+    "PYPI_MAEC_VERSION": "${PYPI_MAEC_VERSION}",
+    "PYPI_MIXBOX_VERSION": "${PYPI_MIXBOX_VERSION}",
+    "PYPI_CYBOX_VERSION": "${PYPI_CYBOX_VERSION}",
   }
   platforms = "${PLATFORMS}"
 }

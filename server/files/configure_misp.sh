@@ -157,6 +157,8 @@ apply_critical_fixes() {
             \"auth\": \"\"
         }
     }" > /dev/null
+    # Avoids displaying errors not relevant to a docker container
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.self_update" false
 }
 
 apply_optional_fixes() {
