@@ -36,6 +36,15 @@ services:
           - MISP_TAG=${MISP_TAG}
           - MISP_COMMIT=${MISP_COMMIT}
           - PHP_VER=${PHP_VER}
+          - PYPI_REDIS_VERSION=${PYPI_REDIS_VERSION}
+          - PYPI_LIEF_VERSION=${PYPI_LIEF_VERSION}
+          - PYPI_PYDEEP2_VERSION=${PYPI_PYDEEP2_VERSION}
+          - PYPI_PYTHON_MAGIC_VERSION=${PYPI_PYTHON_MAGIC_VERSION}
+          - PYPI_MISP_LIB_STIX2_VERSION=${PYPI_MISP_LIB_STIX2_VERSION}
+          - PYPI_MAEC_VERSION=${PYPI_MAEC_VERSION}
+          - PYPI_MIXBOX_VERSION=${PYPI_MIXBOX_VERSION}
+          - PYPI_CYBOX_VERSION=${PYPI_CYBOX_VERSION}
+          - PYPI_PYMISP_VERSION=${PYPI_PYMISP_VERSION}
     depends_on:
       - redis
       - db
@@ -78,6 +87,7 @@ services:
       args:
         - MODULES_TAG=${MODULES_TAG}
         - MODULES_COMMIT=${MODULES_COMMIT}
+        - LIBFAUP_COMMIT=${LIBFAUP_COMMIT}
     environment:
       - "REDIS_BACKEND=redis"
     depends_on:

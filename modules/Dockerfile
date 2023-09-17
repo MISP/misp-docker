@@ -5,6 +5,7 @@ FROM "${DOCKER_HUB_PROXY}python:3.11-slim-bullseye" as python-build
     ARG MODULES_TAG
     ARG MODULES_COMMIT
     ARG LIBFAUP_COMMIT
+
     RUN apt-get update && apt-get install -y --no-install-recommends \
         cmake \
         git \
@@ -59,6 +60,7 @@ EOF
 
 FROM "${DOCKER_HUB_PROXY}python:3.11-slim-bullseye"
     ENV DEBIAN_FRONTEND noninteractive
+
     RUN apt-get update && apt-get install -y --no-install-recommends \
         libglib2.0-0 \
         libzbar0 \

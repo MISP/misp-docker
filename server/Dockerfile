@@ -1,11 +1,11 @@
 ARG DOCKER_HUB_PROXY=""
 
 FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as composer-build
-
     ENV DEBIAN_FRONTEND noninteractive
     ENV COMPOSER_ALLOW_SUPERUSER 1
     ARG MISP_TAG
     ARG MISP_COMMIT
+
     RUN apt-get update; apt-get install -y --no-install-recommends \
         ca-certificates \
         php \
@@ -22,7 +22,7 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as composer-build
         php-zip \
         unzip \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-    
+
     WORKDIR /tmp
     ADD https://raw.githubusercontent.com/MISP/MISP/${MISP_COMMIT:-${MISP_TAG}}/app/composer.json /tmp
     COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -42,6 +42,7 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as composer-build
 FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as php-build
     ENV DEBIAN_FRONTEND noninteractive
     ENV TZ Etc/UTC
+
     RUN apt-get update; apt-get install -y --no-install-recommends \
         gcc \
         g++ \
@@ -56,16 +57,30 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as php-build
         libsimdjson-dev \
         git \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
     RUN cp "/usr/lib/$(gcc -dumpmachine)"/libfuzzy.* /usr/lib; pecl channel-update pecl.php.net && pecl install ssdeep && pecl install rdkafka && pecl install simdjson
     RUN git clone --recursive --depth=1 https://github.com/kjdev/php-ext-brotli.git && \
         cd php-ext-brotli && phpize && ./configure && make && make install
 
 FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as python-build
-    ENV DEBIAN_FRONTEND noninteractive
-
-    RUN apt-get update; apt-get install -y --no-install-recommends python3-pip git && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+    ENV DEBIAN_FRONTEND noninteractive   
     ARG MISP_TAG
     ARG MISP_COMMIT
+    ARG PYPI_REDIS_VERSION
+    ARG PYPI_LIEF_VERSION
+    ARG PYPI_PYDEEP2_VERSION
+    ARG PYPI_PYTHON_MAGIC_VERSION
+    ARG PYPI_MISP_LIB_STIX2_VERSION
+    ARG PYPI_MAEC_VERSION
+    ARG PYPI_MIXBOX_VERSION
+    ARG PYPI_CYBOX_VERSION
+    ARG PYPI_PYMISP_VERSION
+
+    RUN apt-get update; apt-get install -y --no-install-recommends \
+        python3-pip \
+        git \
+        && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+    
     # Download MISP using git in the /var/www/ directory. Remove unnecessary items.
     RUN <<-EOF
         if [ ! -z "${MISP_COMMIT}" ]; then
@@ -75,15 +90,6 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as python-build
         fi
 
         cd /var/www/MISP || exit; git submodule update --init --recursive .
-
-        # Until MISP project specifies its required PyMISP version, we grab this from the submodule
-        pymispversion=$(head -n1 PyMISP/pymisp/__init__.py | awk '{print $3}' | tr -d \')
-
-        if [ -n "$pymispversion" ]; then
-            sed -i "s/pymisp$/pymisp==$pymispversion/" requirements.txt
-            cat requirements.txt
-        fi
-        # End of pymisp version fixing hack
 EOF
 
     RUN <<-EOF
@@ -104,7 +110,7 @@ EOF
         # 2. If missing, add it (with optional version from env (defaults to empty string))
         # 3. If present, replace with our specified version if it exists, otherwise leave
         #    the upstream version alone.
-        set -- "redis" "lief" "pydeep2" "python-magic" "misp-lib-stix2" "maec" "mixbox" "cybox"
+        set -- "redis" "lief" "pydeep2" "python-magic" "misp-lib-stix2" "maec" "mixbox" "cybox" "pymisp"
         for mod in "$@"; do
             mod_version_var=$(echo "PYPI_${mod}_VERSION" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
             mod_version=$(eval "echo \"\$$mod_version_var\"")
@@ -134,11 +140,11 @@ EOF
 EOF
 
 FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim"
-
     ENV DEBIAN_FRONTEND noninteractive
     ARG MISP_TAG
     ARG MISP_COMMIT
     ARG PHP_VER
+
     RUN apt-get update; apt-get install -y --no-install-recommends \
         procps \
         sudo \

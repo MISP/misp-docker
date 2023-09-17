@@ -28,4 +28,4 @@ jobs:
           # Create the environment
           sed -e '/^[[:space:]]*$/d' -e '/[#@]/d' -e 's/\"//g' -e 's/\(^[^=]*\)=\(.*\)/\1="\2"/' template.env > env.hcl
           # Build and Push
-          DOCKER_IMG_TAG=$DOCKER_IMG_TAG docker buildx bake -f docker-bake.hcl -f env.hcl
+          DOCKER_IMG_TAG=$DOCKER_IMG_TAG DOCKER_USERNAME=local docker buildx bake -f docker-bake.hcl -f env.hcl

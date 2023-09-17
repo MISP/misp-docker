@@ -34,6 +34,10 @@ variable "PYPI_CYBOX_VERSION" {
   default = ""
 }
 
+variable "PYPI_PYMISP_VERSION" {
+  default = ""
+}
+
 variable "DOCKER_USERNAME" {
   default = null
 }
@@ -101,6 +105,7 @@ target "misp" {
     "PYPI_MAEC_VERSION": "${PYPI_MAEC_VERSION}",
     "PYPI_MIXBOX_VERSION": "${PYPI_MIXBOX_VERSION}",
     "PYPI_CYBOX_VERSION": "${PYPI_CYBOX_VERSION}",
+    "PYPI_PYMISP_VERSION": "${PYPI_PYMISP_VERSION}",
   }
   platforms = "${PLATFORMS}"
 }

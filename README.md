@@ -57,8 +57,6 @@ GitHub builds the images automatically and pushes them to [Docker hub](https://h
     -   User: `admin@admin.test`
     -   Password: `admin`
 
--   Profit
-
 ### Using the image for development
 
 Pull the entire repository, you can build the images using `docker-compose build`
@@ -96,16 +94,8 @@ If you are interested in building the project from scratch - `git clone` or down
 
 ## Image file sizes
 
--   Core server(Saved: 2.5GB)
-    -   Original Image: 3.17GB
-    -   First attempt: 2.24GB
-    -   Remove chown: 1.56GB
-    -   PreBuild python modules, and only pull submodules we need: 800MB
-    -   PreBuild PHP modules: 664MB
-
--   Modules (Saved: 640MB)
-    -   Original: 1.36GB
-    -   Pre-build modules: 750MB
+-   Core server: 260MB
+-   Modules: 470MB
 
 ### Configuration
 
