@@ -16,6 +16,7 @@ trap term_proc SIGTERM
 [ -z "$MYSQLCMD" ] && export MYSQLCMD="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD -P $MYSQL_PORT -h $MYSQL_HOST -r -N $MYSQL_DATABASE"
 [ -z "$CRON_USER_ID" ] && export CRON_USER_ID="1"
 [ -z "$HOSTNAME" ] && export HOSTNAME="https://localhost"
+[ -z "$DISABLE_IPV6" ] && export DISABLE_IPV6=false
 
 init_mysql(){
     # Test when MySQL is ready....
@@ -188,6 +189,9 @@ init_nginx() {
     # Testing for files also test for links, and generalize better to mounted files
     if [[ ! -f "/etc/nginx/sites-enabled/misp80" ]]; then
         echo "... enabling port 80 redirect"
+        if [[ "$DISABLE_IPV6" = "true" ]]; then
+            sed -i "/\[::\]/d" /etc/nginx/sites-available/misp80
+        fi
         ln -s /etc/nginx/sites-available/misp80 /etc/nginx/sites-enabled/misp80
     else
         echo "... port 80 already configured"
@@ -196,6 +200,9 @@ init_nginx() {
     # Testing for files also test for links, and generalize better to mounted files
     if [[ ! -f "/etc/nginx/sites-enabled/misp" ]]; then
         echo "... enabling port 443"
+        if [[ "$DISABLE_IPV6" = "true" ]]; then
+            sed -i "/\[::\]/d" /etc/nginx/sites-available/misp
+        fi
         ln -s /etc/nginx/sites-available/misp /etc/nginx/sites-enabled/misp
     else
         echo "... port 443 already configured"

@@ -62,6 +62,7 @@ services:
     environment:
       - "HOSTNAME=${HOSTNAME}"
       - "CRON_USER_ID=${CRON_USER_ID}"
+      - "DISABLE_IPV6=${DISABLE_IPV6}"
       # standard settings
       - "ADMIN_EMAIL=${ADMIN_EMAIL}"
       - "ADMIN_PASSWORD=${ADMIN_PASSWORD}"
