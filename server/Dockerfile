@@ -95,12 +95,6 @@ EOF
     RUN <<-EOF
         mkdir /wheels
 
-        # Remove modules only used during MISP build
-        set -- 'coveralls' 'codecov' 'requests-mock' 'nose' 'pip'
-        for mod in "$@"; do
-            sed "/${mod}/d" -i /var/www/MISP/requirements.txt
-        done;
-
         # Add additional dependencies (container specific)
         # The "set" line contains the list of modules we want to ensure are present.
         # PYPI_MODULE_NAME_VERSION env vars can be set to specify the version desired,
