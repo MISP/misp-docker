@@ -19,10 +19,10 @@ services:
     image: mariadb:10.8.2
     restart: always
     environment:
-      - "MYSQL_USER=misp"
-      - "MYSQL_PASSWORD=example"
-      - "MYSQL_ROOT_PASSWORD=password"
-      - "MYSQL_DATABASE=misp"
+      - "MYSQL_USER=${MYSQL_USER:-misp}"
+      - "MYSQL_PASSWORD=${MYSQL_PASSWORD:-example}"
+      - "MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-password}"
+      - "MYSQL_DATABASE=${MYSQL_DATABASE:-misp}"
     volumes:
       - mysql_data:/var/lib/mysql
     cap_add:
@@ -80,6 +80,12 @@ services:
           "url": "${SYNCSERVERS_1_URL}",
           "pull": true
         }
+      # mysql settings
+      - "MYSQL_HOST=${MYSQL_HOST:-db}"
+      - "MYSQL_PORT=${MYSQL_PORT:-3306}"
+      - "MYSQL_USER=${MYSQL_USER:-misp}"
+      - "MYSQL_PASSWORD=${MYSQL_PASSWORD:-example}"
+      - "MYSQL_DATABASE=${MYSQL_DATABASE:-misp}"
   
   misp-modules:
     image: ostefano/misp-docker:modules-latest
