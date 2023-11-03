@@ -36,66 +36,18 @@ Additionally, this fork features the following improvements:
 As a result, this image is not for everybody and does not (and will not) fit every use case.
 Nevertheless the underlying spirit of this fork is to allow "repeatable deployments", and all pull requests in this direction will be merged.
 
-## Versioning
-
-GitHub builds the images automatically and pushes them to [Docker hub](https://hub.docker.com/r/ostefano/misp-docker). We do not use tags and versioning works as follows:
-
--   MISP (and modules) version specified inside the `template.env` file
--   Docker images are tagged based on the commit hash
--   Core and modules are tagged as core-commit-sha1[0:7] and modules-commit-sha1[0:7] respectively
--   The latest images have additional tags core-latest and modules-latest
-
 ## Getting Started
 
--   Copy the `template.env` to `.env` and fill the missing configuration variables
+-   Copy the `template.env` to `.env` 
+-   Customize `.env` based on your needs (optional step)
 
-### Development/Test
+### Run
 
+-   `docker-compose pull` if you want to use pre-built images or `docker-compose build` if you want to build your own
 -   `docker-compose up`
-
 -   Login to `https://localhost`
     -   User: `admin@admin.test`
     -   Password: `admin`
-
-### Using the image for development
-
-Pull the entire repository, you can build the images using `docker-compose build`
-
-Once you have the docker container up you can access the container by running `docker-compose exec misp /bin/bash`.
-This will provide you with a root shell. You can use `apt update` and then install any tools you wish to use.
-Finally, copy any changes you make outside of the container for commiting to your branch.
-`git diff -- [dir with changes]` could be used to reduce the number of changes in a patch file, however, be careful when using the `git diff` command.
-
-### Updating
-
-Updating the images should be as simple as `docker-compose pull` which, unless changed in the `docker-compose.yml` file, will pull the latest built images.
-
-### Production
--   It is recommended to specify which build you want to be running, and modify that version number when you would like to upgrade
-
--   Use docker-compose, or some other config management tool
-
--   Directory volume mount SSL Certs `./ssl`: `/etc/ssl/certs`
-    -   Certificate File: `cert.pem`
-    -   Certificate Key File: `key.pem`
-    -   CA File for Cert Authentication (optional) `ca.pem`
-
--   Additional directory volume mounts:
-    -   `./configs`: `/var/www/MISP/app/Config/`
-    -   `./logs`: `/var/www/MISP/app/tmp/logs/`
-    -   `./files`: `/var/www/MISP/app/files/`
-    -   `./gnupg`: `/var/www/MISP/.gnupg/`
-
--   If you need to automatically run additional steps each time the container starts, create a new file `files/customize_misp.sh`, and replace the variable `${CUSTOM_PATH}` inside `docker-compose.yml` with its parent path.
-
-### Building
-
-If you are interested in building the project from scratch - `git clone` or download the entire repo and run `docker-compose build`
-
-## Image file sizes
-
--   Core server: 260MB
--   Modules: 470MB
 
 ### Configuration
 
@@ -114,3 +66,38 @@ The `docker-compose.yml` file allows further configuration settings:
 "NUM_WORKERS_UPDATE=1"      # To set the number of update workers
 "NUM_WORKERS_CACHE=5"       # To set the number of cache workers
 ```
+
+New options are added on a regular basis.
+
+### Updating
+
+Updating the images should be as simple as `docker-compose pull` which, unless changed in the `docker-compose.yml` file, will pull the latest built images.
+
+### Production
+
+-   It is recommended to specify which build you want to be running, and modify that version number when you would like to upgrade
+-   Use docker-compose, or some other config management tool
+-   Directory volume mount SSL Certs `./ssl`: `/etc/ssl/certs`
+    -   Certificate File: `cert.pem`
+    -   Certificate Key File: `key.pem`
+    -   CA File for Cert Authentication (optional) `ca.pem`
+-   Additional directory volume mounts:
+    -   `./configs`: `/var/www/MISP/app/Config/`
+    -   `./logs`: `/var/www/MISP/app/tmp/logs/`
+    -   `./files`: `/var/www/MISP/app/files/`
+    -   `./gnupg`: `/var/www/MISP/.gnupg/`
+-   If you need to automatically run additional steps each time the container starts, create a new file `files/customize_misp.sh`, and replace the variable `${CUSTOM_PATH}` inside `docker-compose.yml` with its parent path.
+
+## Versioning
+
+GitHub builds the images automatically and pushes them to [Docker hub](https://hub.docker.com/r/ostefano/misp-docker). We do not use tags and versioning works as follows:
+
+-   MISP (and modules) version specified inside the `template.env` file
+-   Docker images are tagged based on the commit hash
+-   Core and modules are tagged as core-commit-sha1[0:7] and modules-commit-sha1[0:7] respectively
+-   The latest images have additional tags core-latest and modules-latest
+
+## Image file sizes
+
+-   Core server: 260MB
+-   Modules: 470MB
