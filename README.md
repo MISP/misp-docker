@@ -3,21 +3,15 @@
 [![Build Status](https://img.shields.io/github/actions/workflow/status/MISP/misp-docker/release-latest.yml)](https://hub.docker.com/repository/docker/ostefano/misp-docker)
 [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/MISP/Docker)
 
-A production ready Dockered MISP based on CoolAcid's MISP Docker image (https://github.com/coolacid/docker-misp).
+A production ready Docker MISP project (formerly https://github.com/ostefano/docker-misp) loosely based on CoolAcid and DSCO builds (nearly all of the details have been rewritten).
 
-Like CoolAcid's MISP docker image, this is based on some of the work from the DSCO docker build, nearly all of the details have been rewritten.
-
--   Components are split out where possible, currently this is only the MISP modules
--   Over writable configuration files
--   Allows volumes for file store
--   Cron job runs updates, pushes, and pulls - Logs go to docker logs
--   Docker-Compose uses off the shelf images for Redis and MySQL
--   Images directly from docker hub, no build required
--   Slimmed down images by using build stages and slim parent image, removes unnecessary files from images
-
-Additionally, this fork features the following improvements:
-
--   ARM (M1) support: move mariadb for increase compatibility
+Notable features:
+-   Components are split out where possible
+-   Cron job runs updates, pushes, and pulls
+-   Rely on off the shelf images for Redis and MySQL
+-   Images are pushed regularly, no build required
+-   Slimmed down images by using build stages and slim parent image
+-   ARM (M1) support: move to mariadb for increase compatibility
 -   ARM (M1) support: move to updated and cross-platform mail exim4 image
 -   Fix and improve support for cron jobs
 -   Fix and improve support for syncservers
@@ -29,12 +23,11 @@ Additionally, this fork features the following improvements:
 -   Add support for new background job system (see https://github.com/MISP/MISP/blob/2.4/docs/background-jobs-migration-guide.md)
 -   Add support for building specific MISP and MISP-modules commits
 -   Add automatic configuration of sync servers (see `configure_misp.sh`)
--   Add autoamtic configuration of authentication keys (see `configure_misp.sh`)
+-   Add automatic configuration of authentication keys (see `configure_misp.sh`)
 -   Add direct push of docker images to Docker Hub
 -   Consolidate docker compose files
 
-As a result, this image is not for everybody and does not (and will not) fit every use case.
-Nevertheless the underlying spirit of this fork is to allow "repeatable deployments", and all pull requests in this direction will be merged.
+The underlying spirit of this project is to allow "repeatable deployments", and all pull requests in this direction will be merged post-haste.
 
 ## Getting Started
 
