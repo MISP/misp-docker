@@ -1,6 +1,6 @@
-# TAU's MISP Docker images
+# MISP Docker images
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/ostefano/docker-misp/release-latest.yml)](https://hub.docker.com/repository/docker/ostefano/misp-docker)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/MISP/misp-docker/release-latest.yml)](https://hub.docker.com/repository/docker/ostefano/misp-docker)
 [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/MISP/Docker)
 
 A production ready Dockered MISP based on CoolAcid's MISP Docker image (https://github.com/coolacid/docker-misp).
