@@ -1,34 +1,44 @@
 name: Build the Docker images and push them to Docker Hub
 
 on:
-  # Only trigger the workflow when there is a new commit to the master branch 
   push:
     branches: [ "master" ]
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up QEMU (for ARM emulation)
-        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v3
 
-      - name: Build the Docker images and push
+      - name: Initialize environment
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
         run: |
-          # Initialize variables
-          DOCKER_IMG_TAG=`echo "${{ github.sha }}" | cut -c 1-7`
-          DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
-          # Login
-          echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-          # Create the environment
           sed -e '/^[[:space:]]*$/d' -e '/[#@]/d' -e 's/\"//g' -e 's/\(^[^=]*\)=\(.*\)/\1="\2"/' template.env > env.hcl
-          # Build and Push
-          DOCKER_IMG_TAG=$DOCKER_IMG_TAG DOCKER_USERNAME=$DOCKER_USERNAME docker buildx bake -f docker-bake.hcl -f env.hcl --push
+          echo "DOCKER_IMG_TAG=`echo '${{ github.sha }}' | cut -c 1-7`" >> "$GITHUB_ENV"
+          echo "DOCKER_USERNAME=MISP" >> "$GITHUB_ENV"
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/bake-action@v4
+        with:
+          push: true
+          files: docker-bake.hcl, env.hcl
