@@ -28,7 +28,7 @@ jobs:
         run: |
           sed -e '/^[[:space:]]*$/d' -e '/[#@]/d' -e 's/\"//g' -e 's/\(^[^=]*\)=\(.*\)/\1="\2"/' template.env > env.hcl
           echo "DOCKER_IMG_TAG=`echo '${{ github.sha }}' | cut -c 1-7`" >> "$GITHUB_ENV"
-          echo "DOCKER_USERNAME=misp-docker" >> "$GITHUB_ENV"
+          echo "DOCKER_USERNAME=ghcr.io/misp/misp-docker" >> "$GITHUB_ENV"
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
