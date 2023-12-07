@@ -2,7 +2,6 @@
 /files/
 /gnupg/
 /logs/
-/public/
 /ssl/
 .env
 env.hcl

@@ -73,7 +73,7 @@ variable "PHP_VER" {
 group "default" {
   targets = [
     "misp-modules",
-    "misp",
+    "misp-core",
   ]
 }
 
@@ -89,8 +89,8 @@ target "misp-modules" {
   platforms = "${PLATFORMS}"
 }
 
-target "misp" {
-  context = "server/."
+target "misp-core" {
+  context = "core/."
   dockerfile = "Dockerfile"
   tags = flatten(["${NAMESPACE}/misp-core:latest", "${NAMESPACE}/misp-core:${COMMIT_HASH}", MISP_TAG != "" ? ["${NAMESPACE}/misp-core:${MISP_TAG}"] : []])
   args = {
