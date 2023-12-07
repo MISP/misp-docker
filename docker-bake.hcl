@@ -80,7 +80,7 @@ group "default" {
 target "misp-modules" {
   context = "modules/."
   dockerfile = "Dockerfile"
-  tags = flatten(["${NAMESPACE}/modules:latest", "${NAMESPACE}/modules:${COMMIT_HASH}", MODULES_TAG != "" ? ["${NAMESPACE}/modules:${MODULES_TAG}"] : []])
+  tags = flatten(["${NAMESPACE}/misp-modules:latest", "${NAMESPACE}/misp-modules:${COMMIT_HASH}", MODULES_TAG != "" ? ["${NAMESPACE}/misp-modules:${MODULES_TAG}"] : []])
   args = {
     "MODULES_TAG": "${MODULES_TAG}",
     "MODULES_COMMIT": "${MODULES_COMMIT}",
@@ -92,7 +92,7 @@ target "misp-modules" {
 target "misp" {
   context = "server/."
   dockerfile = "Dockerfile"
-  tags = flatten(["${NAMESPACE}/core:latest", "${NAMESPACE}/core:${COMMIT_HASH}", MISP_TAG != "" ? ["${NAMESPACE}/core:${MISP_TAG}"] : []])
+  tags = flatten(["${NAMESPACE}/misp-core:latest", "${NAMESPACE}/misp-core:${COMMIT_HASH}", MISP_TAG != "" ? ["${NAMESPACE}/misp-core:${MISP_TAG}"] : []])
   args = {
     "MISP_TAG": "${MISP_TAG}",
     "MISP_COMMIT": "${MISP_COMMIT}",
