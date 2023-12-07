@@ -1,20 +1,16 @@
 # MISP Docker images
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/MISP/misp-docker/release-latest.yml)](https://hub.docker.com/repository/docker/ostefano/misp-docker)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/MISP/misp-docker/release-latest.yml)](https://github.com/MISP/misp-docker/pkgs/container/misp-docker/misp-docker/versions)
 [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/MISP/Docker)
 
-A production ready Docker MISP project (formerly https://github.com/ostefano/docker-misp) loosely based on CoolAcid and DSCO builds (nearly all of the details have been rewritten).
+A production ready Docker MISP image (formerly hosted at https://github.com/ostefano/docker-misp, now deprecated) loosely based on CoolAcid and DSCO builds, with nearly all logic rewritten and verified for correctness and portability.
 
 Notable features:
--   Components are split out where possible
--   Cron job runs updates, pushes, and pulls
--   Rely on off the shelf images for Redis and MySQL
--   Images are pushed regularly, no build required
--   Slimmed down images by using build stages and slim parent image
--   ARM (M1) support: move to mariadb for increase compatibility
--   ARM (M1) support: move to updated and cross-platform mail exim4 image
--   Fix and improve support for cron jobs
--   Fix and improve support for syncservers
+-   MISP and MISP modules are split into two different Docker images, `core` and `modules`
+-   Docker images are pushed regularly, no build required
+-   Lightweigth Docker images by using multiple build stages and a slim parent image
+-   Rely on off the shelf Docker images for Exim4, Redis, and MariaDB
+-   Cron jobs run updates, pushes, and pulls
 -   Fix supervisord process control (processes are correctly terminated upon reload)
 -   Fix schema update by making it completely offline (no user interaction required)
 -   Fix enforcement of permissions
@@ -22,10 +18,12 @@ Notable features:
 -   Fix MISP modules loading of gl library
 -   Add support for new background job system (see https://github.com/MISP/MISP/blob/2.4/docs/background-jobs-migration-guide.md)
 -   Add support for building specific MISP and MISP-modules commits
--   Add automatic configuration of sync servers (see `configure_misp.sh`)
+-   Add automatic configuration of syncservers (see `configure_misp.sh`)
 -   Add automatic configuration of authentication keys (see `configure_misp.sh`)
--   Add direct push of docker images to Docker Hub
--   Consolidate docker compose files
+-   Add direct push of docker images to GitHub Packages
+-   Consolidated `docker-compose.yml` file
+-   Workardound VirtioFS bug when running Docker Desktop for Mac
+-   ... and many others
 
 The underlying spirit of this project is to allow "repeatable deployments", and all pull requests in this direction will be merged post-haste.
 
@@ -41,6 +39,8 @@ The underlying spirit of this project is to allow "repeatable deployments", and 
 -   Login to `https://localhost`
     -   User: `admin@admin.test`
     -   Password: `admin`
+
+Keeping the image up-to-date with upstream should be as simple as running `docker-compose pull`.
 
 ### Configuration
 
@@ -62,14 +62,9 @@ The `docker-compose.yml` file allows further configuration settings:
 
 New options are added on a regular basis.
 
-### Updating
-
-Updating the images should be as simple as `docker-compose pull` which, unless changed in the `docker-compose.yml` file, will pull the latest built images.
-
 ### Production
 
--   It is recommended to specify which build you want to be running, and modify that version number when you would like to upgrade
--   Use docker-compose, or some other config management tool
+-   It is recommended to specify the build you want run by editing `docker-compose.yml` (see here for the list of available tags https://github.com/MISP/misp-docker/pkgs/container/misp-docker/misp-docker)
 -   Directory volume mount SSL Certs `./ssl`: `/etc/ssl/certs`
     -   Certificate File: `cert.pem`
     -   Certificate Key File: `key.pem`
@@ -81,16 +76,14 @@ Updating the images should be as simple as `docker-compose pull` which, unless c
     -   `./gnupg`: `/var/www/MISP/.gnupg/`
 -   If you need to automatically run additional steps each time the container starts, create a new file `files/customize_misp.sh`, and replace the variable `${CUSTOM_PATH}` inside `docker-compose.yml` with its parent path.
 
+## Troubleshooting
+
+-   Make sure you run a fairly recent version of Docker and Docker Compose (if in doubt, update following the steps outlined in https://docs.docker.com/engine/install/ubuntu/)
+-   Make sure you are not running an old image or container; when in doubt run `docker system prune --volumes` and clone this repository into an empty directory
+
 ## Versioning
 
-GitHub builds the images automatically and pushes them to [Docker hub](https://hub.docker.com/r/ostefano/misp-docker). We do not use tags and versioning works as follows:
-
--   MISP (and modules) version specified inside the `template.env` file
--   Docker images are tagged based on the commit hash
--   Core and modules are tagged as core-commit-sha1[0:7] and modules-commit-sha1[0:7] respectively
--   The latest images have additional tags core-latest and modules-latest
-
-## Image file sizes
-
--   Core server: 260MB
--   Modules: 470MB
+A GitHub Action builds both `core` and `modules` images automatically and pushes them to the [GitHub Package registry](https://github.com/MISP/misp-docker/pkgs/container/misp-docker/misp-docker). We do not use tags inside the repository; instead we tag images as they are pushed to the registry. For each build, `core` and `modules` images are tagged as follows:
+-   `core-${commit-sha1}[0:7]` and `modules-${commit-sha1}[0:7]` where `${commit-sha1}` is the commit hash triggering the build
+-   `core-latest` and `modules-latest` in order to track the latest build available 
+-   `core-${MISP_TAG}` and `modules-${MODULES_TAG}` reflecting the underlying version of MISP and MISP modules (as specified inside the `template.env` file at build time)
