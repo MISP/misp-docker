@@ -1,6 +1,6 @@
 # MISP Docker images
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/MISP/misp-docker/release-latest.yml)](https://github.com/MISP/misp-docker/pkgs/container/misp-docker/misp-docker/versions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/MISP/misp-docker/release-latest.yml)](https://github.com/MISP/misp-docker/pkgs/container/misp-docker%2Fmisp-docker/versions)
 [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/MISP/Docker)
 
 A production ready Docker MISP image (formerly hosted at https://github.com/ostefano/docker-misp, now deprecated) loosely based on CoolAcid and DSCO builds, with nearly all logic rewritten and verified for correctness and portability.
@@ -16,7 +16,7 @@ Notable features:
 -   Fix enforcement of permissions
 -   Fix MISP modules loading of faup library
 -   Fix MISP modules loading of gl library
--   Add support for new background job system (see https://github.com/MISP/MISP/blob/2.4/docs/background-jobs-migration-guide.md)
+-   Add support for new background job [system](https://github.com/MISP/MISP/blob/2.4/docs/background-jobs-migration-guide.md)
 -   Add support for building specific MISP and MISP-modules commits
 -   Add automatic configuration of syncservers (see `configure_misp.sh`)
 -   Add automatic configuration of authentication keys (see `configure_misp.sh`)
@@ -64,13 +64,13 @@ New options are added on a regular basis.
 
 ### Production
 
--   It is recommended to specify the build you want run by editing `docker-compose.yml` (see here for the list of available tags https://github.com/MISP/misp-docker/pkgs/container/misp-docker/misp-docker)
+-   It is recommended to specify the build you want run by editing `docker-compose.yml` (see here for the list of available tags https://github.com/MISP/misp-docker/pkgs/container/misp-docker%2Fmisp-docker/versions)
 -   Directory volume mount SSL Certs `./ssl`: `/etc/ssl/certs`
     -   Certificate File: `cert.pem`
     -   Certificate Key File: `key.pem`
     -   CA File for Cert Authentication (optional) `ca.pem`
 -   Additional directory volume mounts:
-    -   `./configs`: `/var/www/MISP/app/Config/`
+    -   `./configs`: `/var/www/MISP/app/Config/`s
     -   `./logs`: `/var/www/MISP/app/tmp/logs/`
     -   `./files`: `/var/www/MISP/app/files/`
     -   `./gnupg`: `/var/www/MISP/.gnupg/`
@@ -83,7 +83,7 @@ New options are added on a regular basis.
 
 ## Versioning
 
-A GitHub Action builds both `core` and `modules` images automatically and pushes them to the [GitHub Package registry](https://github.com/MISP/misp-docker/pkgs/container/misp-docker/misp-docker). We do not use tags inside the repository; instead we tag images as they are pushed to the registry. For each build, `core` and `modules` images are tagged as follows:
+A GitHub Action builds both `core` and `modules` images automatically and pushes them to the [GitHub Package registry](https://github.com/MISP/misp-docker/pkgs/container/misp-docker%2Fmisp-docker/versions). We do not use tags inside the repository; instead we tag images as they are pushed to the registry. For each build, `core` and `modules` images are tagged as follows:
 -   `core-${commit-sha1}[0:7]` and `modules-${commit-sha1}[0:7]` where `${commit-sha1}` is the commit hash triggering the build
 -   `core-latest` and `modules-latest` in order to track the latest build available 
 -   `core-${MISP_TAG}` and `modules-${MODULES_TAG}` reflecting the underlying version of MISP and MISP modules (as specified inside the `template.env` file at build time)
