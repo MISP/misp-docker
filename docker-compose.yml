@@ -29,7 +29,7 @@ services:
       - SYS_NICE  # CAP_SYS_NICE Prevent runaway mysql log
 
   misp:
-    image: ostefano/misp-docker:core-latest
+    image: ghcr.io/misp/misp-docker/misp-docker:core-latest
     build:
       context: server/.
       args:
@@ -88,7 +88,7 @@ services:
       - "MYSQL_DATABASE=${MYSQL_DATABASE:-misp}"
   
   misp-modules:
-    image: ostefano/misp-docker:modules-latest
+    image: ghcr.io/misp/misp-docker/misp-docker:modules-latest
     build:
       context: modules/.
       args:
