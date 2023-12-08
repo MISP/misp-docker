@@ -86,4 +86,4 @@ New options are added on a regular basis.
 A GitHub Action builds both `misp-core` and `misp-modules` images automatically and pushes them to the [GitHub Package registry](https://github.com/orgs/MISP/packages). We do not use tags inside the repository; instead we tag images as they are pushed to the registry. For each build, `misp-core` and `misp-modules` images are tagged as follows:
 -   `misp-core:${commit-sha1}[0:7]` and `misp-modules:${commit-sha1}[0:7]` where `${commit-sha1}` is the commit hash triggering the build
 -   `misp-core:latest` and `misp-modules:latest` in order to track the latest builds available 
--   `misp-core:${MISP_TAG}` and `misp-modules:${MODULES_TAG}` reflecting the underlying version of MISP and MISP modules (as specified inside the `template.env` file at build time)
+-   `misp-core:${CORE_TAG}` and `misp-modules:${MODULES_TAG}` reflecting the underlying version of MISP and MISP modules (as specified inside the `template.env` file at build time)

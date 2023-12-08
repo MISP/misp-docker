@@ -3,8 +3,8 @@ ARG DOCKER_HUB_PROXY=""
 FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as composer-build
     ENV DEBIAN_FRONTEND noninteractive
     ENV COMPOSER_ALLOW_SUPERUSER 1
-    ARG MISP_TAG
-    ARG MISP_COMMIT
+    ARG CORE_TAG
+    ARG CORE_COMMIT
 
     RUN apt-get update; apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -24,7 +24,7 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as composer-build
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
     WORKDIR /tmp
-    ADD https://raw.githubusercontent.com/MISP/MISP/${MISP_COMMIT:-${MISP_TAG}}/app/composer.json /tmp
+    ADD https://raw.githubusercontent.com/MISP/MISP/${CORE_COMMIT:-${CORE_TAG}}/app/composer.json /tmp
     COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
     RUN composer config --no-interaction allow-plugins.composer/installers true
     RUN composer install
@@ -64,8 +64,8 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as php-build
 
 FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as python-build
     ENV DEBIAN_FRONTEND noninteractive   
-    ARG MISP_TAG
-    ARG MISP_COMMIT
+    ARG CORE_TAG
+    ARG CORE_COMMIT
     ARG PYPI_REDIS_VERSION
     ARG PYPI_LIEF_VERSION
     ARG PYPI_PYDEEP2_VERSION
@@ -83,10 +83,10 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as python-build
     
     # Download MISP using git in the /var/www/ directory. Remove unnecessary items.
     RUN <<-EOF
-        if [ ! -z "${MISP_COMMIT}" ]; then
-            git clone https://github.com/MISP/MISP.git /var/www/MISP && cd /var/www/MISP && git checkout "${MISP_COMMIT}"
+        if [ ! -z "${CORE_COMMIT}" ]; then
+            git clone https://github.com/MISP/MISP.git /var/www/MISP && cd /var/www/MISP && git checkout "${CORE_COMMIT}"
         else
-            git clone --branch "${MISP_TAG}" --depth 1 https://github.com/MISP/MISP.git /var/www/MISP
+            git clone --branch "${CORE_TAG}" --depth 1 https://github.com/MISP/MISP.git /var/www/MISP
         fi
 
         cd /var/www/MISP || exit; git submodule update --init --recursive .
@@ -135,8 +135,8 @@ EOF
 
 FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim"
     ENV DEBIAN_FRONTEND noninteractive
-    ARG MISP_TAG
-    ARG MISP_COMMIT
+    ARG CORE_TAG
+    ARG CORE_COMMIT
     ARG PHP_VER
 
     RUN apt-get update; apt-get install -y --no-install-recommends \

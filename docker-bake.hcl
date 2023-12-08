@@ -58,11 +58,11 @@ variable "LIBFAUP_COMMIT" {
   default = ""
 }
 
-variable "MISP_TAG" {
+variable "CORE_TAG" {
   default = ""
 }
 
-variable "MISP_COMMIT" {
+variable "CORE_COMMIT" {
   default = ""
 }
 
@@ -92,10 +92,10 @@ target "misp-modules" {
 target "misp-core" {
   context = "core/."
   dockerfile = "Dockerfile"
-  tags = flatten(["${NAMESPACE}/misp-core:latest", "${NAMESPACE}/misp-core:${COMMIT_HASH}", MISP_TAG != "" ? ["${NAMESPACE}/misp-core:${MISP_TAG}"] : []])
+  tags = flatten(["${NAMESPACE}/misp-core:latest", "${NAMESPACE}/misp-core:${COMMIT_HASH}", CORE_TAG != "" ? ["${NAMESPACE}/misp-core:${CORE_TAG}"] : []])
   args = {
-    "MISP_TAG": "${MISP_TAG}",
-    "MISP_COMMIT": "${MISP_COMMIT}",
+    "CORE_TAG": "${CORE_TAG}",
+    "CORE_COMMIT": "${CORE_COMMIT}",
     "PHP_VER": "${PHP_VER}",
     "PYPI_REDIS_VERSION": "${PYPI_REDIS_VERSION}",
     "PYPI_LIEF_VERSION": "${PYPI_LIEF_VERSION}",

@@ -33,8 +33,8 @@ services:
     build:
       context: core/.
       args:
-          - MISP_TAG=${MISP_TAG}
-          - MISP_COMMIT=${MISP_COMMIT}
+          - CORE_TAG=${CORE_TAG}
+          - CORE_COMMIT=${CORE_COMMIT}
           - PHP_VER=${PHP_VER}
           - PYPI_REDIS_VERSION=${PYPI_REDIS_VERSION}
           - PYPI_LIEF_VERSION=${PYPI_LIEF_VERSION}
