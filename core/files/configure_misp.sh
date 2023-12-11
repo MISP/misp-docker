@@ -1,20 +1,12 @@
 #!/bin/bash
 
 source /rest_client.sh
+source /utilities.sh
 
 [ -z "$ADMIN_EMAIL" ] && ADMIN_EMAIL="admin@admin.test"
 [ -z "$GPG_PASSPHRASE" ] && GPG_PASSPHRASE="passphrase"
 [ -z "$REDIS_FQDN" ] && REDIS_FQDN="redis"
 [ -z "$MISP_MODULES_FQDN" ] && MISP_MODULES_FQDN="http://misp-modules"
-[ -z "$OIDC_PROVIDER_URL" ] && OIDC_PROVIDER_URL="test_provider"
-[ -z "$OIDC_CLIENT_ID" ] && OIDC_CLIENT_ID="test_client_id"
-[ -z "$OIDC_CLIENT_SECRET" ] && OIDC_CLIENT_SECRET="test_client_secret"
-[ -z "$OIDC_ROLES_PROPERTY" ] && OIDC_ROLES_PROPERTY="roles"
-[ -z "$OIDC_ROLES_MAPPING" ] && OIDC_ROLES_MAPPING="{
-    \"admin\": \"1\",
-    \"sync-user\": \"5\"
-}"
-[ -z "$OIDC_DEFAULT_ORG" ] && OIDC_DEFAULT_ORG="$ADMIN_ORG"
 
 # Switches to selectively disable configuration logic
 [ -z "$AUTOCONF_GPG" ] && AUTOCONF_GPG="true"
@@ -108,6 +100,9 @@ set_up_oidc() {
         echo "... OIDC authentication disabled"
         return
     fi
+
+    # Check required variables
+    check_env_vars OIDC_PROVIDER_URL OIDC_CLIENT_ID OIDC_CLIENT_SECRET OIDC_ROLES_PROPERTY OIDC_ROLES_MAPPING OIDC_DEFAULT_ORG
 
     sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
         \"Security\": {
