@@ -6,10 +6,20 @@ source /rest_client.sh
 [ -z "$GPG_PASSPHRASE" ] && GPG_PASSPHRASE="passphrase"
 [ -z "$REDIS_FQDN" ] && REDIS_FQDN="redis"
 [ -z "$MISP_MODULES_FQDN" ] && MISP_MODULES_FQDN="http://misp-modules"
+[ -z "$OIDC_PROVIDER_URL" ] && OIDC_PROVIDER_URL="test_provider"
+[ -z "$OIDC_CLIENT_ID" ] && OIDC_CLIENT_ID="test_client_id"
+[ -z "$OIDC_CLIENT_SECRET" ] && OIDC_CLIENT_SECRET="test_client_secret"
+[ -z "$OIDC_ROLES_PROPERTY" ] && OIDC_ROLES_PROPERTY="roles"
+[ -z "$OIDC_ROLES_MAPPING" ] && OIDC_ROLES_MAPPING="{
+    \"admin\": \"1\",
+    \"sync-user\": \"5\"
+}"
+[ -z "$OIDC_DEFAULT_ORG" ] && OIDC_DEFAULT_ORG="$ADMIN_ORG"
 
 # Switches to selectively disable configuration logic
 [ -z "$AUTOCONF_GPG" ] && AUTOCONF_GPG="true"
 [ -z "$AUTOCONF_ADMIN_KEY" ] && AUTOCONF_ADMIN_KEY="true"
+[ -z "$OIDC_ENABLE" ] && OIDC_ENABLE="false"
 
 init_configuration(){
     # Note that we are doing this after enforcing permissions, so we need to use the www-data user for this
@@ -93,6 +103,33 @@ GPGEOF
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "GnuPG.binary" "$(which gpg)"
 }
 
+set_up_oidc() {
+    if [[ "$OIDC_ENABLE" != "true" ]]; then
+        echo "... OIDC authentication disabled"
+        return
+    fi
+
+    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+        \"Security\": {
+            \"auth\": [\"OidcAuth.Oidc\"]
+        }
+    }" > /dev/null
+
+    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+        \"OidcAuth\": {
+            \"provider_url\": \"${OIDC_PROVIDER_URL}\",
+            \"client_id\": \"${OIDC_CLIENT_ID}\",
+            \"client_secret\": \"${OIDC_CLIENT_SECRET}\",
+            \"roles_property\": \"${OIDC_ROLES_PROPERTY}\",
+            \"role_mapper\": ${OIDC_ROLES_MAPPING},
+            \"default_org\": \"${OIDC_DEFAULT_ORG}\"
+        }
+    }" > /dev/null
+
+    # Disable password confirmation as stated at https://github.com/MISP/MISP/issues/8116
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
+}
+
 apply_updates() {
     # Disable weird default
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" false
@@ -164,7 +201,7 @@ apply_critical_fixes() {
 apply_optional_fixes() {
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q --force "MISP.welcome_text_top" ""
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q --force "MISP.welcome_text_bottom" ""
-    
+
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.contact" "${ADMIN_EMAIL}"
     # This is not necessary because we update the DB directly
     # sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.org" "${ADMIN_ORG}"
@@ -253,6 +290,8 @@ echo "MISP | Resolve non-critical issues ..." && apply_optional_fixes
 echo "MISP | Create sync servers ..." && create_sync_servers
 
 echo "MISP | Update components ..." && update_components
+
+echo "MISP | Set Up OIDC ..." && set_up_oidc
 
 echo "MISP | Mark instance live"
 sudo -u www-data /var/www/MISP/app/Console/cake Admin live 1

@@ -69,6 +69,13 @@ services:
       - "ADMIN_KEY=${ADMIN_KEY}"
       - "ADMIN_ORG=${ADMIN_ORG}"
       - "GPG_PASSPHRASE=${GPG_PASSPHRASE}"
+      # authentication settings
+      - "OIDC_ENABLE=${OIDC_ENABLE}"
+      - "OIDC_PROVIDER_URL=${OIDC_PROVIDER_URL}"
+      - "OIDC_CLIENT_ID=${OIDC_CLIENT_ID}"
+      - "OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET}"
+      - "OIDC_ROLES_PROPERTY=${OIDC_ROLES_PROPERTY}"
+      - "OIDC_DEFAULT_ORG=${OIDC_DEFAULT_ORG}"
       # sync server settings (see https://www.misp-project.org/openapi/#tag/Servers for more options)
       - "SYNCSERVERS=${SYNCSERVERS}"
       - |
