@@ -15,7 +15,7 @@ trap term_proc SIGTERM
 [ -z "$MYSQL_DATABASE" ] && MYSQL_DATABASE=misp
 [ -z "$MYSQLCMD" ] && export MYSQLCMD="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD -P $MYSQL_PORT -h $MYSQL_HOST -r -N $MYSQL_DATABASE"
 [ -z "$CRON_USER_ID" ] && export CRON_USER_ID="1"
-[ -z "$HOSTNAME" ] && export HOSTNAME="https://localhost"
+[ -z "$BASE_URL" ] && export BASE_URL="https://localhost"
 [ -z "$DISABLE_IPV6" ] && export DISABLE_IPV6=false
 
 init_mysql(){

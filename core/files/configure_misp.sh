@@ -16,7 +16,7 @@ source /utilities.sh
 init_configuration(){
     # Note that we are doing this after enforcing permissions, so we need to use the www-data user for this
     echo "... configuring default settings"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.baseurl" "$HOSTNAME"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.baseurl" "$BASE_URL"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.email" "${MISP_EMAIL-$ADMIN_EMAIL}"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.contact" "${MISP_CONTACT-$ADMIN_EMAIL}"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.redis_host" "$REDIS_FQDN"
@@ -173,7 +173,7 @@ init_user() {
 }
 
 apply_critical_fixes() {
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.external_baseurl" "${HOSTNAME}"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.external_baseurl" "${BASE_URL}"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.host_org_id" 1
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.Action_services_enable" false
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.Enrichment_hover_enable" false
@@ -181,7 +181,7 @@ apply_critical_fixes() {
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.csp_enforce" true
     sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
         \"Security\": {
-            \"rest_client_baseurl\": \"${HOSTNAME}\"
+            \"rest_client_baseurl\": \"${BASE_URL}\"
         }
     }" > /dev/null
     sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
@@ -237,7 +237,7 @@ create_sync_servers() {
 
         # Skip sync server if we can
         echo "... searching sync server ${NAME}"
-        SERVER_ID=$(get_server ${HOSTNAME} ${ADMIN_KEY} ${NAME})
+        SERVER_ID=$(get_server ${BASE_URL} ${ADMIN_KEY} ${NAME})
         if [[ -n "$SERVER_ID" ]]; then
             echo "... found existing sync server ${NAME} with id ${SERVER_ID}"
             continue
@@ -252,18 +252,18 @@ create_sync_servers() {
 
         # Get remote organization
         echo "... searching remote organization ${UUID}"
-        ORG_ID=$(get_organization ${HOSTNAME} ${ADMIN_KEY} ${UUID})
+        ORG_ID=$(get_organization ${BASE_URL} ${ADMIN_KEY} ${UUID})
         if [[ -z "$ORG_ID" ]]; then
             # Add remote organization if missing
             echo "... adding missing organization ${UUID}"
-            add_organization ${HOSTNAME} ${ADMIN_KEY} ${NAME} false ${UUID} > /dev/null
-            ORG_ID=$(get_organization ${HOSTNAME} ${ADMIN_KEY} ${UUID})
+            add_organization ${BASE_URL} ${ADMIN_KEY} ${NAME} false ${UUID} > /dev/null
+            ORG_ID=$(get_organization ${BASE_URL} ${ADMIN_KEY} ${UUID})
         fi
 
         # Add sync server
         echo "... adding new sync server ${NAME} with organization id ${ORG_ID}"
         JSON_DATA=$(echo "${!DATA}" | jq --arg org_id ${ORG_ID} 'del(.remote_org_uuid) | . + {remote_org_id: $org_id}')
-        add_server ${HOSTNAME} ${ADMIN_KEY} "$JSON_DATA" > /dev/null
+        add_server ${BASE_URL} ${ADMIN_KEY} "$JSON_DATA" > /dev/null
     done
 }
 

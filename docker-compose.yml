@@ -60,7 +60,7 @@ services:
       # customize by replacing ${CUSTOM_PATH} with a path containing 'files/customize_misp.sh'
       # - "${CUSTOM_PATH}/:/custom/"
     environment:
-      - "HOSTNAME=${HOSTNAME}"
+      - "BASE_URL=${BASE_URL}"
       - "CRON_USER_ID=${CRON_USER_ID}"
       - "DISABLE_IPV6=${DISABLE_IPV6}"
       # standard settings
