@@ -169,6 +169,8 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim"
         php-gd \
         php-fpm \
         php-zip \
+        php-ldap \
+        libldap-common \
         librdkafka1 \
         libbrotli1 \
         libsimdjson5 \

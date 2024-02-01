@@ -12,6 +12,7 @@ source /utilities.sh
 [ -z "$AUTOCONF_GPG" ] && AUTOCONF_GPG="true"
 [ -z "$AUTOCONF_ADMIN_KEY" ] && AUTOCONF_ADMIN_KEY="true"
 [ -z "$OIDC_ENABLE" ] && OIDC_ENABLE="false"
+[ -z "$LDAP_ENABLE" ] && LDAP_ENABLE="false"
 
 init_configuration(){
     # Note that we are doing this after enforcing permissions, so we need to use the www-data user for this
@@ -123,6 +124,37 @@ set_up_oidc() {
 
     # Disable password confirmation as stated at https://github.com/MISP/MISP/issues/8116
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
+}
+
+set_up_ldap() {
+    if [[ "$LDAP_ENABLE" != "true" ]]; then
+        echo "... LDAP authentication disabled"
+        return
+    fi
+
+    # Check required variables
+    # LDAP_SEARCH_FILTER may be empty
+    check_env_vars LDAP_APACHE_ENV LDAP_SERVER LDAP_STARTTLS LDAP_READER_USER LDAP_READER_PASSWORD LDAP_DN LDAP_SEARCH_ATTRIBUTE LDAP_FILTER LDAP_DEFAULT_ROLE_ID LDAP_DEFAULT_ORG LDAP_OPT_PROTOCOL_VERSION LDAP_OPT_NETWORK_TIMEOUT LDAP_OPT_REFERRALS 
+
+    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+        \"ApacheSecureAuth\": {
+            \"apacheEnv\": \"${LDAP_APACHE_ENV}\",
+            \"ldapServer\": \"${LDAP_SERVER}\",
+            \"starttls\": ${LDAP_STARTTLS},
+            \"ldapProtocol\": ${LDAP_OPT_PROTOCOL_VERSION},
+            \"ldapNetworkTimeout\": ${LDAP_OPT_NETWORK_TIMEOUT},
+            \"ldapReaderUser\": \"${LDAP_READ_USER}\",
+            \"ldapReaderPassword\": \"${LDAP_READ_PASSWORD}\",
+            \"ldapDN\": \"${LDAP_DN}\",
+            \"ldapSearchFilter\": \"${LDAP_SEARCH_FILTER}\",
+            \"ldapSearchAttribut\": \"${LDAP_SEARCH_ATTRIBUTE}\",
+            \"ldapFilter\": ${LDAP_FILTER},
+            \"ldapDefaultRoleId\": ${LDAP_DEFAULT_ROLE_ID},
+            \"ldapDefaultOrg\": \"${LDAP_DEFAULT_ORG}\",
+            \"ldapAllowReferrals\": ${LDAP_OPT_REFERRALS},
+            \"ldapEmailField\": ${LDAP_EMAIL_FIELD}
+        }
+    }" > /dev/null
 }
 
 apply_updates() {
@@ -267,6 +299,7 @@ create_sync_servers() {
     done
 }
 
+echo "MISP | Update CA certificates ..." && update-ca-certificates
 
 echo "MISP | Initialize configuration ..." && init_configuration
 
@@ -287,6 +320,8 @@ echo "MISP | Create sync servers ..." && create_sync_servers
 echo "MISP | Update components ..." && update_components
 
 echo "MISP | Set Up OIDC ..." && set_up_oidc
+
+echo "MISP | Set Up LDAP ..." && set_up_ldap
 
 echo "MISP | Mark instance live"
 sudo -u www-data /var/www/MISP/app/Console/cake Admin live 1

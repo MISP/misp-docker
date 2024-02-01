@@ -59,6 +59,8 @@ services:
       - "./gnupg/:/var/www/MISP/.gnupg/"
       # customize by replacing ${CUSTOM_PATH} with a path containing 'files/customize_misp.sh'
       # - "${CUSTOM_PATH}/:/custom/"
+      # mount custom ca root certificates
+      # - "./rootca.pem:/usr/local/share/ca-certificates/rootca.crt"
     environment:
       - "BASE_URL=${BASE_URL}"
       - "CRON_USER_ID=${CRON_USER_ID}"
@@ -69,7 +71,7 @@ services:
       - "ADMIN_KEY=${ADMIN_KEY}"
       - "ADMIN_ORG=${ADMIN_ORG}"
       - "GPG_PASSPHRASE=${GPG_PASSPHRASE}"
-      # authentication settings
+      # OIDC authentication settings
       - "OIDC_ENABLE=${OIDC_ENABLE}"
       - "OIDC_PROVIDER_URL=${OIDC_PROVIDER_URL}"
       - "OIDC_CLIENT_ID=${OIDC_CLIENT_ID}"
@@ -77,6 +79,23 @@ services:
       - "OIDC_ROLES_PROPERTY=${OIDC_ROLES_PROPERTY}"
       - "OIDC_ROLES_MAPPING=${OIDC_ROLES_MAPPING}"
       - "OIDC_DEFAULT_ORG=${OIDC_DEFAULT_ORG}"
+      # LDAP authentication settings
+      - "LDAP_ENABLE=${LDAP_ENABLE}"
+      - "LDAP_APACHE_ENV=${LDAP_APACHE_ENV}"
+      - "LDAP_SERVER=${LDAP_SERVER}"
+      - "LDAP_STARTTLS=${LDAP_STARTTLS}"
+      - "LDAP_READER_USER=${LDAP_READER_USER}"
+      - "LDAP_READER_PASSWORD=${LDAP_READER_PASSWORD}"
+      - "LDAP_DN=${LDAP_DN}"
+      - "LDAP_SEARCH_FILTER=${LDAP_SEARCH_FILTER}"
+      - "LDAP_SEARCH_ATTRIBUTE=${LDAP_SEARCH_ATTRIBUTE}"
+      - "LDAP_FILTER=${LDAP_FILTER}"
+      - "LDAP_DEFAULT_ROLE_ID=${LDAP_DEFAULT_ROLE_ID}"
+      - "LDAP_DEFAULT_ORG=${LDAP_DEFAULT_ORG}"
+      - "LDAP_EMAIL_FIELD=${LDAP_EMAIL_FIELD}"
+      - "LDAP_OPT_PROTOCOL_VERSION=${LDAP_OPT_PROTOCOL_VERSION}"
+      - "LDAP_OPT_NETWORK_TIMEOUT=${LDAP_OPT_NETWORK_TIMEOUT}"
+      - "LDAP_OPT_REFERRALS=${LDAP_OPT_REFERRALS}"
       # sync server settings (see https://www.misp-project.org/openapi/#tag/Servers for more options)
       - "SYNCSERVERS=${SYNCSERVERS}"
       - |
