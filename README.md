@@ -76,6 +76,27 @@ New options are added on a regular basis.
     -   `./gnupg`: `/var/www/MISP/.gnupg/`
 -   If you need to automatically run additional steps each time the container starts, create a new file `files/customize_misp.sh`, and replace the variable `${CUSTOM_PATH}` inside `docker-compose.yml` with its parent path.
 
+## Installing custom root CA certificates
+
+Custom root CA certificates can be mounted under `/usr/local/share/ca-certificates` and will be installed during the `misp-core` container start.
+
+**Note:** It is important to have the .crt extension on the file, otherwise it will not be processed.
+
+```yaml
+  misp-core:
+    # ...
+    volumes:
+      - "./configs/:/var/www/MISP/app/Config/"
+      - "./logs/:/var/www/MISP/app/tmp/logs/"
+      - "./files/:/var/www/MISP/app/files/"
+      - "./ssl/:/etc/nginx/certs/"
+      - "./gnupg/:/var/www/MISP/.gnupg/"
+      # customize by replacing ${CUSTOM_PATH} with a path containing 'files/customize_misp.sh'
+      # - "${CUSTOM_PATH}/:/custom/"
+      # mount custom ca root certificates
+      - "./rootca.pem:/usr/local/share/ca-certificates/rootca.crt"
+```
+
 ## Troubleshooting
 
 -   Make sure you run a fairly recent version of Docker and Docker Compose (if in doubt, update following the steps outlined in https://docs.docker.com/engine/install/ubuntu/)
