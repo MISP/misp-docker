@@ -17,6 +17,7 @@ trap term_proc SIGTERM
 [ -z "$CRON_USER_ID" ] && export CRON_USER_ID="1"
 [ -z "$BASE_URL" ] && export BASE_URL="https://localhost"
 [ -z "$DISABLE_IPV6" ] && export DISABLE_IPV6=false
+[ -z "$DISABLE_SSL_REDIRECT" ] && export DISABLE_SSL_REDIRECT=false
 
 init_mysql(){
     # Test when MySQL is ready....
@@ -197,7 +198,7 @@ flip_nginx() {
 
     # must be valid for all roots
     echo "... nginx docroot set to ${NGINX_DOC_ROOT}"
-    sed -i "s|root.*var/www.*|root ${NGINX_DOC_ROOT};|" /etc/nginx/sites-available/misp
+    sed -i "s|root.*var/www.*|root ${NGINX_DOC_ROOT};|" /etc/nginx/includes/misp
 
     if [[ "$reload" = "true" ]]; then
         echo "... nginx reloaded"
@@ -210,7 +211,16 @@ init_nginx() {
     if [[ ! -f "/etc/nginx/sites-enabled/misp80" ]]; then
         echo "... enabling port 80 redirect"
         if [[ "$DISABLE_IPV6" = "true" ]]; then
-            sed -i "/\[::\]/d" /etc/nginx/sites-available/misp80
+            sed -i "s/[^#] listen \[/  # listen \[/" /etc/nginx/sites-available/misp80
+        else
+            sed -i "s/# listen \[/listen \[" /etc/nginx/sites-available/misp80
+        fi
+        if [[ "$DISABLE_SSL_REDIRECT" = "true" ]]; then
+            sed -i "s/[^#] return /  # return /" /etc/nginx/sites-available/misp80
+            sed -i "s/# include /include /" /etc/nginx/sites-available/misp80
+        else
+            sed -i "s/[^#] include /  # include /" /etc/nginx/sites-available/misp80
+            sed -i "s/# return /return /" /etc/nginx/sites-available/misp80
         fi
         ln -s /etc/nginx/sites-available/misp80 /etc/nginx/sites-enabled/misp80
     else
@@ -218,12 +228,14 @@ init_nginx() {
     fi
 
     # Testing for files also test for links, and generalize better to mounted files
-    if [[ ! -f "/etc/nginx/sites-enabled/misp" ]]; then
+    if [[ ! -f "/etc/nginx/sites-enabled/misp443" ]]; then
         echo "... enabling port 443"
         if [[ "$DISABLE_IPV6" = "true" ]]; then
-            sed -i "/\[::\]/d" /etc/nginx/sites-available/misp
+            sed -i "s/[^#] listen \[/  # listen \[/" /etc/nginx/sites-available/misp443
+        else
+            sed -i "s/# listen \[/listen \[" /etc/nginx/sites-available/misp443
         fi
-        ln -s /etc/nginx/sites-available/misp /etc/nginx/sites-enabled/misp
+        ln -s /etc/nginx/sites-available/misp443 /etc/nginx/sites-enabled/misp443
     else
         echo "... port 443 already configured"
     fi
