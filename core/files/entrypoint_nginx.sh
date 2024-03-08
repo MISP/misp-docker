@@ -210,34 +210,40 @@ init_nginx() {
     # Testing for files also test for links, and generalize better to mounted files
     if [[ ! -f "/etc/nginx/sites-enabled/misp80" ]]; then
         echo "... enabling port 80 redirect"
-        if [[ "$DISABLE_IPV6" = "true" ]]; then
-            sed -i "s/[^#] listen \[/  # listen \[/" /etc/nginx/sites-available/misp80
-        else
-            sed -i "s/# listen \[/listen \[" /etc/nginx/sites-available/misp80
-        fi
-        if [[ "$DISABLE_SSL_REDIRECT" = "true" ]]; then
-            sed -i "s/[^#] return /  # return /" /etc/nginx/sites-available/misp80
-            sed -i "s/# include /include /" /etc/nginx/sites-available/misp80
-        else
-            sed -i "s/[^#] include /  # include /" /etc/nginx/sites-available/misp80
-            sed -i "s/# return /return /" /etc/nginx/sites-available/misp80
-        fi
         ln -s /etc/nginx/sites-available/misp80 /etc/nginx/sites-enabled/misp80
     else
-        echo "... port 80 already configured"
+        echo "... port 80 already enabled"
+    fi
+    if [[ "$DISABLE_IPV6" = "true" ]]; then
+        echo "... disabling IPv6 on port 80"
+        sed -i "s/[^#] listen \[/  # listen \[/" /etc/nginx/sites-enabled/misp80
+    else
+        echo "... enabling IPv6 on port 80"
+        sed -i "s/# listen \[/listen \[/" /etc/nginx/sites-enabled/misp80
+    fi
+    if [[ "$DISABLE_SSL_REDIRECT" = "true" ]]; then
+        echo "... disabling SSL redirect"
+        sed -i "s/[^#] return /  # return /" /etc/nginx/sites-enabled/misp80
+        sed -i "s/# include /include /" /etc/nginx/sites-enabled/misp80
+    else
+        echo "... enabling SSL redirect"
+        sed -i "s/[^#] include /  # include /" /etc/nginx/sites-enabled/misp80
+        sed -i "s/# return /return /" /etc/nginx/sites-enabled/misp80
     fi
 
     # Testing for files also test for links, and generalize better to mounted files
     if [[ ! -f "/etc/nginx/sites-enabled/misp443" ]]; then
         echo "... enabling port 443"
-        if [[ "$DISABLE_IPV6" = "true" ]]; then
-            sed -i "s/[^#] listen \[/  # listen \[/" /etc/nginx/sites-available/misp443
-        else
-            sed -i "s/# listen \[/listen \[" /etc/nginx/sites-available/misp443
-        fi
         ln -s /etc/nginx/sites-available/misp443 /etc/nginx/sites-enabled/misp443
     else
-        echo "... port 443 already configured"
+        echo "... port 443 already enabled"
+    fi
+    if [[ "$DISABLE_IPV6" = "true" ]]; then
+        echo "... disabling IPv6 on port 443"
+        sed -i "s/[^#] listen \[/  # listen \[/" /etc/nginx/sites-enabled/misp443
+    else
+        echo "... enabling IPv6 on port 443"
+        sed -i "s/# listen \[/listen \[/" /etc/nginx/sites-enabled/misp443
     fi
     
     if [[ ! -f /etc/nginx/certs/cert.pem || ! -f /etc/nginx/certs/key.pem ]]; then

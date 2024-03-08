@@ -55,10 +55,11 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as php-build
         php-pear \
         librdkafka-dev \
         libsimdjson-dev \
+        libzstd-dev \
         git \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-    RUN cp "/usr/lib/$(gcc -dumpmachine)"/libfuzzy.* /usr/lib; pecl channel-update pecl.php.net && pecl install ssdeep && pecl install rdkafka && pecl install simdjson
+    RUN cp "/usr/lib/$(gcc -dumpmachine)"/libfuzzy.* /usr/lib; pecl channel-update pecl.php.net && pecl install ssdeep && pecl install rdkafka && pecl install simdjson && pecl install zstd
     RUN git clone --recursive --depth=1 https://github.com/kjdev/php-ext-brotli.git && \
         cd php-ext-brotli && phpize && ./configure && make && make install
 
@@ -174,6 +175,7 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim"
         librdkafka1 \
         libbrotli1 \
         libsimdjson5 \
+        libzstd1 \
         # Unsure we need these
         zip unzip \
         # Require for advanced an unattended configuration
@@ -185,7 +187,7 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim"
     RUN pip3 install --no-cache-dir /wheels/*.whl && rm -rf /wheels
 
     # PHP: install prebuilt libraries, then install the app's PHP deps
-    COPY --from=php-build ["/usr/lib/php/${PHP_VER}/ssdeep.so", "/usr/lib/php/${PHP_VER}/rdkafka.so", "/usr/lib/php/${PHP_VER}/brotli.so", "/usr/lib/php/${PHP_VER}/simdjson.so", "/usr/lib/php/${PHP_VER}/"]
+    COPY --from=php-build ["/usr/lib/php/${PHP_VER}/ssdeep.so", "/usr/lib/php/${PHP_VER}/rdkafka.so", "/usr/lib/php/${PHP_VER}/brotli.so", "/usr/lib/php/${PHP_VER}/simdjson.so", "/usr/lib/php/${PHP_VER}/zstd.so", "/usr/lib/php/${PHP_VER}/"]
 
     # Do an early chown to limit image size
     COPY --from=python-build --chown=www-data:www-data --chmod=0550 /var/www/MISP /var/www/MISP
@@ -194,7 +196,7 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim"
 
     # Gather these in one layer, only act on actual directories under /etc/php/
     RUN <<-EOF
-        set -- "ssdeep" "rdkafka" "brotli" "simdjson"
+        set -- "ssdeep" "rdkafka" "brotli" "simdjson" "zstd"
         for mod in "$@"; do
             for dir in /etc/php/*/; do
                 echo "extension=${mod}.so" > "${dir}mods-available/${mod}.ini"

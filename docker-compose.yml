@@ -33,9 +33,9 @@ services:
     build:
       context: core/.
       args:
-          - CORE_TAG=${CORE_TAG}
+          - CORE_TAG=${CORE_TAG:?Missing .env file, see README.md for instructions}
           - CORE_COMMIT=${CORE_COMMIT}
-          - PHP_VER=${PHP_VER}
+          - PHP_VER=${PHP_VER:?Missing .env file, see README.md for instructions}
           - PYPI_REDIS_VERSION=${PYPI_REDIS_VERSION}
           - PYPI_LIEF_VERSION=${PYPI_LIEF_VERSION}
           - PYPI_PYDEEP2_VERSION=${PYPI_PYDEEP2_VERSION}
@@ -120,9 +120,9 @@ services:
     build:
       context: modules/.
       args:
-        - MODULES_TAG=${MODULES_TAG}
+        - MODULES_TAG=${MODULES_TAG:?Missing .env file, see README.md for instructions}
         - MODULES_COMMIT=${MODULES_COMMIT}
-        - LIBFAUP_COMMIT=${LIBFAUP_COMMIT}
+        - LIBFAUP_COMMIT=${LIBFAUP_COMMIT:?Missing .env file, see README.md for instructions}
     environment:
       - "REDIS_BACKEND=redis"
     depends_on:
