@@ -109,3 +109,15 @@ A GitHub Action builds both `misp-core` and `misp-modules` images automatically 
 -   `misp-core:${commit-sha1}[0:7]` and `misp-modules:${commit-sha1}[0:7]` where `${commit-sha1}` is the commit hash triggering the build
 -   `misp-core:latest` and `misp-modules:latest` in order to track the latest builds available 
 -   `misp-core:${CORE_TAG}` and `misp-modules:${MODULES_TAG}` reflecting the underlying version of MISP and MISP modules (as specified inside the `template.env` file at build time)
+
+## Running without docker-compose
+
+On Ubuntu 20.04 with docker 25.0.4 an issue can happen where the workers are not restarted once they are gracefully exited. This results in a log message like the following:
+
+`Mar 11 13:37:42 misp01 docker[12345]: 2024-03-11 13:37:42,503 INFO spawnerr: unknown error making dispatchers for 'default_00': EACCES`
+
+This is caused by a bug in moby (https://github.com/moby/moby/issues/31243). A workaround for this situation is to expose a TTY to the container. This can be done in the following way:
+- Run the container with the `--tty` flag
+- Add the `www-data` user to the `tty` group: `usermod -G tty www-data`
+
+More information can be found in https://github.com/MISP/misp-docker/issues/25
