@@ -185,7 +185,6 @@ set_up_aad() {
         }
     }" > /dev/null
 
-    echo "hello"
     # Configure AAD auth settings from environment variables in config.php file
     sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
         \"AadAuth\": {
