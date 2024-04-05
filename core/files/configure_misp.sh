@@ -168,8 +168,8 @@ set_up_aad() {
 
     # Configure unset optional AAD environment variables to default values
     [ -z "$AAD_REDIRECT_URI" ] && AAD_REDIRECT_URI="${BASE_URL}/users/login"
-    [ -z "$AAD_PROVIDER" ] && AAD_PROVIDER=https://login.microsoftonline.com/
-    [ -z "$AAD_PROVIDER_USER" ] && AAD_PROVIDER_USER=https://graph.microsoft.com/
+    [ -z "$AAD_PROVIDER" ] && AAD_PROVIDER="https://login.microsoftonline.com/"
+    [ -z "$AAD_PROVIDER_USER" ] && AAD_PROVIDER_USER="https://graph.microsoft.com/"
     [ -z "$AAD_MISP_USER" ] && AAD_MISP_USER="Misp Users"
     [ -z "$AAD_MISP_ORGADMIN" ] && AAD_MISP_ORGADMIN="Misp Org Admins"
     [ -z "$AAD_MISP_SITEADMIN" ] && AAD_MISP_SITEADMIN="Misp Site Admins"
