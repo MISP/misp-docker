@@ -164,16 +164,7 @@ set_up_aad() {
     fi
 
     # Check required variables
-    check_env_vars AAD_CLIENT_ID AAD_TENANT_ID AAD_CLIENT_SECRET BASE_URL
-
-    # Configure unset optional AAD environment variables to default values
-    [ -z "$AAD_REDIRECT_URI" ] && AAD_REDIRECT_URI="${BASE_URL}/users/login"
-    [ -z "$AAD_PROVIDER" ] && AAD_PROVIDER="https://login.microsoftonline.com/"
-    [ -z "$AAD_PROVIDER_USER" ] && AAD_PROVIDER_USER="https://graph.microsoft.com/"
-    [ -z "$AAD_MISP_USER" ] && AAD_MISP_USER="Misp Users"
-    [ -z "$AAD_MISP_ORGADMIN" ] && AAD_MISP_ORGADMIN="Misp Org Admins"
-    [ -z "$AAD_MISP_SITEADMIN" ] && AAD_MISP_SITEADMIN="Misp Site Admins"
-    [ -z "$AAD_CHECK_GROUPS" ] && AAD_CHECK_GROUPS=false
+    check_env_vars AAD_CLIENT_ID AAD_TENANT_ID AAD_CLIENT_SECRET AAD_REDIRECT_URI AAD_PROVIDER AAD_PROVIDER_USER AAD_MISP_ORGADMIN AAD_MISP_SITEADMIN AAD_CHECK_GROUPS
 
     # Note: Not necessary to edit bootstrap.php to load AadAuth Cake plugin because 
     # existing loadAll() call in bootstrap.php already loads all available Cake plugins
