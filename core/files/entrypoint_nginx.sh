@@ -148,7 +148,7 @@ EOT
 
 update_misp_data_files(){
     for DIR in $(ls /var/www/MISP/app/files.dist); do
-        if [ "$DIR" = "certs" ] || [ "$DIR" = "img" ] ; then
+        if [ "$DIR" = "certs" ] || [ "$DIR" = "img" ] || [ "$DIR" == "taxonomies" ] ; then
             echo "... rsync -azh \"/var/www/MISP/app/files.dist/$DIR\" \"/var/www/MISP/app/files/\""
             rsync -azh "/var/www/MISP/app/files.dist/$DIR" "/var/www/MISP/app/files/"
         else
