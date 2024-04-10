@@ -157,6 +157,51 @@ set_up_ldap() {
     }" > /dev/null
 }
 
+set_up_aad() {
+    if [[ "$AAD_ENABLE" != "true" ]]; then
+        echo "... Entra (AzureAD) authentication disabled"
+        return
+    fi
+
+    # Check required variables
+    check_env_vars AAD_CLIENT_ID AAD_TENANT_ID AAD_CLIENT_SECRET AAD_REDIRECT_URI AAD_PROVIDER AAD_PROVIDER_USER AAD_MISP_ORGADMIN AAD_MISP_SITEADMIN AAD_CHECK_GROUPS
+
+    # Note: Not necessary to edit bootstrap.php to load AadAuth Cake plugin because 
+    # existing loadAll() call in bootstrap.php already loads all available Cake plugins
+
+    # Set auth mechanism to AAD in config.php file
+    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+        \"Security\": {
+            \"auth\": [\"AadAuth.AadAuthenticate\"]
+        }
+    }" > /dev/null
+
+    # Configure AAD auth settings from environment variables in config.php file
+    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+        \"AadAuth\": {
+            \"client_id\": \"${AAD_CLIENT_ID}\",
+            \"ad_tenant\": \"${AAD_TENANT_ID}\",
+            \"client_secret\": \"${AAD_CLIENT_SECRET}\",
+            \"redirect_uri\": \"${AAD_REDIRECT_URI}\",
+            \"auth_provider\": \"${AAD_PROVIDER}\",
+            \"auth_provider_user\": \"${AAD_PROVIDER_USER}\",
+            \"misp_user\": \"${AAD_MISP_USER}\",
+            \"misp_orgadmin\": \"${AAD_MISP_ORGADMIN}\",
+            \"misp_siteadmin\": \"${AAD_MISP_SITEADMIN}\",
+            \"check_ad_groups\": ${AAD_CHECK_GROUPS}
+        }
+    }" > /dev/null
+
+    # Disable self-management, username change, and password change to prevent users from circumventing AAD login flow
+    # Recommended per https://github.com/MISP/MISP/blob/2.4/app/Plugin/AadAuth/README.md
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.disableUserSelfManagement" true
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.disable_user_login_change" true
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.disable_user_password_change" true
+
+    # Disable password confirmation as stated at https://github.com/MISP/MISP/issues/8116
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
+}
+
 apply_updates() {
     # Disable weird default
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" false
@@ -322,6 +367,8 @@ echo "MISP | Update components ..." && update_components
 echo "MISP | Set Up OIDC ..." && set_up_oidc
 
 echo "MISP | Set Up LDAP ..." && set_up_ldap
+
+echo "MISP | Set Up AAD ..." && set_up_aad
 
 echo "MISP | Mark instance live"
 sudo -u www-data /var/www/MISP/app/Console/cake Admin live 1
