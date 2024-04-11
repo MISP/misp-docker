@@ -155,6 +155,9 @@ set_up_ldap() {
             \"ldapEmailField\": ${LDAP_EMAIL_FIELD}
         }
     }" > /dev/null
+
+    # Disable password confirmation as stated at https://github.com/MISP/MISP/issues/8116
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
 }
 
 set_up_aad() {
