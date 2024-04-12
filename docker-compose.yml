@@ -98,6 +98,7 @@ services:
       - "LDAP_OPT_NETWORK_TIMEOUT=${LDAP_OPT_NETWORK_TIMEOUT}"
       - "LDAP_OPT_REFERRALS=${LDAP_OPT_REFERRALS}"
       # AAD authentication settings
+      - "AAD_ENABLE=${AAD_ENABLE}"
       - "AAD_CLIENT_ID=${AAD_CLIENT_ID}"
       - "AAD_TENANT_ID=${AAD_TENANT_ID}"
       - "AAD_CLIENT_SECRET=${AAD_CLIENT_SECRET}"
