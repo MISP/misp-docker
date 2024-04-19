@@ -1,6 +1,6 @@
 ARG DOCKER_HUB_PROXY=""
 
-FROM "${DOCKER_HUB_PROXY}python:3.11-slim-bullseye" as python-build
+FROM "${DOCKER_HUB_PROXY}python:3.11-slim" as python-build
     ENV DEBIAN_FRONTEND noninteractive
     ARG MODULES_TAG
     ARG MODULES_COMMIT
@@ -58,7 +58,7 @@ EOF
         rm -rf /srv/faup
 EOF
 
-FROM "${DOCKER_HUB_PROXY}python:3.11-slim-bullseye"
+FROM "${DOCKER_HUB_PROXY}python:3.11-slim"
     ENV DEBIAN_FRONTEND noninteractive
 
     RUN apt-get update && apt-get install -y --no-install-recommends \

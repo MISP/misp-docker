@@ -1,6 +1,6 @@
 ARG DOCKER_HUB_PROXY=""
 
-FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as composer-build
+FROM "${DOCKER_HUB_PROXY}debian:stable-slim" as composer-build
     ENV DEBIAN_FRONTEND noninteractive
     ENV COMPOSER_ALLOW_SUPERUSER 1
     ARG CORE_TAG
@@ -39,7 +39,7 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as composer-build
             jakub-onderka/openid-connect-php:^1.0.0 \
             aws/aws-sdk-php
 
-FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as php-build
+FROM "${DOCKER_HUB_PROXY}debian:stable-slim" as php-build
     ENV DEBIAN_FRONTEND noninteractive
     ENV TZ Etc/UTC
 
@@ -63,7 +63,7 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as php-build
     RUN git clone --recursive --depth=1 https://github.com/kjdev/php-ext-brotli.git && \
         cd php-ext-brotli && phpize && ./configure && make && make install
 
-FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim" as python-build
+FROM "${DOCKER_HUB_PROXY}debian:stable-slim" as python-build
     ENV DEBIAN_FRONTEND noninteractive   
     ARG CORE_TAG
     ARG CORE_COMMIT
@@ -134,7 +134,7 @@ EOF
         find /var/www/MISP/.git/* ! -name HEAD -exec rm -rf {} +
 EOF
 
-FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim"
+FROM "${DOCKER_HUB_PROXY}debian:stable-slim"
     ENV DEBIAN_FRONTEND noninteractive
     ARG CORE_TAG
     ARG CORE_COMMIT
