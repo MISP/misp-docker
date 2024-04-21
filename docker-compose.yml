@@ -12,9 +12,9 @@ services:
       - "SMARTHOST_ALIASES=${SMARTHOST_ALIASES}"
 
   redis:
-    image: eqalpha/keydb:x86_64_v6.3.4
+    image: valkey/valkey:7.2
     healthcheck:
-      test: keydb-cli ping || exit 1
+      test: valkey-cli ping || exit 1
       interval: 2s
       timeout: 1s
       retries: 3
