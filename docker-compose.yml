@@ -12,7 +12,7 @@ services:
       - "SMARTHOST_ALIASES=${SMARTHOST_ALIASES}"
 
   redis:
-    image: redis:7.2
+    image: valkey/valkey:7.2
 
   db:
     # We use MariaDB because it supports ARM and has the expected collations
