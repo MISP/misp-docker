@@ -103,6 +103,7 @@ set_up_oidc() {
     fi
 
     # Check required variables
+    # OIDC_ISSUER may be empty
     check_env_vars OIDC_PROVIDER_URL OIDC_CLIENT_ID OIDC_CLIENT_SECRET OIDC_ROLES_PROPERTY OIDC_ROLES_MAPPING OIDC_DEFAULT_ORG
 
     sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
@@ -114,6 +115,7 @@ set_up_oidc() {
     sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
         \"OidcAuth\": {
             \"provider_url\": \"${OIDC_PROVIDER_URL}\",
+            ${OIDC_ISSUER:+\"issuer\": \"${OIDC_ISSUER}\",}
             \"client_id\": \"${OIDC_CLIENT_ID}\",
             \"client_secret\": \"${OIDC_CLIENT_SECRET}\",
             \"roles_property\": \"${OIDC_ROLES_PROPERTY}\",
