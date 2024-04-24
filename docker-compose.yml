@@ -13,6 +13,12 @@ services:
 
   redis:
     image: valkey/valkey:7.2
+    healthcheck:
+      test: valkey-cli ping || exit 1
+      interval: 2s
+      timeout: 1s
+      retries: 3
+      start_period: 30s
 
   db:
     # We use MariaDB because it supports ARM and has the expected collations
@@ -27,6 +33,12 @@ services:
       - mysql_data:/var/lib/mysql
     cap_add:
       - SYS_NICE  # CAP_SYS_NICE Prevent runaway mysql log
+    healthcheck:
+      test: mysqladmin --user=$$MYSQL_USER --password=$$MYSQL_PASSWORD status
+      interval: 2s
+      timeout: 1s
+      retries: 3
+      start_period: 30s
 
   misp-core:
     image: ghcr.io/misp/misp-docker/misp-core:latest
@@ -46,8 +58,16 @@ services:
           - PYPI_CYBOX_VERSION=${PYPI_CYBOX_VERSION}
           - PYPI_PYMISP_VERSION=${PYPI_PYMISP_VERSION}
     depends_on:
-      - redis
-      - db
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: curl -ks https://localhost/users/login > /dev/null || exit 1
+      interval: 2s
+      timeout: 1s
+      retries: 3
+      start_period: 30s
     ports:
       - "80:80"
       - "443:443"
@@ -138,7 +158,8 @@ services:
     environment:
       - "REDIS_BACKEND=redis"
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
 volumes:
     mysql_data:
