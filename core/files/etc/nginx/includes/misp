@@ -21,8 +21,11 @@ location / {
     try_files $uri $uri/ /index.php$is_args$query_string;
 }
 
-location ~ \.php$ {
+location ~ ^/[^/]+\.php(/|$) {
     include snippets/fastcgi-php.conf;
     fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
     fastcgi_read_timeout 300;
+    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    set $path_info $fastcgi_path_info;
+    fastcgi_param PATH_INFO $path_info;
 }
