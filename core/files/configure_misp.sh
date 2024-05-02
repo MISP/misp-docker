@@ -13,6 +13,7 @@ source /utilities.sh
 [ -z "$AUTOCONF_ADMIN_KEY" ] && AUTOCONF_ADMIN_KEY="true"
 [ -z "$OIDC_ENABLE" ] && OIDC_ENABLE="false"
 [ -z "$LDAP_ENABLE" ] && LDAP_ENABLE="false"
+[ -z "$ZMQ_ENABLE" ] && ZMQ_ENABLE="false"
 
 init_configuration(){
     # Note that we are doing this after enforcing permissions, so we need to use the www-data user for this
@@ -21,10 +22,12 @@ init_configuration(){
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.email" "${MISP_EMAIL-$ADMIN_EMAIL}"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.contact" "${MISP_CONTACT-$ADMIN_EMAIL}"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.redis_host" "$REDIS_FQDN"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.redis_password" "$REDIS_PASSWORD"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.python_bin" $(which python3)
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -f "MISP.ca_path" "/etc/ssl/certs/ca-certificates.crt"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_redis_host" "$REDIS_FQDN"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" true
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_redis_password" "$REDIS_PASSWORD"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" $ZMQ_ENABLE
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.Enrichment_services_enable" true
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.Enrichment_services_url" "$MISP_MODULES_FQDN"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.Import_services_enable" true
@@ -43,6 +46,7 @@ init_workers(){
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "SimpleBackgroundJobs.supervisor_password" "supervisor"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "SimpleBackgroundJobs.supervisor_user" "supervisor"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "SimpleBackgroundJobs.redis_host" "$REDIS_FQDN"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "SimpleBackgroundJobs.redis_password" "$REDIS_PASSWORD"
 
     echo "... starting background workers"
     supervisorctl start misp-workers:*
@@ -208,8 +212,6 @@ set_up_aad() {
 }
 
 apply_updates() {
-    # Disable weird default
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" false
     # Run updates (strip colors since output might end up in a log)
     sudo -u www-data /var/www/MISP/app/Console/cake Admin runUpdates | sed -r "s/[[:cntrl:]]\[[0-9]{1,3}m//g"
 }
