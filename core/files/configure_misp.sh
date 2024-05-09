@@ -102,6 +102,10 @@ set_up_oidc() {
         return
     fi
 
+    if [[ -z "$OIDC_ROLES_MAPPING" ]]; then
+        OIDC_ROLES_MAPPING="\"\""
+    fi
+
     # Check required variables
     # OIDC_ISSUER may be empty
     check_env_vars OIDC_PROVIDER_URL OIDC_CLIENT_ID OIDC_CLIENT_SECRET OIDC_ROLES_PROPERTY OIDC_ROLES_MAPPING OIDC_DEFAULT_ORG
