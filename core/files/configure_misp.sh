@@ -259,24 +259,42 @@ init_user() {
 }
 
 apply_critical_fixes() {
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.external_baseurl" "${BASE_URL}"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.host_org_id" 1
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.Action_services_enable" false
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.Enrichment_hover_enable" false
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.Enrichment_hover_popover_only" false
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.csp_enforce" true
-    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
-        \"Security\": {
-            \"rest_client_baseurl\": \"${BASE_URL}\"
-        }
-    }" > /dev/null
-    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
-        \"Security\": {
-            \"auth\": \"\"
-        }
-    }" > /dev/null
-    # Avoids displaying errors not relevant to a docker container
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.self_update" false
+    [ -z "$BASE_URL" ] && BASE_URL="https://localhost"
+    local settings_json='{
+        "MISP.external_baseurl": "'"$BASE_URL"'",
+        "MISP.host_org_id": 1,
+        "MISP.self_update": false,
+        "Plugin.Action_services_enable": false,
+        "Plugin.Enrichment_hover_enable": false,
+        "Plugin.Enrichment_hover_popover_only": false,
+        "Security.csp_enforce": true,
+        "Security.rest_client_baseurl": "'"$BASE_URL"'"
+    }'
+
+    for setting in $(echo "$settings_json" | jq -r 'keys[]'); do
+        local current_value=$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting "$setting")
+
+        if [[ "$current_value" =~ ^\{.*\}$ && "$(jq -r '.errorMessage' <<< "$current_value")" != "Value not set." ]]; then
+            echo "Critical setting '$setting' is already set. Skipping..."
+            continue
+        fi
+
+        new_value=$(echo "$settings_json" | jq -r '."'"$setting"'"')
+        echo "Updating unset critical setting '$setting' to '$new_value'..."
+        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "$setting" "$new_value"
+    done
+
+    local config_json=$(echo '<?php require_once "/var/www/MISP/app/Config/config.php"; echo json_encode($config, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>'|/usr/bin/php)
+    if  echo $config_json |jq -e 'any(.Security|keys[]; . == "auth")' >/dev/null; then
+        echo "Critical array Security.auth is already set. Skipping..."
+    else
+        echo "Adding missing critical array Security.auth..."
+        sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+            \"Security\": {
+                \"auth\": {}
+            }
+        }" > /dev/null
+    fi
 }
 
 apply_optional_fixes() {
