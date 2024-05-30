@@ -2,7 +2,6 @@
 
 source /rest_client.sh
 source /utilities.sh
-
 [ -z "$ADMIN_EMAIL" ] && ADMIN_EMAIL="admin@admin.test"
 [ -z "$GPG_PASSPHRASE" ] && GPG_PASSPHRASE="passphrase"
 [ -z "$REDIS_FQDN" ] && REDIS_FQDN="redis"
@@ -20,29 +19,82 @@ init_configuration(){
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.baseurl" "$BASE_URL"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.email" "${MISP_EMAIL-$ADMIN_EMAIL}"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.contact" "${MISP_CONTACT-$ADMIN_EMAIL}"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.redis_host" "$REDIS_FQDN"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.python_bin" $(which python3)
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -f "MISP.ca_path" "/etc/ssl/certs/ca-certificates.crt"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_redis_host" "$REDIS_FQDN"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" true
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.Enrichment_services_enable" true
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.Enrichment_services_url" "$MISP_MODULES_FQDN"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.Import_services_enable" true
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.Import_services_url" "$MISP_MODULES_FQDN"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.Export_services_enable" true
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.Export_services_url" "$MISP_MODULES_FQDN"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.Cortex_services_enable" false
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.redis_host" "${REDIS_FQDN}"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_redis_host" "${REDIS_FQDN}"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.Enrichment_services_url" "${MISP_MODULES_FQDN}"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.Import_services_url" "${MISP_MODULES_FQDN}"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.Export_services_url" "${MISP_MODULES_FQDN}"
+    local description="initialisation"
+    local settings_json='{
+        "MISP.baseurl": {"default_value": "'"${BASE_URL}"'", "command_args": ""},
+        "MISP.email": {"default_value": "'"${MISP_EMAIL-$ADMIN_EMAIL}"'", "command_args": ""},
+        "MISP.contact": {"default_value": "'"${MISP_CONTACT-$ADMIN_EMAIL}"'", "command_args": ""},
+        "MISP.python_bin": {"default_value": "'"$(which python3)"'", "command_args": ""},
+        "MISP.redis_host": {"default_value": "'"${REDIS_FQDN}"'", "command_args": ""},
+        "Plugin.ZeroMQ_redis_host": {"default_value": "'"${REDIS_FQDN}"'", "command_args": ""},
+        "Plugin.Enrichment_services_url": {"default_value": "'"${MISP_MODULES_FQDN}"'", "command_args": ""},
+        "Plugin.Import_services_url": {"default_value": "'"${MISP_MODULES_FQDN}"'", "command_args": ""},
+        "Plugin.Export_services_url": {"default_value": "'"${MISP_MODULES_FQDN}"'", "command_args": ""},
+        "Plugin.Action_services_url": {"default_value": "'"${MISP_MODULES_FQDN}"'", "command_args": ""},
+        "MISP.ca_path": {"default_value": "/var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem", "command_args": ""},
+        "MISP.redis_port": {"default_value": 6379, "command_args": ""},
+        "MISP.redis_database": {"default_value": 13, "command_args": ""},
+        "MISP.redis_password": {"default_value": "", "command_args": ""},
+        "MISP.language": {"default_value": "eng", "command_args": ""},
+        "MISP.showorg": {"default_value": true, "command_args": ""},
+        "MISP.osuser": {"default_value": "www-data", "command_args": ""},
+        "MISP.default_event_distribution": {"default_value": 0, "command_args": ""},
+        "MISP.default_event_tag_collection": {"default_value": 0, "command_args": ""},
+        "MISP.default_attribute_distribution": {"default_value": "event", "command_args": ""},
+        "MISP.proposals_block_attributes": {"default_value": false, "command_args": ""},
+        "MISP.background_jobs": {"default_value": true, "command_args": ""},
+        "MISP.tagging": {"default_value": true, "command_args": ""},
+        "MISP.enableEventBlocklisting": {"default_value": true, "command_args": ""},
+        "MISP.enableOrgBlocklisting": {"default_value": true, "command_args": ""},
+        "MISP.store_api_access_time": {"default_value": true, "command_args": ""},
+        "MISP.log_auth": {"default_value": true, "command_args": ""},
+        "MISP.log_new_audit": {"default_value": true, "command_args": ""},
+        "MISP.disable_user_login_change": {"default_value": true, "command_args": ""},
+        "MISP.incoming_tags_disabled_by_default": {"default_value": false, "command_args": ""},
+        "Plugin.Enrichment_services_enable": {"default_value": true, "command_args": ""},
+        "Plugin.Import_services_enable": {"default_value": true, "command_args": ""},
+        "Plugin.Export_services_enable": {"default_value": true, "command_args": ""},
+        "Plugin.Cortex_services_enable": {"default_value": false, "command_args": ""},
+        "Security.advanced_authkeys": {"default_value": true, "command_args": ""},
+        "Security.disable_browser_cache": {"default_value": true, "command_args": ""},
+        "Security.check_sec_fetch_site_header": {"default_value": true, "command_args": ""},
+        "Security.username_in_response_header": {"default_value": true, "command_args": ""},
+        "Security.do_not_log_authkeys": {"default_value": true, "command_args": ""},
+        "Security.log_each_individual_auth_fail": {"default_value": true, "command_args": ""},
+        "Security.alert_on_suspicious_logins": {"default_value": true, "command_args": ""},
+        "SecureAuth.amount": {"default_value": 5, "command_args": ""},
+        "SecureAuth.expire": {"default_value": 300, "command_args": ""}
+    }'
+
+    process_settings "$settings_json" "$description"
 }
 
 init_workers(){
     # Note that we are doing this after enforcing permissions, so we need to use the www-data user for this
     echo "... configuring background workers"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "SimpleBackgroundJobs.enabled" true
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "SimpleBackgroundJobs.supervisor_host" "127.0.0.1"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "SimpleBackgroundJobs.supervisor_port" 9001
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "SimpleBackgroundJobs.supervisor_password" "supervisor"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "SimpleBackgroundJobs.supervisor_user" "supervisor"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "SimpleBackgroundJobs.redis_host" "$REDIS_FQDN"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "SimpleBackgroundJobs.redis_host" "${REDIS_FQDN}"
+    local description="worker initialisation"
+    local settings_json='{
+        "SimpleBackgroundJobs.redis_host": {"default_value": "'"${REDIS_FQDN}"'", "command_args": ""},
+        "SimpleBackgroundJobs.enabled": {"default_value": true, "command_args": ""},
+        "SimpleBackgroundJobs.supervisor_host": {"default_value": "127.0.0.1", "command_args": ""},
+        "SimpleBackgroundJobs.supervisor_port": {"default_value": 9001, "command_args": ""},
+        "SimpleBackgroundJobs.supervisor_password": {"default_value": "supervisor", "command_args": ""},
+        "SimpleBackgroundJobs.supervisor_user": {"default_value": "supervisor", "command_args": ""},
+        "SimpleBackgroundJobs.redis_port": {"default_value": 6379, "command_args": ""},
+        "SimpleBackgroundJobs.redis_database": {"default_value": 1, "command_args": ""},
+        "SimpleBackgroundJobs.redis_password": {"default_value": "", "command_args": ""},
+        "SimpleBackgroundJobs.redis_namespace": {"default_value": "background_jobs", "command_args": ""},
+        "SimpleBackgroundJobs.max_job_history_ttl": {"default_value": 86400, "command_args": ""}
+    }'
+
+    process_settings "$settings_json" "$description"
 
     echo "... starting background workers"
     supervisorctl start misp-workers:*
@@ -213,7 +265,7 @@ set_up_aad() {
 
 apply_updates() {
     # Disable weird default
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" false
+    process_settings '{"Plugin.ZeroMQ_enable": {"default_value": false, "command_args": ""}}' 'weird default'
     # Run updates (strip colors since output might end up in a log)
     sudo -u www-data /var/www/MISP/app/Console/cake Admin runUpdates | sed -r "s/[[:cntrl:]]\[[0-9]{1,3}m//g"
 }
@@ -259,32 +311,25 @@ init_user() {
 }
 
 apply_critical_fixes() {
-    [ -z "$BASE_URL" ] && BASE_URL="https://localhost"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.external_baseurl" "${BASE_URL}"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.rest_client_baseurl" "${BASE_URL}"
+    local description="critical"
     local settings_json='{
-        "MISP.external_baseurl": "'"$BASE_URL"'",
-        "MISP.host_org_id": 1,
-        "MISP.self_update": false,
-        "Plugin.Action_services_enable": false,
-        "Plugin.Enrichment_hover_enable": false,
-        "Plugin.Enrichment_hover_popover_only": false,
-        "Security.csp_enforce": true,
-        "Security.rest_client_baseurl": "'"$BASE_URL"'"
+        "MISP.external_baseurl": {"default_value": "'"${BASE_URL}"'", "command_args": ""},
+        "Security.rest_client_baseurl": {"default_value": "'"${BASE_URL}"'", "command_args": ""},
+        "MISP.host_org_id": {"default_value": 1, "command_args": ""},
+        "MISP.self_update": {"default_value": false, "command_args": ""},
+        "Plugin.Action_services_enable": {"default_value": false, "command_args": ""},
+        "Plugin.Enrichment_hover_enable": {"default_value": false, "command_args": ""},
+        "Plugin.Enrichment_hover_popover_only":  {"default_value": false, "command_args": ""},
+        "Security.csp_enforce": {"default_value": true, "command_args": ""},
+        "Security.do_not_log_authkeys": {"default_value": true, "command_args": ""}
     }'
 
-    for setting in $(echo "$settings_json" | jq -r 'keys[]'); do
-        local current_value=$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting "$setting")
-
-        if [[ "$current_value" =~ ^\{.*\}$ && "$(jq -r '.errorMessage' <<< "$current_value")" != "Value not set." ]]; then
-            echo "Critical setting '$setting' is already set. Skipping..."
-            continue
-        fi
-
-        new_value=$(echo "$settings_json" | jq -r '."'"$setting"'"')
-        echo "Updating unset critical setting '$setting' to '$new_value'..."
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "$setting" "$new_value"
-    done
+    process_settings "$settings_json" "$description"
 
     local config_json=$(echo '<?php require_once "/var/www/MISP/app/Config/config.php"; echo json_encode($config, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>'|/usr/bin/php)
+
     if  echo $config_json |jq -e 'any(.Security|keys[]; . == "auth")' >/dev/null; then
         echo "Critical array Security.auth is already set. Skipping..."
     else
@@ -298,19 +343,78 @@ apply_critical_fixes() {
 }
 
 apply_optional_fixes() {
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q --force "MISP.welcome_text_top" ""
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q --force "MISP.welcome_text_bottom" ""
+    local description="optional"
+    local settings_json='{
+        "MISP.welcome_text_top": {"default_value": "", "command_args": "-f"},
+        "MISP.welcome_text_bottom": {"default_value": "", "command_args": "-f"},
+        "MISP.log_client_ip": {"default_value": true, "command_args": ""},
+        "MISP.log_user_ips": {"default_value": true, "command_args": ""},
+        "MISP.log_user_ips_authkeys": {"default_value": true, "command_args": ""},
+        "Plugin.Enrichment_timeout": {"default_value": 30, "command_args": ""},
+        "Plugin.Enrichment_hover_timeout": {"default_value": 5, "command_args": ""}
+    }'
+        # This is not necessary because we update the DB directly
+        # "MISP.org": {"default_value": "'"${ADMIN_ORG}"'", "command_args": ""},
 
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.contact" "${ADMIN_EMAIL}"
-    # This is not necessary because we update the DB directly
-    # sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.org" "${ADMIN_ORG}"
+    process_settings "$settings_json" "$description"
+}
 
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.log_client_ip" true
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.log_user_ips" true
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.log_user_ips_authkeys" true
+# Some settings return a value from cake Admin getSetting even if not set in config.php and database.
+# This means we cannot rely on that tool which inspects both db and file.
+# Leaving this here though in case the serverSettings model for those odd settings is fixed one day.
+setting_is_set() {
+    local setting="$1"
+    local current_value="$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting $setting)"
+    local error_value="$(jq -r '.errorMessage' <<< $current_value)"
 
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.Enrichment_timeout" 30
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.Enrichment_hover_timeout" 5
+    if [[ "$current_value" =~ ^\{.*\}$ && "$error_value" != "Value not set." && "$error_value" != Invalid* ]]; then
+       return 0
+    else
+       return 1
+    fi
+}
+
+# Kludgy alternative to using cake Admin getSetting.
+setting_is_set_alt() {
+    local setting="$1"
+    local config_json=$(echo '<?php require_once "/var/www/MISP/app/Config/config.php"; echo json_encode($config, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>'|/usr/bin/php)
+    local db_settings_enabled=$(jq -e 'getpath(("MISP.system_setting_db" | split("."))) // false' <<< $config_json)
+    local setting_in_config_file=$(jq -e 'getpath(("'"$setting"'" | split("."))) != null' <<< $config_json) 
+    if $setting_in_config_file; then
+        return 0
+    elif $db_settings_enabled; then
+        local setting_in_db=$(echo "SELECT EXISTS(SELECT 1 FROM misp.system_settings WHERE setting = \"${setting}\");" | ${MYSQLCMD})
+        if [[ $setting_in_db -eq 1 ]]; then
+            return 0
+        fi
+    fi
+    return 1
+}
+
+set_safe_default() {
+    local setting="$1"
+    local default_value="$2"
+    local description="$3"
+    local command_args="$4"
+
+    if setting_is_set_alt "$setting"; then
+        echo "Skipping already set $description setting '$setting'..."        
+    else
+        echo "Updating unset $description setting '$setting' to '$default_value'..."
+        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q $command_args "$setting" "$default_value"
+    fi
+}
+
+process_settings() {
+    local settings_json="$1"
+    local description="$2"
+
+    for setting in $(jq -r 'keys[]' <<< $settings_json); do
+        local default_value="$(jq -r '."'"$setting"'"["default_value"]' <<< $settings_json)"
+        local command_args="$(jq -r '."'"$setting"'"["command_args"]' <<< $settings_json)"
+
+        set_safe_default "$setting" "$default_value" "$description" "$command_args"
+    done
 }
 
 update_components() {
@@ -321,6 +425,13 @@ update_components() {
     sudo -u www-data /var/www/MISP/app/Console/cake Admin updateObjectTemplates "$CRON_USER_ID"
 }
 
+update_ca_certificates() {
+    # Upgrade host os certificates
+    update-ca-certificates
+    # Upgrade cake cacert.pem file from Mozilla project
+    echo "Updating /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem..."
+    sudo -u www-data curl -s --etag-compare /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt --etag-save /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt https://curl.se/ca/cacert.pem -o /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem
+}
 
 create_sync_servers() {
     if [ -z "$ADMIN_KEY" ]; then
@@ -371,7 +482,7 @@ create_sync_servers() {
     done
 }
 
-echo "MISP | Update CA certificates ..." && update-ca-certificates
+echo "MISP | Update CA certificates ..." && update_ca_certificates
 
 echo "MISP | Initialize configuration ..." && init_configuration
 
