@@ -211,6 +211,11 @@ set_up_aad() {
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
 }
 
+fix_modules_controller() {
+    # Remove errored lines in modules controller
+    sed -i '25,27d' /var/www/MISP/app/Controller/ModulesController.php
+}
+
 apply_updates() {
     # Disable weird default
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" false
@@ -378,6 +383,8 @@ echo "MISP | Set Up OIDC ..." && set_up_oidc
 echo "MISP | Set Up LDAP ..." && set_up_ldap
 
 echo "MISP | Set Up AAD ..." && set_up_aad
+
+echo "INIT MISP | Fix ModulesController.php ..." && fix_modules_controller
 
 echo "MISP | Mark instance live"
 sudo -u www-data /var/www/MISP/app/Console/cake Admin live 1
