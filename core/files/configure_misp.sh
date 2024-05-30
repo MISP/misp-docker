@@ -52,11 +52,22 @@ init_configuration(){
         "MISP.tagging": {"default_value": true, "command_args": ""},
         "MISP.enableEventBlocklisting": {"default_value": true, "command_args": ""},
         "MISP.enableOrgBlocklisting": {"default_value": true, "command_args": ""},
-        "MISP.store_api_access_time": {"default_value": true, "command_args": ""},
+        "MISP.store_api_access_time": {"default_value": false, "command_args": ""},
         "MISP.log_auth": {"default_value": true, "command_args": ""},
         "MISP.log_new_audit": {"default_value": true, "command_args": ""},
-        "MISP.disable_user_login_change": {"default_value": true, "command_args": ""},
+        "MISP.disable_user_login_change": {"default_value": false, "command_args": ""},
         "MISP.incoming_tags_disabled_by_default": {"default_value": false, "command_args": ""},
+        "MISP.full_tags_on_event_index": {"default_value": true, "command_args": ""},
+        "MISP.event_alert_republish_ban": {"default_value": true, "command_args": ""},
+        "MISP.showCorrelationsOnIndex": {"default_value": true, "command_args": ""},
+        "MISP.user_email_notification_ban": {"default_value": true, "command_args": ""},
+        "MISP.delegation": {"default_value": true, "command_args": ""},
+        "MISP.take_ownership_xml_import": {"default_value": false, "command_args": ""},
+        "MISP.unpublishedprivate": {"default_value": false, "command_args": ""},
+        "MISP.terms_download": {"default_value": false, "command_args": ""},
+        "MISP.showorgalternate": {"default_value": false, "command_args": ""},
+        "MISP.event_alert_republish_ban_refresh_on_retry": {"default_value": true, "command_args": ""},
+        "MISP.event_alert_republish_ban_threshold": {"default_value": 120, "command_args": ""},
         "Plugin.Enrichment_services_enable": {"default_value": true, "command_args": ""},
         "Plugin.Import_services_enable": {"default_value": true, "command_args": ""},
         "Plugin.Export_services_enable": {"default_value": true, "command_args": ""},
@@ -68,6 +79,7 @@ init_configuration(){
         "Security.do_not_log_authkeys": {"default_value": true, "command_args": ""},
         "Security.log_each_individual_auth_fail": {"default_value": true, "command_args": ""},
         "Security.alert_on_suspicious_logins": {"default_value": true, "command_args": ""},
+        "Security.require_password_confirmation": {"default_value": true, "command_args": ""},
         "SecureAuth.amount": {"default_value": 5, "command_args": ""},
         "SecureAuth.expire": {"default_value": 300, "command_args": ""}
     }'
@@ -146,6 +158,8 @@ GPGEOF
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "GnuPG.homedir" "${GPG_DIR}"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "GnuPG.password" "${GPG_PASSPHRASE}"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "GnuPG.binary" "$(which gpg)"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "GnuPG.onlyencrypted" false
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "SMIME.enabled" false
 }
 
 set_up_oidc() {
