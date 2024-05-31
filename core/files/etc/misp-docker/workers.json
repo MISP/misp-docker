@@ -1,0 +1,32 @@
+{
+  "SimpleBackgroundJobs.enabled": {
+    "default_value": true
+  },
+  "SimpleBackgroundJobs.supervisor_host": {
+    "default_value": "127.0.0.1"
+  },
+  "SimpleBackgroundJobs.supervisor_port": {
+    "default_value": 9001
+  },
+  "SimpleBackgroundJobs.supervisor_password": {
+    "default_value": "supervisor"
+  },
+  "SimpleBackgroundJobs.supervisor_user": {
+    "default_value": "supervisor"
+  },
+  "SimpleBackgroundJobs.redis_port": {
+    "default_value": 6379
+  },
+  "SimpleBackgroundJobs.redis_database": {
+    "default_value": 1
+  },
+  "SimpleBackgroundJobs.redis_password": {
+    "default_value": ""
+  },
+  "SimpleBackgroundJobs.redis_namespace": {
+    "default_value": "background_jobs"
+  },
+  "SimpleBackgroundJobs.max_job_history_ttl": {
+    "default_value": 86400
+  }
+}
