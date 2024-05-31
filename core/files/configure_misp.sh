@@ -243,7 +243,7 @@ apply_critical_fixes() {
 
     # Kludge for handling Security.auth array.  Unrecognised by tools like cake admin setsetting.
     local config_json=$(echo '<?php require_once "/var/www/MISP/app/Config/config.php"; echo json_encode($config, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>'|/usr/bin/php)
-    if echo $config_json |jq -e 'getpath(("Security.auth" | split("."))) != null' >/dev/null; then
+    if ! $(echo $config_json |jq -e 'getpath(("Security.auth" | split("."))) != null'); then
         echo "Updating unset critical setting 'Security.auth' to 'Array()'..."
         sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
             \"Security\": {
