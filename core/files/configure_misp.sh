@@ -193,7 +193,7 @@ set_up_aad() {
 
 apply_updates() {
     # Disable weird default
-    process_settings '{"Plugin.ZeroMQ_enable": {"default_value": false}}' 'weird default'
+    set_default_settings '{"Plugin.ZeroMQ_enable": {"default_value": false}}' 'weird default'
     # Run updates (strip colors since output might end up in a log)
     sudo -u www-data /var/www/MISP/app/Console/cake Admin runUpdates | sed -r "s/[[:cntrl:]]\[[0-9]{1,3}m//g"
 }
@@ -257,23 +257,23 @@ apply_optional_fixes() {
     init_settings "optional"
     local description="optional"
     local settings_json="$(cat /etc/misp-docker/${description}.json)"
-    process_settings "$settings_json" "$description"
+    set_default_settings "$settings_json" "$description"
 }
 
 # Some settings return a value from cake Admin getSetting even if not set in config.php and database.
 # This means we cannot rely on that tool which inspects both db and file.
 # Leaving this here though in case the serverSettings model for those odd settings is fixed one day.
-setting_is_set() {
-    local setting="$1"
-    local current_value="$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting $setting)"
-    local error_value="$(jq -r '.errorMessage' <<< $current_value)"
-
-    if [[ "$current_value" =~ ^\{.*\}$ && "$error_value" != "Value not set." && "$error_value" != Invalid* ]]; then
-       return 0
-    else
-       return 1
-    fi
-}
+#setting_is_set() {
+#    local setting="$1"
+#    local current_value="$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting $setting)"
+#    local error_value="$(jq -r '.errorMessage' <<< $current_value)"
+#
+#    if [[ "$current_value" =~ ^\{.*\}$ && "$error_value" != "Value not set." && "$error_value" != Invalid* ]]; then
+#       return 0
+#    else
+#       return 1
+#    fi
+#}
 
 # Kludgy alternative to using cake Admin getSetting.
 setting_is_set_alt() {
@@ -292,7 +292,7 @@ setting_is_set_alt() {
     return 1
 }
 
-process_settings() {
+set_default_settings() {
     local settings_json="$1"
     local description="$2"
 
@@ -304,7 +304,7 @@ process_settings() {
     done
 }
 
-enforce_settings() {
+enforce_env_settings() {
     local settings_json="$1"
     local description="$2"
     for setting in $(jq -r 'keys[]' <<< $settings_json); do
@@ -329,19 +329,19 @@ set_safe_default() {
 
 init_settings() {
     local description="$1"
-    local enforced="/etc/misp-docker/enforced_${description}.json"
-    local defaults="/etc/misp-docker/${description}.json"
+    local enforced="/etc/misp-docker/${description}.envars.json"
+    local defaults="/etc/misp-docker/${description}.defaults.json"
 
     if [[ -e "$enforced" ]]; then
         echo "... enforcing env var settings"
         local settings_json="$(envsubst < $enforced)"
-        enforce_settings "$settings_json" "$description"
+        enforce_env_settings "$settings_json" "$description"
     fi
 
     if [[ -e "$defaults" ]]; then
         echo "... checking for unset default settings"
         local settings_json="$(cat $defaults)"
-        process_settings "$settings_json" "$description"
+        set_default_settings "$settings_json" "$description"
     fi
 }
 
