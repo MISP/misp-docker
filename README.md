@@ -66,6 +66,8 @@ New options are added on a regular basis.
 
 Set environment variables to configure settings where possible.  Environment variable driven settings are enforced every time the misp-core container starts. This means that if you change the config.php file or database for a setting that has a set environment variable, it will be changed to the environment variable value upon next container start. Empty environment variables may have a safe default which is enforced instead.
 
+If you push a change to add or remove an environment variable, please look in "core/files/etc/misp-docker/" for json files with "envars" in the name and adjust there.
+
 #### Unset safe default settings behaviour
 
 The misp-core container has definitions for minimum safe default settings which are set if needed each time the container starts. They will only be set if there is no existing entry in the config.php file or database for these settings. If you specify a custom value for any of these settings it will be respected. See the definitions of these in "core/files/etc/misp-docker" where the filenames contain the word "defaults".
