@@ -225,7 +225,9 @@ EOF
         # Diagnostics wants this file to be present and writable even if we do not use git in docker land
         touch /var/www/MISP/.git/ORIG_HEAD && chmod 0600 /var/www/MISP/.git/ORIG_HEAD && chown www-data:www-data /var/www/MISP/.git/ORIG_HEAD
 EOF
-
+RUN chgrp -R 0 /var/www/MISP/ && \
+    chmod -R g=u /var/www/MISP/
+    
     # Copy all our image specific files to appropriate locations
     COPY files/ /
     ENTRYPOINT [ "/entrypoint.sh" ]
