@@ -227,6 +227,9 @@ EOF
 EOF
 RUN chgrp -R 0 /var/www/MISP/ && \
     chmod -R g=u /var/www/MISP/
+
+RUN chgrp -R 0 /var/log/supervisor/ && \
+    chmod -R g=u /var/log/supervisor/
     
     # Copy all our image specific files to appropriate locations
     COPY files/ /
