@@ -20,13 +20,17 @@ export GPG_BINARY="$(which gpg)"
 export SETTING_CONTACT="${MISP_CONTACT-$ADMIN_EMAIL}"
 export SETTING_EMAIL="${MISP_EMAIL-$ADMIN_EMAIL}"
 
+init_cli_only_config(){
+    await_system_settings_table
+    init_settings "cli_only"
+    init_settings "db_enable"
+}
+
 init_configuration(){
     init_settings "initialisation"
 }
 
 init_workers(){
-    init_settings "workers"
-
     echo "... starting background workers"
     supervisorctl start misp-workers:*
 }
@@ -255,9 +259,6 @@ apply_critical_fixes() {
 
 apply_optional_fixes() {
     init_settings "optional"
-    local description="optional"
-    local settings_json="$(cat /etc/misp-docker/${description}.json)"
-    set_default_settings "$settings_json" "$description"
 }
 
 # Some settings return a value from cake Admin getSetting even if not set in config.php and database.
@@ -284,7 +285,7 @@ setting_is_set_alt() {
     if $setting_in_config_file; then
         return 0
     elif $db_settings_enabled; then
-        local setting_in_db=$(echo "SELECT EXISTS(SELECT 1 FROM misp.system_settings WHERE setting = \"${setting}\");" | ${MYSQLCMD})
+        local setting_in_db=$(echo "SELECT EXISTS(SELECT 1 FROM $MYSQL_DATABASE.system_settings WHERE setting = \"${setting}\");" | ${MYSQLCMD})
         if [[ $setting_in_db -eq 1 ]]; then
             return 0
         fi
@@ -345,12 +346,22 @@ init_settings() {
     fi
 }
 
+await_system_settings_table() {
+    while true; do
+        local table_in_db=$(echo "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = '$MYSQL_DATABASE' and table_name = 'system_settings');" | ${MYSQLCMD})
+        if [[ $table_in_db -eq 1 ]]; then
+           break
+        fi
+        echo "... awaiting arrival of system_settings table"
+        sleep 10
+    done
+}
+
 update_components() {
     sudo -u www-data /var/www/MISP/app/Console/cake Admin updateGalaxies
     sudo -u www-data /var/www/MISP/app/Console/cake Admin updateTaxonomies
     sudo -u www-data /var/www/MISP/app/Console/cake Admin updateWarningLists
     sudo -u www-data /var/www/MISP/app/Console/cake Admin updateNoticeLists
-    echo "CRON_USER_ID: $CRON_USER_ID"
     sudo -u www-data /var/www/MISP/app/Console/cake Admin updateObjectTemplates "$CRON_USER_ID"
 }
 
@@ -412,6 +423,8 @@ create_sync_servers() {
 }
 
 echo "MISP | Update CA certificates ..." && update_ca_certificates
+
+echo "MISP | CLI_only configuration directives ..." && init_cli_only_config
 
 echo "MISP | Initialize configuration ..." && init_configuration
 

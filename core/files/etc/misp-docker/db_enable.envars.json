@@ -1,0 +1,5 @@
+{
+  "MISP.system_setting_db": {
+    "default_value": true
+  }
+}

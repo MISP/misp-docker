@@ -1,5 +1,0 @@
-{
-  "SimpleBackgroundJobs.redis_host": {
-    "default_value": "${REDIS_FQDN}"
-  }
-}

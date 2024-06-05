@@ -17,11 +17,8 @@
   "MISP.showorg": {
     "default_value": true
   },
-  "MISP.osuser": {
-    "default_value": "www-data"
-  },
   "MISP.default_event_distribution": {
-    "default_value": 0
+    "default_value": 1
   },
   "MISP.default_event_tag_collection": {
     "default_value": 0
@@ -31,9 +28,6 @@
   },
   "MISP.proposals_block_attributes": {
     "default_value": false
-  },
-  "MISP.background_jobs": {
-    "default_value": true
   },
   "MISP.tagging": {
     "default_value": true
@@ -60,7 +54,7 @@
     "default_value": false
   },
   "MISP.full_tags_on_event_index": {
-    "default_value": true
+    "default_value": 1
   },
   "MISP.event_alert_republish_ban": {
     "default_value": true

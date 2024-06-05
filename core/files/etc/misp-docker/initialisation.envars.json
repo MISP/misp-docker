@@ -8,9 +8,6 @@
   "MISP.contact": {
     "default_value": "${SETTING_CONTACT}"
   },
-  "MISP.python_bin": {
-    "default_value": "${PYTHON_BIN}"
-  },
   "MISP.redis_host": {
     "default_value": "${REDIS_FQDN}"
   },
@@ -21,6 +18,9 @@
     "default_value": "${MISP_MODULES_FQDN}"
   },
   "Plugin.Import_services_url": {
+    "default_value": "${MISP_MODULES_FQDN}"
+  },
+  "Plugin.Action_services_url": {
     "default_value": "${MISP_MODULES_FQDN}"
   },
   "Plugin.Export_services_url": {

@@ -7,8 +7,5 @@
   },
   "GnuPG.password": {
     "default_value": "${GPG_PASSPHRASE}"
-  },
-  "GnuPG.binary": {
-    "default_value": "${GPG_BINARY}"
   }
 }
