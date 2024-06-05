@@ -211,6 +211,21 @@ set_up_aad() {
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
 }
 
+set_up_proxy() {
+    if [[ "$PROXY_ENABLE" != "true" ]]; then
+        echo "... Proxy disabled"
+        return
+    fi
+
+    echo "... configuring proxy settings"
+
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Proxy.host" "$PROXY_HOST"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Proxy.port" "$PROXY_PORT"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Proxy.method" "$PROXY_METHOD"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Proxy.user" "$PROXY_USER"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Proxy.password" "$PROXY_PASSWORD"
+}
+
 apply_updates() {
     # Disable weird default
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" false
@@ -378,6 +393,8 @@ echo "MISP | Set Up OIDC ..." && set_up_oidc
 echo "MISP | Set Up LDAP ..." && set_up_ldap
 
 echo "MISP | Set Up AAD ..." && set_up_aad
+
+echo "MISP | Set Up Proxy ..." && set_up_proxy
 
 echo "MISP | Mark instance live"
 sudo -u www-data /var/www/MISP/app/Console/cake Admin live 1
