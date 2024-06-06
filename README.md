@@ -90,6 +90,11 @@ If you are trying to accomplish something and the above behaviours get in the wa
 
 To override these behaviours edit the docker-compose.yml file's misp-core volume definitions to enable the "customize_misp.sh" behaviour (see the bottom of the Production section for details). The "customize_misp.sh" script triggers after the above behaviours complete and is an appropriate place to override a setting. It is suggested that you use the "/var/www/MISP/app/cake Admin setSetting" command to override a setting, as this tool is config.php file and database setting aware.
 
+#### Adding a new setting and unsure what files to edit?
+
+If it is just a default setting that is meant to be set if not already set by the user, add it in one of the `*.default.json` files.
+If it is a setting controlled by an environment variable which is meant to override whatever is set, add it in one of the `*.envars.json` files (note that you can still specify a default value).
+
 ### Production
 
 -   It is recommended to specify the build you want run by editing `docker-compose.yml` (see here for the list of available tags https://github.com/orgs/MISP/packages)

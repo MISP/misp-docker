@@ -62,6 +62,9 @@
   "MISP.showCorrelationsOnIndex": {
     "default_value": true
   },
+  "MISP.server_settings_skip_backup_rotate": {
+    "default_value": false
+  },
   "MISP.user_email_notification_ban": {
     "default_value": true
   },

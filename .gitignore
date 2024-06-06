@@ -5,3 +5,4 @@
 /ssl/
 .env
 env.hcl
+rootca.crt

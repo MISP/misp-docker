@@ -34,8 +34,6 @@ FROM "${DOCKER_HUB_PROXY}python:3.11-slim-bullseye" as python-build
         echo "pyeti" >> REQUIREMENTS
         echo "greynoise" >> REQUIREMENTS
         echo "git+https://github.com/abenassi/Google-Search-API" >> REQUIREMENTS
-        sed -i 's|.*apiosintDS.*|apiosintDS==2.0.1|g' REQUIREMENTS
-        # let apiosintDS decide since misp-modules doesn't actually use this package anyway
         sed -i '/validators.*/d' REQUIREMENTS
         sed -i 's/-e //g' REQUIREMENTS
         pip3 wheel -r REQUIREMENTS --no-cache-dir -w /wheels/

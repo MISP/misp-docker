@@ -21,7 +21,7 @@
     "default_value": false
   },
   "MISP.ca_path": {
-    "default_value": "/var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem"
+    "default_value": "/etc/ssl/certs/ca-certificates.crt"
   },
   "MISP.menu_custom_right_link": {
     "default_value": ""

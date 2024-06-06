@@ -223,7 +223,7 @@ apply_updates() {
 
 init_user() {
     # Create the main user if it is not there already
-    sudo -u www-data /var/www/MISP/app/Console/cake userInit -q 2>&1 > /dev/null
+    sudo -u www-data /var/www/MISP/app/Console/cake user init -q 2>&1 > /dev/null
 
     echo "UPDATE misp.users SET email = \"${ADMIN_EMAIL}\" WHERE id = 1;" | ${MYSQLCMD}
 
