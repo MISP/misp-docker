@@ -42,6 +42,10 @@
     "default_value": "",
     "command_args": "-f"
   },
+  "Security.salt": {
+    "default_value": "",
+    "command_args": "-f"
+  },
   "SimpleBackgroundJobs.enabled": {
     "default_value": true
   },

@@ -12,6 +12,7 @@ source /utilities.sh
 [ -z "$AUTOCONF_ADMIN_KEY" ] && AUTOCONF_ADMIN_KEY="true"
 [ -z "$OIDC_ENABLE" ] && OIDC_ENABLE="false"
 [ -z "$LDAP_ENABLE" ] && LDAP_ENABLE="false"
+[ -z "$ENABLE_DB_SETTINGS" ] && ENABLE_DB_SETTINGS="false"
 
 # We now use envsubst for safe variable substitution with pseudo-json objects for env var enforcement
 # envsubst won't evaluate anything like $() or conditional variable expansion so lets do that here
@@ -20,8 +21,13 @@ export GPG_BINARY="$(which gpg)"
 export SETTING_CONTACT="${MISP_CONTACT-$ADMIN_EMAIL}"
 export SETTING_EMAIL="${MISP_EMAIL-$ADMIN_EMAIL}"
 
-init_cli_only_config(){
+init_cli_only_config() {
+    # I think no matter what we do, we should wait for this table to turn up.
+    # Only really impacts us on first run, and on my machine only takes a few seconds to turn up.
     await_system_settings_table
+    # Temporarily disable DB to apply cli_only settings, since these MUST be in the config.php file (by design or otherwise)
+    # This will reenable upon init_settings "db_enable" below if it is indeed enabled
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.system_setting_db" false
     init_settings "cli_only"
     init_settings "db_enable"
 }
@@ -196,8 +202,6 @@ set_up_aad() {
 }
 
 apply_updates() {
-    # Disable weird default
-    set_default_settings '{"Plugin.ZeroMQ_enable": {"default_value": false}}' 'weird default'
     # Run updates (strip colors since output might end up in a log)
     sudo -u www-data /var/www/MISP/app/Console/cake Admin runUpdates | sed -r "s/[[:cntrl:]]\[[0-9]{1,3}m//g"
 }
@@ -347,13 +351,9 @@ init_settings() {
 }
 
 await_system_settings_table() {
-    while true; do
-        local table_in_db=$(echo "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = '$MYSQL_DATABASE' and table_name = 'system_settings');" | ${MYSQLCMD})
-        if [[ $table_in_db -eq 1 ]]; then
-           break
-        fi
-        echo "... awaiting arrival of system_settings table"
-        sleep 10
+    until [[ $(echo "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = '$MYSQL_DATABASE' and table_name = 'system_settings');" | ${MYSQLCMD}) -eq 1 ]]; do
+        echo "... awaiting availability of system_settings table"
+        sleep 2
     done
 }
 

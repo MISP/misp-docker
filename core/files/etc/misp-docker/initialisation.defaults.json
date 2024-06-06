@@ -86,6 +86,9 @@
   "MISP.event_alert_republish_ban_threshold": {
     "default_value": 120
   },
+  "Plugin.ZeroMQ_enable": {
+    "default_value": false
+  },
   "Plugin.Enrichment_services_enable": {
     "default_value": true
   },

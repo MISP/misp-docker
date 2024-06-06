@@ -14,10 +14,6 @@
   "Security.csp_enforce": {
     "default_value": true
   },
-  "Security.salt": {
-    "default_value": "",
-    "command_args": "-f"
-  },
   "Security.do_not_log_authkeys": {
     "default_value": true
   }
