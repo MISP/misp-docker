@@ -86,6 +86,7 @@ services:
       - "CRON_USER_ID=${CRON_USER_ID}"
       - "DISABLE_IPV6=${DISABLE_IPV6}"
       - "DISABLE_SSL_REDIRECT=${DISABLE_SSL_REDIRECT}"
+      - "ENABLE_DB_SETTINGS=${ENABLE_DB_SETTINGS}"
       # standard settings
       - "ADMIN_EMAIL=${ADMIN_EMAIL}"
       - "ADMIN_PASSWORD=${ADMIN_PASSWORD}"

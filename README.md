@@ -62,6 +62,34 @@ The `docker-compose.yml` file allows further configuration settings:
 
 New options are added on a regular basis.
 
+#### Environment variable behaviour
+
+Set environment variables in .env to configure settings instead of in docker-compose.yml where possible. Setting the variables in .env will allow you to pull updates from Github without issues caused by a modified docker-compose.yml file, should there be an update for it.
+
+Environment variable driven settings are enforced every time the misp-core container starts. This means that if you change the config.php file or database for a setting that has a set environment variable, it will be changed to the environment variable value upon next container start. Empty environment variables may have a safe default which is enforced instead.
+
+If you push a change to add or remove an environment variable, please look in "core/files/etc/misp-docker/" for json files with "envars" in the name and adjust there.
+
+#### Unset safe default settings behaviour
+
+The misp-core container has definitions for minimum safe default settings which are set if needed each time the container starts. They will only be set if there is no existing entry in the config.php file or database for these settings. If you specify a custom value for any of these settings it will be respected. See the definitions of these in "core/files/etc/misp-docker" where the filenames contain the word "defaults".
+
+#### Storing system settings in the DB
+
+This container includes the "ENABLE_DB_SETTINGS" environment variable, which can be used to set "MISP.system.setting_db" to true or false. This changes the behaviour of where MISP chooses to store operator made settings changes; in config.php or in the system_settings database table. By default this is set to false.
+
+If a setting is not defined in the DB, but is defined in config.php, it will be read out of config.php and used. This can sometimes lead to operator confusion, so please check both locations for values when troubleshooting.
+
+If you change this setting from false to true, settings are not migrated from config.php to the database, but rather the above behaviour is relied upon.
+
+While storing system settings in the DB works as expected most of the time, you may come across some instances where a particular setting MUST be set in the config.php file. We have tried to side-step this issue by prepopulating the config.php file with all of these settings, but there could be more. If you encounter any issues like this, please raise an issue, and try configuring the setting in the config.php file instead.
+
+#### Overriding environment variable and unset safe default settings behaviours
+
+If you are trying to accomplish something and the above behaviours get in the way, please let us know as this is not intended.
+
+To override these behaviours edit the docker-compose.yml file's misp-core volume definitions to enable the "customize_misp.sh" behaviour (see the bottom of the Production section for details). The "customize_misp.sh" script triggers after the above behaviours complete and is an appropriate place to override a setting. It is suggested that you use the "/var/www/MISP/app/cake Admin setSetting" command to override a setting, as this tool is config.php file and database setting aware.
+
 ### Production
 
 -   It is recommended to specify the build you want run by editing `docker-compose.yml` (see here for the list of available tags https://github.com/orgs/MISP/packages)
