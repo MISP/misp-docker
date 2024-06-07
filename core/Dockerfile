@@ -230,8 +230,18 @@ RUN chgrp -R 0 /var/www/MISP/ && \
 
 RUN chgrp -R 0 /var/log/supervisor/ && \
     chmod -R g=u /var/log/supervisor/
+    
 RUN chgrp -R 0 /var/run/ && \
     chmod -R g=u /var/run/
+
+RUN chgrp -R 0 /etc/php/7.4/fpm/ && \
+    chmod -R g=u /etc/php/7.4/fpm/
+
+RUN chgrp -R 0 /var/log/ && \
+    chmod -R g=u /var/log/
+
+RUN chgrp -R 0 /etc/nginx/sites-enabled/ && \
+    chmod -R g=u /etc/nginx/sites-enabled/
     
     # Copy all our image specific files to appropriate locations
     COPY files/ /
