@@ -237,11 +237,9 @@ RUN chgrp -R 0 /etc/php/ && \
 RUN chgrp -R 0 /var/log/ && \
     chmod -R g=u /var/log/
 
-RUN chgrp -R 0 /etc/nginx/sites-enabled/ && \
-    chmod -R g=u /etc/nginx/sites-enabled/
+RUN chgrp -R 0 /etc/nginx/ && \
+    chmod -R g=u /etc/nginx/
 
-RUN chgrp -R 0 /etc/nginx/includes/ && \
-    chmod -R g=u /etc/nginx/includes/
     
     # Copy all our image specific files to appropriate locations
     COPY files/ /
