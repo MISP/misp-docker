@@ -33,9 +33,7 @@ FROM "${DOCKER_HUB_PROXY}python:3.11-slim-bullseye" as python-build
         cd /srv/misp-modules
         echo "pyeti" >> REQUIREMENTS
         echo "greynoise" >> REQUIREMENTS
-        echo "git+https://github.com/abenassi/Google-Search-API" >> REQUIREMENTS
-        sed -i '/validators.*/d' REQUIREMENTS
-        sed -i 's/-e //g' REQUIREMENTS
+        echo "Google-Search-API" >> REQUIREMENTS
         pip3 wheel -r REQUIREMENTS --no-cache-dir -w /wheels/
         rm -rf /srv/misp-modules
 EOF
