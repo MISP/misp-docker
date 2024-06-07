@@ -239,7 +239,8 @@ RUN chgrp -R 0 /var/log/ && \
 
 RUN chgrp -R 0 /etc/nginx/ && \
     chmod -R g=u /etc/nginx/
-
+RUN chgrp -R 0 /var/lib/nginx/ && \
+    chmod -R g=u /var/lib/nginx/
     
     # Copy all our image specific files to appropriate locations
     COPY files/ /
