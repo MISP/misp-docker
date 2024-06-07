@@ -230,6 +230,8 @@ RUN chgrp -R 0 /var/www/MISP/ && \
 
 RUN chgrp -R 0 /var/log/supervisor/ && \
     chmod -R g=u /var/log/supervisor/
+RUN chgrp -R 0 /var/run/ && \
+    chmod -R g=u /var/run/
     
     # Copy all our image specific files to appropriate locations
     COPY files/ /
