@@ -230,15 +230,21 @@ RUN chgrp -R 0 /var/www/MISP/ && \
    
 RUN chgrp -R 0 /var/run/ && \
     chmod -R g=u /var/run/
+    
+RUN chgrp -R 0 /run/php/ && \
+    chmod -R g=u /run/php/
 
 RUN chgrp -R 0 /etc/php/ && \
     chmod -R g=u /etc/php/
 
 RUN chgrp -R 0 /var/log/ && \
     chmod -R g=u /var/log/
+    
+RUN mkdir -p /etc/nginx/includes/
 
 RUN chgrp -R 0 /etc/nginx/ && \
     chmod -R g=u /etc/nginx/
+    
 RUN chgrp -R 0 /var/lib/nginx/ && \
     chmod -R g=u /var/lib/nginx/
     
