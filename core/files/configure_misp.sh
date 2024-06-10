@@ -79,9 +79,9 @@ GPGEOF
     fi
 
     # Fix permissions
-    chown -R www-data:www-data ${GPG_DIR}
-    find ${GPG_DIR} -type f -exec chmod 600 {} \;
-    find ${GPG_DIR} -type d -exec chmod 700 {} \;
+    #chown -R www-data:www-data ${GPG_DIR}
+    #find ${GPG_DIR} -type f -exec chmod 600 {} \;
+    #find ${GPG_DIR} -type d -exec chmod 700 {} \;
 
     if [ ! -f ${GPG_ASC} ]; then
         echo "... exporting GPG key"
