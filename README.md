@@ -76,7 +76,7 @@ The misp-core container has definitions for minimum safe default settings which 
 
 #### Storing system settings in the DB
 
-This container includes the "ENABLE_DB_SETTINGS" environment variable, which can be used to set "MISP.system.setting_db" to true or false. This changes the behaviour of where MISP chooses to store operator made settings changes; in config.php or in the system_settings database table. By default this is set to false.
+This container includes the "ENABLE_DB_SETTINGS" environment variable, which can be used to set "MISP.system_setting_db" to true or false. This changes the behaviour of where MISP chooses to store operator made settings changes; in config.php or in the system_settings database table. By default this is set to false.
 
 If a setting is not defined in the DB, but is defined in config.php, it will be read out of config.php and used. This can sometimes lead to operator confusion, so please check both locations for values when troubleshooting.
 
