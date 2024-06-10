@@ -198,8 +198,9 @@ flip_nginx() {
 
     # must be valid for all roots
     echo "... nginx docroot set to ${NGINX_DOC_ROOT}"
-    sed -i "s|root.*var/www.*|root ${NGINX_DOC_ROOT};|" /etc/nginx/includes/misp
-
+    #sed -i "s|root.*var/www.*|root ${NGINX_DOC_ROOT};|" /etc/nginx/includes/misp
+    sed "s|root.*var/www.*|root ${NGINX_DOC_ROOT};|" /etc/nginx/includes/misp > /tmp/tmp; cat /tmp/tmp > /etc/nginx/includes/misp; rm /tmp/tmp
+     
     if [[ "$reload" = "true" ]]; then
         echo "... nginx reloaded"
         nginx -s reload
