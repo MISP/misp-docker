@@ -247,9 +247,16 @@ RUN chgrp -R 0 /etc/nginx/ && \
     
 RUN chgrp -R 0 /var/lib/nginx/ && \
     chmod -R g=u /var/lib/nginx/
+
+RUN chgrp -R 0 /etc/cron.d/ && \
+    chmod -R g=u /etc/cron.d/
     
     # Copy all our image specific files to appropriate locations
     COPY files/ /
+    
+RUN chgrp -R 0 /etc/nginx/includes/ && \
+    chmod -R g=u /etc/nginx/includes/
+
     ENTRYPOINT [ "/entrypoint.sh" ]
 
     # Change Workdirectory
