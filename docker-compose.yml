@@ -131,6 +131,7 @@ services:
       - "AAD_MISP_SITEADMIN=${AAD_MISP_SITEADMIN}"
       - "AAD_CHECK_GROUPS=${AAD_CHECK_GROUPS}"
       # Proxy settings
+      - "PROXY_ENABLE=${PROXY_ENABLE}"
       - "PROXY_HOST=${PROXY_HOST}"
       - "PROXY_PORT=${PROXY_PORT}"
       - "PROXY_METHOD=${PROXY_METHOD}"
