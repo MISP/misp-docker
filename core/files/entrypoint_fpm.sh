@@ -10,6 +10,10 @@ term_proc() {
 
 trap term_proc SIGTERM
 
+sed -i "s/^\(listen\.owner\s*=\s*\).*/\1$(whoami)/" /etc/php/7.4/fpm/pool.d/www.conf
+sed -i "s/^\(listen\.group\s*=\s*\).*/\1$(id -gn)/" /etc/php/7.4/fpm/pool.d/www.conf
+sed -i "s/;listen.mode = .*/listen.mode = 660/" "/etc/php/7.4/fpm/pool.d/www.conf"
+
 change_php_vars() {
     for FILE in /etc/php/*/fpm/php.ini
     do
