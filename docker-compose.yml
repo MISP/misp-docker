@@ -154,6 +154,8 @@ services:
       - "MYSQL_USER=${MYSQL_USER:-misp}"
       - "MYSQL_PASSWORD=${MYSQL_PASSWORD:-example}"
       - "MYSQL_DATABASE=${MYSQL_DATABASE:-misp}"
+      # Debug setting 
+      - "DEBUG=${DEBUG}"
   
   misp-modules:
     image: ghcr.io/misp/misp-docker/misp-modules:latest

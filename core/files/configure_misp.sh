@@ -14,6 +14,7 @@ source /utilities.sh
 [ -z "$LDAP_ENABLE" ] && LDAP_ENABLE="false"
 [ -z "$ENABLE_DB_SETTINGS" ] && ENABLE_DB_SETTINGS="false"
 [ -z "$PROXY_ENABLE" ] && PROXY_ENABLE="false"
+[ -z "$DEBUG" ] && DEBUG=0
 
 # We now use envsubst for safe variable substitution with pseudo-json objects for env var enforcement
 # envsubst won't evaluate anything like $() or conditional variable expansion so lets do that here

@@ -1,4 +1,8 @@
 {
+  "debug": {
+    "default_value": "${DEBUG}",
+    "command_args": "-f"
+  },
   "MISP.baseurl": {
     "default_value": "${BASE_URL}"
   },
