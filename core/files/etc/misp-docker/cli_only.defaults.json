@@ -21,7 +21,8 @@
     "default_value": false
   },
   "MISP.ca_path": {
-    "default_value": "/etc/ssl/certs/ca-certificates.crt"
+    "default_value": "/etc/ssl/certs/ca-certificates.crt",
+    "command_args": "-f"
   },
   "MISP.menu_custom_right_link": {
     "default_value": ""

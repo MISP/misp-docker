@@ -13,6 +13,8 @@ source /utilities.sh
 [ -z "$OIDC_ENABLE" ] && OIDC_ENABLE="false"
 [ -z "$LDAP_ENABLE" ] && LDAP_ENABLE="false"
 [ -z "$ENABLE_DB_SETTINGS" ] && ENABLE_DB_SETTINGS="false"
+[ -z "$PROXY_ENABLE" ] && PROXY_ENABLE="false"
+[ -z "$DEBUG" ] && DEBUG=0
 
 # We now use envsubst for safe variable substitution with pseudo-json objects for env var enforcement
 # envsubst won't evaluate anything like $() or conditional variable expansion so lets do that here
@@ -202,18 +204,12 @@ set_up_aad() {
 }
 
 set_up_proxy() {
-    if [[ "$PROXY_ENABLE" != "true" ]]; then
+    if [[ "$PROXY_ENABLE" == "true" ]]; then
+        echo "... configuring proxy settings"
+        init_settings "proxy"
+    else
         echo "... Proxy disabled"
-        return
     fi
-
-    echo "... configuring proxy settings"
-
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Proxy.host" "$PROXY_HOST"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Proxy.port" "$PROXY_PORT"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Proxy.method" "$PROXY_METHOD"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Proxy.user" "$PROXY_USER"
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Proxy.password" "$PROXY_PASSWORD"
 }
 
 apply_updates() {

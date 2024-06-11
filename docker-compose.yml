@@ -131,6 +131,7 @@ services:
       - "AAD_MISP_SITEADMIN=${AAD_MISP_SITEADMIN}"
       - "AAD_CHECK_GROUPS=${AAD_CHECK_GROUPS}"
       # Proxy settings
+      - "PROXY_ENABLE=${PROXY_ENABLE}"
       - "PROXY_HOST=${PROXY_HOST}"
       - "PROXY_PORT=${PROXY_PORT}"
       - "PROXY_METHOD=${PROXY_METHOD}"
@@ -153,6 +154,8 @@ services:
       - "MYSQL_USER=${MYSQL_USER:-misp}"
       - "MYSQL_PASSWORD=${MYSQL_PASSWORD:-example}"
       - "MYSQL_DATABASE=${MYSQL_DATABASE:-misp}"
+      # Debug setting 
+      - "DEBUG=${DEBUG}"
   
   misp-modules:
     image: ghcr.io/misp/misp-docker/misp-modules:latest
