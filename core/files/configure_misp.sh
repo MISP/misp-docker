@@ -26,7 +26,8 @@ export SETTING_EMAIL="${MISP_EMAIL-$ADMIN_EMAIL}"
 init_cli_only_config() {
     # I think no matter what we do, we should wait for this table to turn up.
     # Only really impacts us on first run, and on my machine only takes a few seconds to turn up.
-    await_system_settings_table
+    # TODO: this is not the right solution because `system_settings` is not part of the original dump
+    # await_system_settings_table
     # Temporarily disable DB to apply cli_only settings, since these MUST be in the config.php file (by design or otherwise)
     # This will reenable upon init_settings "db_enable" below if it is indeed enabled
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.system_setting_db" false
@@ -213,8 +214,12 @@ set_up_proxy() {
 }
 
 apply_updates() {
+    # Disable 'ZeroMQ_enable' to get better logs when applying updates
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" false
     # Run updates (strip colors since output might end up in a log)
     sudo -u www-data /var/www/MISP/app/Console/cake Admin runUpdates | sed -r "s/[[:cntrl:]]\[[0-9]{1,3}m//g"
+    # Re-enable 'ZeroMQ_enable'
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" true
 }
 
 init_user() {

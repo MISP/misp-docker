@@ -39,10 +39,6 @@
   "Security.disable_instance_file_uploads": {
     "default_value": false
   },
-  "Security.encryption_key": {
-    "default_value": "",
-    "command_args": "-f"
-  },
   "Security.salt": {
     "default_value": "",
     "command_args": "-f"
