@@ -23,25 +23,20 @@ export GPG_BINARY="$(which gpg)"
 export SETTING_CONTACT="${MISP_CONTACT-$ADMIN_EMAIL}"
 export SETTING_EMAIL="${MISP_EMAIL-$ADMIN_EMAIL}"
 
-init_cli_only_config() {
-    # I think no matter what we do, we should wait for this table to turn up.
-    # Only really impacts us on first run, and on my machine only takes a few seconds to turn up.
-    # TODO: this is not the right solution because `system_settings` is not part of the original dump
-    # await_system_settings_table
-    # Temporarily disable DB to apply cli_only settings, since these MUST be in the config.php file (by design or otherwise)
-    # This will reenable upon init_settings "db_enable" below if it is indeed enabled
+init_minimum_config() {
+    # Temporarily disable DB to apply config file settings, reenable after if needed 
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.system_setting_db" false
-    init_settings "cli_only"
-    init_settings "db_enable"
+    init_settings "minimum_config"
 }
 
-init_configuration(){
+init_configuration() {
+    init_settings "db_enable"
     init_settings "initialisation"
 }
 
-init_workers(){
+init_workers() {
     echo "... starting background workers"
-    supervisorctl start misp-workers:*
+    stdbuf -oL supervisorctl start misp-workers:*
 }
 
 configure_gnupg() {
@@ -215,16 +210,16 @@ set_up_proxy() {
 
 apply_updates() {
     # Disable 'ZeroMQ_enable' to get better logs when applying updates
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" false
+#    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" false
     # Run updates (strip colors since output might end up in a log)
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin runUpdates | sed -r "s/[[:cntrl:]]\[[0-9]{1,3}m//g"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin runUpdates | stdbuf -oL sed -r "s/[[:cntrl:]]\[[0-9]{1,3}m//g"
     # Re-enable 'ZeroMQ_enable'
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" true
+#    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" true
 }
 
 init_user() {
     # Create the main user if it is not there already
-    sudo -u www-data /var/www/MISP/app/Console/cake user init -q 2>&1 > /dev/null
+    sudo -u www-data /var/www/MISP/app/Console/cake user init -q > /dev/null 2>&1
 
     echo "UPDATE misp.users SET email = \"${ADMIN_EMAIL}\" WHERE id = 1;" | ${MYSQLCMD}
 
@@ -250,7 +245,7 @@ init_user() {
     if [ ! -z "$ADMIN_PASSWORD" ]; then
         echo "... setting admin password to '${ADMIN_PASSWORD}'"
         PASSWORD_POLICY=$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting "Security.password_policy_complexity" | jq ".value" -r)
-        PASSWORD_LENGTH=$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting "Security.password_policy_length" | jq ".value")
+        PASSWORD_LENGTH=$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting "Security.password_policy_length" | jq ".value" -r)
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_length" 1
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_complexity" '/.*/'
         sudo -u www-data /var/www/MISP/app/Console/cake User change_pw "${ADMIN_EMAIL}" "${ADMIN_PASSWORD}"
@@ -366,13 +361,6 @@ init_settings() {
     fi
 }
 
-await_system_settings_table() {
-    until [[ $(echo "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = '$MYSQL_DATABASE' and table_name = 'system_settings');" | ${MYSQLCMD}) -eq 1 ]]; do
-        echo "... awaiting availability of system_settings table"
-        sleep 2
-    done
-}
-
 update_components() {
     sudo -u www-data /var/www/MISP/app/Console/cake Admin updateGalaxies
     sudo -u www-data /var/www/MISP/app/Console/cake Admin updateTaxonomies
@@ -440,15 +428,15 @@ create_sync_servers() {
 
 echo "MISP | Update CA certificates ..." && update_ca_certificates
 
-echo "MISP | CLI_only configuration directives ..." && init_cli_only_config
+echo "MISP | Apply minimum configuration directives ..." && init_minimum_config
+
+echo "MISP | Apply DB updates ..." && apply_updates
 
 echo "MISP | Initialize configuration ..." && init_configuration
 
 echo "MISP | Initialize workers ..." && init_workers
 
 echo "MISP | Configure GPG key ..." && configure_gnupg
-
-echo "MISP | Apply updates ..." && apply_updates
 
 echo "MISP | Init default user and organization ..." && init_user
 

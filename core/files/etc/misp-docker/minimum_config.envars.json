@@ -2,6 +2,9 @@
   "MISP.python_bin": {
     "default_value": "${PYTHON_BIN}"
   },
+  "MISP.redis_host": {
+    "default_value": "${REDIS_FQDN}"
+  },
   "GnuPG.binary": {
     "default_value": "${GPG_BINARY}"
   },

@@ -12,9 +12,6 @@
   "MISP.contact": {
     "default_value": "${SETTING_CONTACT}"
   },
-  "MISP.redis_host": {
-    "default_value": "${REDIS_FQDN}"
-  },
   "Plugin.ZeroMQ_redis_host": {
     "default_value": "${REDIS_FQDN}"
   },

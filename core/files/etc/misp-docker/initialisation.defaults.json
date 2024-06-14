@@ -2,15 +2,6 @@
   "MISP.ca_path": {
     "default_value": "/var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem"
   },
-  "MISP.redis_port": {
-    "default_value": 6379
-  },
-  "MISP.redis_database": {
-    "default_value": 13
-  },
-  "MISP.redis_password": {
-    "default_value": ""
-  },
   "MISP.language": {
     "default_value": "eng"
   },
@@ -112,6 +103,10 @@
   },
   "Security.check_sec_fetch_site_header": {
     "default_value": true
+  },
+  "Security.encryption_key": {
+    "default_value": "",
+    "command_args": "-f"
   },
   "Security.username_in_response_header": {
     "default_value": true
