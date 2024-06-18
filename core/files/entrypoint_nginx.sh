@@ -18,6 +18,7 @@ trap term_proc SIGTERM
 [ -z "$BASE_URL" ] && export BASE_URL="https://localhost"
 [ -z "$DISABLE_IPV6" ] && export DISABLE_IPV6=false
 [ -z "$DISABLE_SSL_REDIRECT" ] && export DISABLE_SSL_REDIRECT=false
+[ -z "$SMTP_FQDN" ] && export SMTP_FQDN=mail
 
 init_mysql(){
     # Test when MySQL is ready....
@@ -93,7 +94,7 @@ class EmailConfig {
     public \$default = array(
         'transport'     => 'Smtp',
         'from'          => array('misp-dev@admin.test' => 'Misp DEV'),
-        'host'          => 'mail',
+        'host'          => '$SMTP_FQDN',
         'port'          => 25,
         'timeout'       => 30,
         'client'        => null,
@@ -102,7 +103,7 @@ class EmailConfig {
     public \$smtp = array(
         'transport'     => 'Smtp',
         'from'          => array('misp-dev@admin.test' => 'Misp DEV'),
-        'host'          => 'mail',
+        'host'          => '$SMTP_FQDN',
         'port'          => 25,
         'timeout'       => 30,
         'client'        => null,
@@ -128,7 +129,7 @@ class EmailConfig {
         'attachments'   => null,
         'emailFormat'   => null,
         'transport'     => 'Smtp',
-        'host'          => 'mail',
+        'host'          => '$SMTP_FQDN',
         'port'          => 25,
         'timeout'       => 30,
         'client'        => null,
