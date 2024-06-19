@@ -159,7 +159,7 @@ services:
       # Debug setting 
       - "DEBUG=${DEBUG}"
       # SMTP setting
-      - "SMTP_FQDN=${SMTP_FQDN:-mail}"
+      - "SMTP_FQDN=${SMTP_FQDN}"
   
   misp-modules:
     image: ghcr.io/misp/misp-docker/misp-modules:latest
