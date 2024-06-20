@@ -158,6 +158,8 @@ services:
       - "MYSQL_DATABASE=${MYSQL_DATABASE:-misp}"
       # Debug setting 
       - "DEBUG=${DEBUG}"
+      # SMTP setting
+      - "SMTP_FQDN=${SMTP_FQDN}"
   
   misp-modules:
     image: ghcr.io/misp/misp-docker/misp-modules:latest
