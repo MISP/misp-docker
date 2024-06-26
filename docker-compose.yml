@@ -62,14 +62,13 @@ services:
         condition: service_healthy
       db:
         condition: service_healthy
-    # this is now disabled until we have a heartbeat endpoint with no side effects
-    # healthcheck:
-    #   test: curl -ks https://localhost/users/login > /dev/null || exit 1
-    #   interval: 2s
-    #   timeout: 1s
-    #   retries: 3
-    #   start_period: 30s
-    #   start_interval: 30s
+    healthcheck:
+      test: curl -ks https://localhost/users/heartbeat > /dev/null || exit 1
+      interval: 2s
+      timeout: 1s
+      retries: 3
+      start_period: 30s
+      start_interval: 30s
     ports:
       - "80:80"
       - "443:443"
