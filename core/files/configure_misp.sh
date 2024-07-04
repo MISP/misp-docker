@@ -374,7 +374,7 @@ update_ca_certificates() {
     update-ca-certificates
     # Upgrade cake cacert.pem file from Mozilla project
     echo "Updating /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem..."
-    sudo -u www-data curl -s --etag-compare /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt --etag-save /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt https://curl.se/ca/cacert.pem -o /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem
+    sudo -E -u www-data curl -s --etag-compare /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt --etag-save /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt https://curl.se/ca/cacert.pem -o /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem
 }
 
 create_sync_servers() {
