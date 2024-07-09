@@ -31,6 +31,7 @@ FROM "${DOCKER_HUB_PROXY}python:3.11-slim-bullseye" as python-build
         fi
 
         cd /srv/misp-modules
+        sed -i "s/numpy.*/numpy<2/" REQUIREMENTS
         echo "pyeti" >> REQUIREMENTS
         echo "greynoise" >> REQUIREMENTS
         echo "Google-Search-API" >> REQUIREMENTS
