@@ -141,6 +141,7 @@ FROM "${DOCKER_HUB_PROXY}debian:bullseye-slim"
     ARG PHP_VER
 
     RUN apt-get update; apt-get install -y --no-install-recommends \
+        gettext \
         procps \
         sudo \
         nginx \

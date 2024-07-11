@@ -1,0 +1,11 @@
+{
+  "MISP.python_bin": {
+    "default_value": "${PYTHON_BIN}"
+  },
+  "GnuPG.binary": {
+    "default_value": "${GPG_BINARY}"
+  },
+  "SimpleBackgroundJobs.redis_host": {
+    "default_value": "${REDIS_FQDN}"
+  }
+}
