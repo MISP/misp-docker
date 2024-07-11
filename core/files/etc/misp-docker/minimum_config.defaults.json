@@ -21,7 +21,17 @@
     "default_value": false
   },
   "MISP.ca_path": {
-    "default_value": "/var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem"
+    "default_value": "/etc/ssl/certs/ca-certificates.crt",
+    "command_args": "-f"
+  },
+  "MISP.redis_port": {
+    "default_value": 6379
+  },
+  "MISP.redis_database": {
+    "default_value": 13
+  },
+  "MISP.redis_password": {
+    "default_value": ""
   },
   "MISP.menu_custom_right_link": {
     "default_value": ""
@@ -37,10 +47,6 @@
   },
   "Security.disable_instance_file_uploads": {
     "default_value": false
-  },
-  "Security.encryption_key": {
-    "default_value": "",
-    "command_args": "-f"
   },
   "Security.salt": {
     "default_value": "",

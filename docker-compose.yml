@@ -63,11 +63,12 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: curl -ks https://localhost/users/login > /dev/null || exit 1
+      test: curl -ks https://localhost/users/heartbeat > /dev/null || exit 1
       interval: 2s
       timeout: 1s
       retries: 3
       start_period: 30s
+      start_interval: 30s
     ports:
       - "80:80"
       - "443:443"
@@ -130,6 +131,13 @@ services:
       - "AAD_MISP_ORGADMIN=${AAD_MISP_ORGADMIN}"
       - "AAD_MISP_SITEADMIN=${AAD_MISP_SITEADMIN}"
       - "AAD_CHECK_GROUPS=${AAD_CHECK_GROUPS}"
+      # Proxy settings
+      - "PROXY_ENABLE=${PROXY_ENABLE}"
+      - "PROXY_HOST=${PROXY_HOST}"
+      - "PROXY_PORT=${PROXY_PORT}"
+      - "PROXY_METHOD=${PROXY_METHOD}"
+      - "PROXY_USER=${PROXY_USER}"
+      - "PROXY_PASSWORD=${PROXY_PASSWORD}"
       # sync server settings (see https://www.misp-project.org/openapi/#tag/Servers for more options)
       - "SYNCSERVERS=${SYNCSERVERS}"
       - |
@@ -147,6 +155,10 @@ services:
       - "MYSQL_USER=${MYSQL_USER:-misp}"
       - "MYSQL_PASSWORD=${MYSQL_PASSWORD:-example}"
       - "MYSQL_DATABASE=${MYSQL_DATABASE:-misp}"
+      # Debug setting 
+      - "DEBUG=${DEBUG}"
+      # SMTP setting
+      - "SMTP_FQDN=${SMTP_FQDN}"
   
   misp-modules:
     image: ghcr.io/misp/misp-docker/misp-modules:latest

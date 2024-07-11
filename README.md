@@ -76,7 +76,7 @@ The misp-core container has definitions for minimum safe default settings which 
 
 #### Storing system settings in the DB
 
-This container includes the "ENABLE_DB_SETTINGS" environment variable, which can be used to set "MISP.system.setting_db" to true or false. This changes the behaviour of where MISP chooses to store operator made settings changes; in config.php or in the system_settings database table. By default this is set to false.
+This container includes the "ENABLE_DB_SETTINGS" environment variable, which can be used to set "MISP.system_setting_db" to true or false. This changes the behaviour of where MISP chooses to store operator made settings changes; in config.php or in the system_settings database table. By default this is set to false.
 
 If a setting is not defined in the DB, but is defined in config.php, it will be read out of config.php and used. This can sometimes lead to operator confusion, so please check both locations for values when troubleshooting.
 
@@ -89,6 +89,11 @@ While storing system settings in the DB works as expected most of the time, you 
 If you are trying to accomplish something and the above behaviours get in the way, please let us know as this is not intended.
 
 To override these behaviours edit the docker-compose.yml file's misp-core volume definitions to enable the "customize_misp.sh" behaviour (see the bottom of the Production section for details). The "customize_misp.sh" script triggers after the above behaviours complete and is an appropriate place to override a setting. It is suggested that you use the "/var/www/MISP/app/cake Admin setSetting" command to override a setting, as this tool is config.php file and database setting aware.
+
+#### Adding a new setting and unsure what files to edit?
+
+If it is just a default setting that is meant to be set if not already set by the user, add it in one of the `*.default.json` files.
+If it is a setting controlled by an environment variable which is meant to override whatever is set, add it in one of the `*.envars.json` files (note that you can still specify a default value).
 
 ### Production
 

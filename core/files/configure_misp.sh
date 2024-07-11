@@ -13,6 +13,8 @@ source /utilities.sh
 [ -z "$OIDC_ENABLE" ] && OIDC_ENABLE="false"
 [ -z "$LDAP_ENABLE" ] && LDAP_ENABLE="false"
 [ -z "$ENABLE_DB_SETTINGS" ] && ENABLE_DB_SETTINGS="false"
+[ -z "$PROXY_ENABLE" ] && PROXY_ENABLE="false"
+[ -z "$DEBUG" ] && DEBUG=0
 
 # We now use envsubst for safe variable substitution with pseudo-json objects for env var enforcement
 # envsubst won't evaluate anything like $() or conditional variable expansion so lets do that here
@@ -21,27 +23,23 @@ export GPG_BINARY="$(which gpg)"
 export SETTING_CONTACT="${MISP_CONTACT-$ADMIN_EMAIL}"
 export SETTING_EMAIL="${MISP_EMAIL-$ADMIN_EMAIL}"
 
-init_cli_only_config() {
-    # I think no matter what we do, we should wait for this table to turn up.
-    # Only really impacts us on first run, and on my machine only takes a few seconds to turn up.
-    await_system_settings_table
-    # Temporarily disable DB to apply cli_only settings, since these MUST be in the config.php file (by design or otherwise)
-    # This will reenable upon init_settings "db_enable" below if it is indeed enabled
+init_minimum_config() {
+    # Temporarily disable DB to apply config file settings, reenable after if needed 
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.system_setting_db" false
     /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.osuser" "1005320000"
-    init_settings "cli_only"
-    init_settings "db_enable"
+
+    init_settings "minimum_config"
 }
 
-init_configuration(){
-
+init_configuration() {
+    init_settings "db_enable"
     init_settings "initialisation"
 }
 
-init_workers(){
+init_workers() {
 
     echo "... starting background workers"
-    supervisorctl start misp-workers:*
+    stdbuf -oL supervisorctl start misp-workers:*
 }
 
 configure_gnupg() {
@@ -206,14 +204,29 @@ set_up_aad() {
     /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
 }
 
+set_up_proxy() {
+    if [[ "$PROXY_ENABLE" == "true" ]]; then
+        echo "... configuring proxy settings"
+        init_settings "proxy"
+    else
+        echo "... Proxy disabled"
+    fi
+}
+
 apply_updates() {
 
+    # Disable 'ZeroMQ_enable' to get better logs when applying updates
+#    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" false
     # Run updates (strip colors since output might end up in a log)
-    /var/www/MISP/app/Console/cake Admin runUpdates | sed -r "s/[[:cntrl:]]\[[0-9]{1,3}m//g"
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin runUpdates | stdbuf -oL sed -r "s/[[:cntrl:]]\[[0-9]{1,3}m//g"
+    # Re-enable 'ZeroMQ_enable'
+#    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" true
+
 }
 
 init_user() {
     # Create the main user if it is not there already
+
     /var/www/MISP/app/Console/cake userInit -q 2>&1 > /dev/null
 
     echo "UPDATE misp.users SET email = \"${ADMIN_EMAIL}\" WHERE id = 1;" | ${MYSQLCMD}
@@ -239,6 +252,7 @@ init_user() {
 
     if [ ! -z "$ADMIN_PASSWORD" ]; then
         echo "... setting admin password to '${ADMIN_PASSWORD}'"
+
         PASSWORD_POLICY=$(/var/www/MISP/app/Console/cake Admin getSetting "Security.password_policy_complexity" | jq ".value" -r)
         PASSWORD_LENGTH=$(/var/www/MISP/app/Console/cake Admin getSetting "Security.password_policy_length" | jq ".value")
         /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_length" 1
@@ -246,6 +260,7 @@ init_user() {
         /var/www/MISP/app/Console/cake User change_pw "${ADMIN_EMAIL}" "${ADMIN_PASSWORD}"
         /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_complexity" "${PASSWORD_POLICY}"
         /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_length" "${PASSWORD_LENGTH}"
+
     else
         echo "... setting admin password skipped"
     fi
@@ -357,13 +372,6 @@ init_settings() {
     fi
 }
 
-await_system_settings_table() {
-    until [[ $(echo "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = '$MYSQL_DATABASE' and table_name = 'system_settings');" | ${MYSQLCMD}) -eq 1 ]]; do
-        echo "... awaiting availability of system_settings table"
-        sleep 2
-    done
-
-}
 
 update_components() {
     /var/www/MISP/app/Console/cake Admin updateGalaxies
@@ -378,7 +386,7 @@ update_ca_certificates() {
     update-ca-certificates
     # Upgrade cake cacert.pem file from Mozilla project
     echo "Updating /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem..."
-    sudo -u www-data curl -s --etag-compare /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt --etag-save /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt https://curl.se/ca/cacert.pem -o /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem
+    sudo -E -u www-data curl -s --etag-compare /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt --etag-save /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt https://curl.se/ca/cacert.pem -o /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem
 }
 
 create_sync_servers() {
@@ -432,15 +440,15 @@ create_sync_servers() {
 
 echo "MISP | Update CA certificates ..." && update_ca_certificates
 
-echo "MISP | CLI_only configuration directives ..." && init_cli_only_config
+echo "MISP | Apply minimum configuration directives ..." && init_minimum_config
+
+echo "MISP | Apply DB updates ..." && apply_updates
 
 echo "MISP | Initialize configuration ..." && init_configuration
 
 echo "MISP | Initialize workers ..." && init_workers
 
 echo "MISP | Configure GPG key ..." && configure_gnupg
-
-echo "MISP | Apply updates ..." && apply_updates
 
 echo "MISP | Init default user and organization ..." && init_user
 
@@ -457,6 +465,8 @@ echo "MISP | Set Up OIDC ..." && set_up_oidc
 echo "MISP | Set Up LDAP ..." && set_up_ldap
 
 echo "MISP | Set Up AAD ..." && set_up_aad
+
+echo "MISP | Set Up Proxy ..." && set_up_proxy
 
 echo "MISP | Mark instance live"
 /var/www/MISP/app/Console/cake Admin live 1
