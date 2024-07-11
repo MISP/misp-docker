@@ -150,8 +150,8 @@ EOT
 update_misp_data_files(){
     for DIR in $(ls /var/www/MISP/app/files.dist); do
         if [ "$DIR" = "certs" ] || [ "$DIR" = "img" ] || [ "$DIR" == "taxonomies" ] ; then
-            echo "... rsync -azh \"/var/www/MISP/app/files.dist/$DIR\" \"/var/www/MISP/app/files/\""
-            rsync -azh "/var/www/MISP/app/files.dist/$DIR" "/var/www/MISP/app/files/"
+            echo "... rsync  -azh \"/var/www/MISP/app/files.dist/$DIR\" \"/var/www/MISP/app/files/\""
+            rsync  -azh "/var/www/MISP/app/files.dist/$DIR" "/var/www/MISP/app/files/"
         else
             echo "... rsync -azh --delete \"/var/www/MISP/app/files.dist/$DIR\" \"/var/www/MISP/app/files/\""
             rsync -azh --delete "/var/www/MISP/app/files.dist/$DIR" "/var/www/MISP/app/files/"
@@ -160,7 +160,7 @@ update_misp_data_files(){
 }
 
 enforce_misp_data_permissions(){
-    echo "... chown -R www-data:www-data /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
+#    echo "... chown -R www-data:www-data /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
     # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
     echo "... chmod -R 0550 files /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp -not -perm 550 -type f -exec chmod 0550 {} +
     # Directories are also writable, because there seems to be a requirement to add new files every once in a while
@@ -168,19 +168,19 @@ enforce_misp_data_permissions(){
     # We make 'files' and 'tmp' (logs) directories and files user and group writable (we removed the SGID bit)
     echo "... chmod -R u+w,g+w /var/www/MISP/app/tmp" && chmod -R u+w,g+w /var/www/MISP/app/tmp
     
-    echo "... chown -R www-data:www-data /var/www/MISP/app/files" && find /var/www/MISP/app/files \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
+#    echo "... chown -R www-data:www-data /var/www/MISP/app/files" && find /var/www/MISP/app/files \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
     # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
     echo "... chmod -R 0550 files /var/www/MISP/app/files" && find /var/www/MISP/app/files -not -perm 550 -type f -exec chmod 0550 {} +
     # Directories are also writable, because there seems to be a requirement to add new files every once in a while
-    echo "... chmod -R 0770 directories /var/www/MISP/app/files" && find /var/www/MISP/app/files -not -perm 770 -type d -exec chmod 0770 {} +
+#    echo "... chmod -R 0770 directories /var/www/MISP/app/files" && find /var/www/MISP/app/files -not -perm 770 -type d -exec chmod 0770 {} +
     # We make 'files' and 'tmp' (logs) directories and files user and group writable (we removed the SGID bit)
     echo "... chmod -R u+w,g+w /var/www/MISP/app/files" && chmod -R u+w,g+w /var/www/MISP/app/files
     
-    echo "... chown -R www-data:www-data /var/www/MISP/app/Config" && find /var/www/MISP/app/Config \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
+#    echo "... chown -R www-data:www-data /var/www/MISP/app/Config" && find /var/www/MISP/app/Config \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
     # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
     echo "... chmod -R 0550 files /var/www/MISP/app/Config ..." && find /var/www/MISP/app/Config -not -perm 550 -type f -exec chmod 0550 {} +
     # Directories are also writable, because there seems to be a requirement to add new files every once in a while
-    echo "... chmod -R 0770 directories /var/www/MISP/app/Config" && find /var/www/MISP/app/Config -not -perm 770 -type d -exec chmod 0770 {} +
+#    echo "... chmod -R 0770 directories /var/www/MISP/app/Config" && find /var/www/MISP/app/Config -not -perm 770 -type d -exec chmod 0770 {} +
     # We make configuration files read only
     echo "... chmod 600 /var/www/MISP/app/Config/{config,database,email}.php" && chmod 600 /var/www/MISP/app/Config/{config,database,email}.php
 }
@@ -199,8 +199,9 @@ flip_nginx() {
 
     # must be valid for all roots
     echo "... nginx docroot set to ${NGINX_DOC_ROOT}"
-    sed -i "s|root.*var/www.*|root ${NGINX_DOC_ROOT};|" /etc/nginx/includes/misp
-
+    #sed -i "s|root.*var/www.*|root ${NGINX_DOC_ROOT};|" /etc/nginx/includes/misp
+    sed "s|root.*var/www.*|root ${NGINX_DOC_ROOT};|" /etc/nginx/includes/misp > /tmp/tmp; cat /tmp/tmp > /etc/nginx/includes/misp; rm /tmp/tmp
+     
     if [[ "$reload" = "true" ]]; then
         echo "... nginx reloaded"
         nginx -s reload

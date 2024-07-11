@@ -28,15 +28,18 @@ init_cli_only_config() {
     # Temporarily disable DB to apply cli_only settings, since these MUST be in the config.php file (by design or otherwise)
     # This will reenable upon init_settings "db_enable" below if it is indeed enabled
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.system_setting_db" false
+    /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.osuser" "1005320000"
     init_settings "cli_only"
     init_settings "db_enable"
 }
 
 init_configuration(){
+
     init_settings "initialisation"
 }
 
 init_workers(){
+
     echo "... starting background workers"
     supervisorctl start misp-workers:*
 }
@@ -72,18 +75,20 @@ GPGEOF
     fi
 
     # Fix permissions
-    chown -R www-data:www-data ${GPG_DIR}
-    find ${GPG_DIR} -type f -exec chmod 600 {} \;
-    find ${GPG_DIR} -type d -exec chmod 700 {} \;
+    #chown -R www-data:www-data ${GPG_DIR}
+    #find ${GPG_DIR} -type f -exec chmod 600 {} \;
+    #find ${GPG_DIR} -type d -exec chmod 700 {} \;
 
     if [ ! -f ${GPG_ASC} ]; then
         echo "... exporting GPG key"
-        sudo -u www-data gpg --homedir ${GPG_DIR} --export --armor ${MISP_EMAIL-$ADMIN_EMAIL} > ${GPG_ASC}
+        gpg --homedir ${GPG_DIR} --export --armor ${MISP_EMAIL-$ADMIN_EMAIL} > ${GPG_ASC}
     else
         echo "... found exported key ${GPG_ASC}"
     fi
 
+
     init_settings "gpg"
+
 }
 
 set_up_oidc() {
@@ -100,13 +105,13 @@ set_up_oidc() {
     # OIDC_ISSUER may be empty
     check_env_vars OIDC_PROVIDER_URL OIDC_CLIENT_ID OIDC_CLIENT_SECRET OIDC_ROLES_PROPERTY OIDC_ROLES_MAPPING OIDC_DEFAULT_ORG
 
-    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+    php /var/www/MISP/tests/modify_config.php modify "{
         \"Security\": {
             \"auth\": [\"OidcAuth.Oidc\"]
         }
     }" > /dev/null
 
-    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+    php /var/www/MISP/tests/modify_config.php modify "{
         \"OidcAuth\": {
             \"provider_url\": \"${OIDC_PROVIDER_URL}\",
             ${OIDC_ISSUER:+\"issuer\": \"${OIDC_ISSUER}\",}
@@ -119,7 +124,7 @@ set_up_oidc() {
     }" > /dev/null
 
     # Disable password confirmation as stated at https://github.com/MISP/MISP/issues/8116
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
+    /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
 }
 
 set_up_ldap() {
@@ -132,7 +137,7 @@ set_up_ldap() {
     # LDAP_SEARCH_FILTER may be empty
     check_env_vars LDAP_APACHE_ENV LDAP_SERVER LDAP_STARTTLS LDAP_READER_USER LDAP_READER_PASSWORD LDAP_DN LDAP_SEARCH_ATTRIBUTE LDAP_FILTER LDAP_DEFAULT_ROLE_ID LDAP_DEFAULT_ORG LDAP_OPT_PROTOCOL_VERSION LDAP_OPT_NETWORK_TIMEOUT LDAP_OPT_REFERRALS 
 
-    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+    php /var/www/MISP/tests/modify_config.php modify "{
         \"ApacheSecureAuth\": {
             \"apacheEnv\": \"${LDAP_APACHE_ENV}\",
             \"ldapServer\": \"${LDAP_SERVER}\",
@@ -153,7 +158,7 @@ set_up_ldap() {
     }" > /dev/null
 
     # Disable password confirmation as stated at https://github.com/MISP/MISP/issues/8116
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
+    /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
 }
 
 set_up_aad() {
@@ -169,14 +174,14 @@ set_up_aad() {
     # existing loadAll() call in bootstrap.php already loads all available Cake plugins
 
     # Set auth mechanism to AAD in config.php file
-    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+    php /var/www/MISP/tests/modify_config.php modify "{
         \"Security\": {
             \"auth\": [\"AadAuth.AadAuthenticate\"]
         }
     }" > /dev/null
 
     # Configure AAD auth settings from environment variables in config.php file
-    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+    php /var/www/MISP/tests/modify_config.php modify "{
         \"AadAuth\": {
             \"client_id\": \"${AAD_CLIENT_ID}\",
             \"ad_tenant\": \"${AAD_TENANT_ID}\",
@@ -193,22 +198,23 @@ set_up_aad() {
 
     # Disable self-management, username change, and password change to prevent users from circumventing AAD login flow
     # Recommended per https://github.com/MISP/MISP/blob/2.4/app/Plugin/AadAuth/README.md
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.disableUserSelfManagement" true
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.disable_user_login_change" true
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.disable_user_password_change" true
+    /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.disableUserSelfManagement" true
+    /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.disable_user_login_change" true
+    /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.disable_user_password_change" true
 
     # Disable password confirmation as stated at https://github.com/MISP/MISP/issues/8116
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
+    /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
 }
 
 apply_updates() {
+
     # Run updates (strip colors since output might end up in a log)
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin runUpdates | sed -r "s/[[:cntrl:]]\[[0-9]{1,3}m//g"
+    /var/www/MISP/app/Console/cake Admin runUpdates | sed -r "s/[[:cntrl:]]\[[0-9]{1,3}m//g"
 }
 
 init_user() {
     # Create the main user if it is not there already
-    sudo -u www-data /var/www/MISP/app/Console/cake userInit -q 2>&1 > /dev/null
+    /var/www/MISP/app/Console/cake userInit -q 2>&1 > /dev/null
 
     echo "UPDATE misp.users SET email = \"${ADMIN_EMAIL}\" WHERE id = 1;" | ${MYSQLCMD}
 
@@ -218,10 +224,10 @@ init_user() {
 
     if [ -n "$ADMIN_KEY" ]; then
         echo "... setting admin key to '${ADMIN_KEY}'"
-        CHANGE_CMD=(sudo -u www-data /var/www/MISP/app/Console/cake User change_authkey 1 "${ADMIN_KEY}")
+        CHANGE_CMD=(/var/www/MISP/app/Console/cake User change_authkey 1 "${ADMIN_KEY}")
     elif [ -z "$ADMIN_KEY" ] && [ "$AUTOGEN_ADMIN_KEY" == "true" ]; then
         echo "... regenerating admin key (set \$ADMIN_KEY if you want it to change)"
-        CHANGE_CMD=(sudo -u www-data /var/www/MISP/app/Console/cake User change_authkey 1)
+        CHANGE_CMD=(/var/www/MISP/app/Console/cake User change_authkey 1)
     else
         echo "... admin user key auto generation disabled"
     fi
@@ -233,13 +239,13 @@ init_user() {
 
     if [ ! -z "$ADMIN_PASSWORD" ]; then
         echo "... setting admin password to '${ADMIN_PASSWORD}'"
-        PASSWORD_POLICY=$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting "Security.password_policy_complexity" | jq ".value" -r)
-        PASSWORD_LENGTH=$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting "Security.password_policy_length" | jq ".value")
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_length" 1
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_complexity" '/.*/'
-        sudo -u www-data /var/www/MISP/app/Console/cake User change_pw "${ADMIN_EMAIL}" "${ADMIN_PASSWORD}"
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_complexity" "${PASSWORD_POLICY}"
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_length" "${PASSWORD_LENGTH}"
+        PASSWORD_POLICY=$(/var/www/MISP/app/Console/cake Admin getSetting "Security.password_policy_complexity" | jq ".value" -r)
+        PASSWORD_LENGTH=$(/var/www/MISP/app/Console/cake Admin getSetting "Security.password_policy_length" | jq ".value")
+        /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_length" 1
+        /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_complexity" '/.*/'
+        /var/www/MISP/app/Console/cake User change_pw "${ADMIN_EMAIL}" "${ADMIN_PASSWORD}"
+        /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_complexity" "${PASSWORD_POLICY}"
+        /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_length" "${PASSWORD_LENGTH}"
     else
         echo "... setting admin password skipped"
     fi
@@ -247,6 +253,7 @@ init_user() {
 }
 
 apply_critical_fixes() {
+
     init_settings "critical"
 
     # Kludge for handling Security.auth array.  Unrecognised by tools like cake admin setsetting.
@@ -355,14 +362,15 @@ await_system_settings_table() {
         echo "... awaiting availability of system_settings table"
         sleep 2
     done
+
 }
 
 update_components() {
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateGalaxies
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateTaxonomies
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateWarningLists
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateNoticeLists
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateObjectTemplates "$CRON_USER_ID"
+    /var/www/MISP/app/Console/cake Admin updateGalaxies
+    /var/www/MISP/app/Console/cake Admin updateTaxonomies
+    /var/www/MISP/app/Console/cake Admin updateWarningLists
+    /var/www/MISP/app/Console/cake Admin updateNoticeLists
+    /var/www/MISP/app/Console/cake Admin updateObjectTemplates "$CRON_USER_ID"
 }
 
 update_ca_certificates() {
@@ -451,4 +459,4 @@ echo "MISP | Set Up LDAP ..." && set_up_ldap
 echo "MISP | Set Up AAD ..." && set_up_aad
 
 echo "MISP | Mark instance live"
-sudo -u www-data /var/www/MISP/app/Console/cake Admin live 1
+/var/www/MISP/app/Console/cake Admin live 1

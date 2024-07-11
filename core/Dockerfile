@@ -226,9 +226,38 @@ EOF
         # Diagnostics wants this file to be present and writable even if we do not use git in docker land
         touch /var/www/MISP/.git/ORIG_HEAD && chmod 0600 /var/www/MISP/.git/ORIG_HEAD && chown www-data:www-data /var/www/MISP/.git/ORIG_HEAD
 EOF
+RUN chgrp -R 0 /var/www/MISP/ && \
+    chmod -R g=u /var/www/MISP/
+   
+RUN chgrp -R 0 /var/run/ && \
+    chmod -R g=u /var/run/
+    
+RUN chgrp -R 0 /run/php/ && \
+    chmod -R g=u /run/php/
 
+RUN chgrp -R 0 /etc/php/ && \
+    chmod -R g=u /etc/php/
+
+RUN chgrp -R 0 /var/log/ && \
+    chmod -R g=u /var/log/
+    
+RUN mkdir -p /etc/nginx/includes/
+
+RUN chgrp -R 0 /etc/nginx/ && \
+    chmod -R g=u /etc/nginx/
+    
+RUN chgrp -R 0 /var/lib/nginx/ && \
+    chmod -R g=u /var/lib/nginx/
+
+RUN chgrp -R 0 /etc/cron.d/ && \
+    chmod -R g=u /etc/cron.d/
+    
     # Copy all our image specific files to appropriate locations
     COPY files/ /
+    
+RUN chgrp -R 0 /etc/nginx/includes/ && \
+    chmod -R g=u /etc/nginx/includes/
+
     ENTRYPOINT [ "/entrypoint.sh" ]
 
     # Change Workdirectory
