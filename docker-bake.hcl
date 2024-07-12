@@ -1,5 +1,8 @@
 variable "PLATFORMS" {
-  default = ["linux/amd64", "linux/arm64"]
+  default = [
+    # "linux/amd64",
+    "linux/arm64",
+  ]
 }
 
 variable "PYPI_REDIS_VERSION" {
@@ -72,7 +75,7 @@ variable "PHP_VER" {
 
 group "default" {
   targets = [
-    "misp-modules",
+    # "misp-modules",
     "misp-core",
   ]
 }
