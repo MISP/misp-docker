@@ -1,6 +1,6 @@
 ARG DOCKER_HUB_PROXY=""
 
-FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" AS python-build
+FROM "${DOCKER_HUB_PROXY}ubuntu:24.04" AS python-build
     ENV DEBIAN_FRONTEND noninteractive
     ARG MODULES_TAG
     ARG MODULES_COMMIT
@@ -9,6 +9,10 @@ FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" AS python-build
     RUN apt-get update && apt-get install -y --no-install-recommends \
         cmake \
         git \
+        python3-dev \
+        python3-pip \
+        python3-wheel \
+        pipenv \
         build-essential \
         libpoppler-cpp-dev \
         libfuzzy-dev \
@@ -30,7 +34,6 @@ FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" AS python-build
 EOF
 
     WORKDIR /srv/misp-modules
-    RUN pip install pipenv
     RUN pipenv requirements > requirements.txt
     RUN pip wheel -r requirements.txt --no-cache-dir -w /wheels/
 
@@ -56,7 +59,7 @@ EOF
     RUN rm -rf /srv/faup
 
 
-FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm"
+FROM "${DOCKER_HUB_PROXY}ubuntu:24.04"
     ENV DEBIAN_FRONTEND noninteractive
 
     RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -69,18 +72,19 @@ FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm"
         libxml2 \
         libxslt1.1  \
         libzbar0 \
+        python3-pip \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
     COPY --from=python-build /wheels /wheels
     COPY --from=python-build /usr/local/lib/libfaupl* /usr/local/lib/
     RUN ldconfig
-    RUN pip install --no-cache-dir --use-deprecated=legacy-resolver /wheels/*.whl && rm -rf /wheels
-    RUN pip uninstall -y pip
+    RUN pip install --break-system-packages --no-cache-dir --use-deprecated=legacy-resolver /wheels/*.whl && rm -rf /wheels
+    RUN apt-get remove --purge python3-pip python3-setuptools -y
 
     # Since we compile faup ourselves and lua is not required anymore, we can load our own library 
     #   and skip the pre-compiled blob to improve compatibility with other architectures like ARM
     RUN sed -i s/LoadLibrary\(LOAD_LIB\)/LoadLibrary\(\"\\/usr\\/local\\/lib\\/libfaupl.so\"\)/ \
-        /usr/local/lib/python3.12/site-packages/pyfaup/__init__.py
+        /usr/local/lib/python3.12/dist-packages/pyfaup/__init__.py
 
     # Disable (all) warnings raised when using 'future'
     RUN sed -i '/import sys/a import warnings\nwarnings.warn = lambda *args, **kwargs: None' \

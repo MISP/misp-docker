@@ -27,6 +27,14 @@ Notable features:
 
 The underlying spirit of this project is to allow "repeatable deployments", and all pull requests in this direction will be merged post-haste.
 
+## Warning 
+
+As part of our recent efforts to reduce the number of CVEs affecting the Docker images, we recently changed the base image from Debian Bookworm to Ubuntu 24.04.
+
+While the transition did not affect MISP and MISP modules, the GitHub Action triggered a bug affecting `libcurl`  and Ubuntu 24.04 when running on `linux/arm64` and establishing TLS connections to `api.github.com` when the server decides toreturn a 302. The issue is being discussed here https://github.com/curl/curl/issues/14154 and being further investigated here https://bugs.launchpad.net/ubuntu/+source/curl/+bug/2073448.
+
+To allow the build to complete, we temporarily disabled TLS verification (see `core/Dockerfile` when using `composer` to install PHP dependencies; the temporary workaround affects only the build when the target platform is `linux/arm64`, leaving the `linux/amd64` build unaffected.
+
 ## Getting Started
 
 -   Copy the `template.env` to `.env` 
@@ -34,13 +42,13 @@ The underlying spirit of this project is to allow "repeatable deployments", and 
 
 ### Run
 
--   `docker-compose pull` if you want to use pre-built images or `docker-compose build` if you want to build your own (see the `Troubleshooting` section in case of errors)
--   `docker-compose up`
+-   `docker compose pull` if you want to use pre-built images or `docker compose build` if you want to build your own (see the `Troubleshooting` section in case of errors)
+-   `docker compose up`
 -   Login to `https://localhost`
     -   User: `admin@admin.test`
     -   Password: `admin`
 
-Keeping the image up-to-date with upstream should be as simple as running `docker-compose pull`.
+Keeping the image up-to-date with upstream should be as simple as running `docker compose pull`.
 
 ### Configuration
 
@@ -64,21 +72,21 @@ New options are added on a regular basis.
 
 #### Environment variable behaviour
 
-Set environment variables in .env to configure settings instead of in docker-compose.yml where possible. Setting the variables in .env will allow you to pull updates from Github without issues caused by a modified docker-compose.yml file, should there be an update for it.
+Set environment variables in .env to configure settings instead of in `docker-compose.yml` where possible. Setting the variables in `.env` will allow you to pull updates from Github without issues caused by a modified `docker-compose.yml` file, should there be an update for it.
 
 Environment variable driven settings are enforced every time the misp-core container starts. This means that if you change the config.php file or database for a setting that has a set environment variable, it will be changed to the environment variable value upon next container start. Empty environment variables may have a safe default which is enforced instead.
 
-If you push a change to add or remove an environment variable, please look in "core/files/etc/misp-docker/" for json files with "envars" in the name and adjust there.
+If you push a change to add or remove an environment variable, please look in `core/files/etc/misp-docker/` for json files with "envars" in the name and adjust there.
 
 #### Unset safe default settings behaviour
 
-The misp-core container has definitions for minimum safe default settings which are set if needed each time the container starts. They will only be set if there is no existing entry in the config.php file or database for these settings. If you specify a custom value for any of these settings it will be respected. See the definitions of these in "core/files/etc/misp-docker" where the filenames contain the word "defaults".
+The misp-core container has definitions for minimum safe default settings which are set if needed each time the container starts. They will only be set if there is no existing entry in the `config.php` file or database for these settings. If you specify a custom value for any of these settings it will be respected. See the definitions of these in `core/files/etc/misp-docker` where the filenames contain the word "defaults".
 
 #### Storing system settings in the DB
 
-This container includes the "ENABLE_DB_SETTINGS" environment variable, which can be used to set "MISP.system_setting_db" to true or false. This changes the behaviour of where MISP chooses to store operator made settings changes; in config.php or in the system_settings database table. By default this is set to false.
+This container includes the `ENABLE_DB_SETTINGS` environment variable, which can be used to set `MISP.system_setting_db` to true or false. This changes the behaviour of where MISP chooses to store operator made settings changes; in `config.php` or in the system_settings database table. By default this is set to false.
 
-If a setting is not defined in the DB, but is defined in config.php, it will be read out of config.php and used. This can sometimes lead to operator confusion, so please check both locations for values when troubleshooting.
+If a setting is not defined in the DB, but is defined in `config.php`, it will be read out of `config.php` and used. This can sometimes lead to operator confusion, so please check both locations for values when troubleshooting.
 
 If you change this setting from false to true, settings are not migrated from config.php to the database, but rather the above behaviour is relied upon.
 
@@ -88,7 +96,7 @@ While storing system settings in the DB works as expected most of the time, you 
 
 If you are trying to accomplish something and the above behaviours get in the way, please let us know as this is not intended.
 
-To override these behaviours edit the docker-compose.yml file's misp-core volume definitions to enable the "customize_misp.sh" behaviour (see the bottom of the Production section for details). The "customize_misp.sh" script triggers after the above behaviours complete and is an appropriate place to override a setting. It is suggested that you use the "/var/www/MISP/app/cake Admin setSetting" command to override a setting, as this tool is config.php file and database setting aware.
+To override these behaviours edit the `docker-compose.yml` file's misp-core volume definitions to enable the `customize_misp.sh` behaviour (see the bottom of the Production section for details). The `customize_misp.sh` script triggers after the above behaviours complete and is an appropriate place to override a setting. It is suggested that you use the `/var/www/MISP/app/cake Admin setSetting` command to override a setting, as this tool is `config.php` file and database setting aware.
 
 #### Adding a new setting and unsure what files to edit?
 
@@ -133,7 +141,6 @@ Custom root CA certificates can be mounted under `/usr/local/share/ca-certificat
 ## Troubleshooting
 
 -   Make sure you run a fairly recent version of Docker and Docker Compose (if in doubt, update following the steps outlined in https://docs.docker.com/engine/install/ubuntu/)
--   Some Linux distributions provide a recent version of Docker but a legacy version of Docker Compose, so you can try running `docker compose` instead of `docker-compose`
 -   Make sure you are not running an old image or container; when in doubt run `docker system prune --volumes` and clone this repository into an empty directory
 
 ## Versioning
