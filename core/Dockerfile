@@ -27,27 +27,29 @@ FROM php-base as composer-build
 
     RUN apt-get update; apt-get install -y --no-install-recommends \
         ca-certificates \
-        php7.4
-        # php7.4-apcu \
-        # php7.4-curl \
-        # php7.4-xml \
-        # php7.4-intl \
-        # php7.4-bcmath \
-        # php7.4-mbstring \
-        # php7.4-mysql \
-        # php7.4-redis \
-        # php7.4-gd \
-        # php7.4-fpm \
-        # php7.4-zip \
+        php7.4 \
+        php7.4-apcu \
+        php7.4-curl \
+        php7.4-xml \
+        php7.4-intl \
+        php7.4-bcmath \
+        php7.4-mbstring \
+        php7.4-mysql \
+        php7.4-redis \
+        php7.4-gd \
+        php7.4-fpm \
+        php7.4-zip \
+        unzip
         # && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+    COPY files/test.php /test.php
+    RUN php7.4 /test.php
 
     WORKDIR /tmp
     ADD https://raw.githubusercontent.com/MISP/MISP/${CORE_COMMIT:-${CORE_TAG}}/app/composer.json /tmp
     COPY --from=composer:lts /usr/bin/composer /usr/bin/composer
     RUN composer config --no-interaction allow-plugins.composer/installers true
-    RUN composer update
-    RUN composer update mirrors
-    RUN composer install
+    RUN composer install -vv
     RUN composer require --with-all-dependencies --no-interaction \
         supervisorphp/supervisor:^4.0 \
         guzzlehttp/guzzle \
@@ -58,6 +60,8 @@ FROM php-base as composer-build
         elasticsearch/elasticsearch:^8.7.0 \
         jakub-onderka/openid-connect-php:^1.0.0 \
         aws/aws-sdk-php
+
+    ENTRYPOINT ["tail", "-f", "/dev/null"]
 
 
 # FROM php-base as php-build
