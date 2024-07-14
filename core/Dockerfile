@@ -23,7 +23,7 @@ FROM php-base as composer-build
     ARG CORE_TAG
     ARG CORE_COMMIT
 
-    RUN apt-get install -y --no-install-recommends \
+    RUN apt-get update; apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \
         php7.4 \
@@ -44,6 +44,7 @@ FROM php-base as composer-build
     ADD https://raw.githubusercontent.com/MISP/MISP/${CORE_COMMIT:-${CORE_TAG}}/app/composer.json /tmp
     COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
     RUN composer config --no-interaction allow-plugins.composer/installers true
+    RUN composer update
     RUN composer install
     RUN composer require --with-all-dependencies --no-interaction \
         supervisorphp/supervisor:^4.0 \
