@@ -1,26 +1,25 @@
 ARG DOCKER_HUB_PROXY=""
 
 
-FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" as php-base
+FROM "${DOCKER_HUB_PROXY}ubuntu:24.04" as php-base
     ENV DEBIAN_FRONTEND noninteractive
+    ENV LC_ALL C.UTF-8
 
     # Uncomment when building in corporate environments
     # COPY ./rootca.crt /usr/local/share/ca-certificates/rootca.pem
     # COPY ./rootca.crt /usr/lib/ssl/cert.pem
 
     RUN apt-get update; apt-get install -y --no-install-recommends \
-        lsb-release \
-        ca-certificates \
-        curl
-    RUN curl -sSLo /tmp/debsuryorg-archive-keyring.deb https://packages.sury.org/debsuryorg-archive-keyring.deb
-    RUN dpkg -i /tmp/debsuryorg-archive-keyring.deb
-    RUN echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list
+        ca-certificates software-properties-common
+    RUN add-apt-repository ppa:ondrej/php
+    RUN add-apt-repository ppa:ondrej/nginx-mainline
     RUN apt-get update
 
 
 FROM php-base as composer-build
     ENV DEBIAN_FRONTEND noninteractive
     ENV COMPOSER_ALLOW_SUPERUSER 1
+    ENV COMPOSER_IPRESOLVE 4
     ARG CORE_TAG
     ARG CORE_COMMIT
 
@@ -37,7 +36,6 @@ FROM php-base as composer-build
         php7.4-gd \
         php7.4-fpm \
         php7.4-zip \
-        unzip \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
     WORKDIR /tmp
@@ -46,15 +44,15 @@ FROM php-base as composer-build
     RUN composer config --no-interaction allow-plugins.composer/installers true
     RUN composer install
     RUN composer require --with-all-dependencies --no-interaction \
-            supervisorphp/supervisor:^4.0 \
-            guzzlehttp/guzzle \
-            lstrojny/fxmlrpc \
-            php-http/message \
-            php-http/message-factory \
-            # docker image specific dependencies
-            elasticsearch/elasticsearch:^8.7.0 \
-            jakub-onderka/openid-connect-php:^1.0.0 \
-            aws/aws-sdk-php
+        supervisorphp/supervisor:^4.0 \
+        guzzlehttp/guzzle \
+        lstrojny/fxmlrpc \
+        php-http/message \
+        php-http/message-factory \
+        # docker image specific dependencies
+        elasticsearch/elasticsearch:^8.7.0 \
+        jakub-onderka/openid-connect-php:^1.0.0 \
+        aws/aws-sdk-php
 
 
 FROM php-base as php-build
@@ -108,6 +106,7 @@ FROM php-base as python-build
 
     RUN apt-get install -y --no-install-recommends \
         git \
+        python3-pip \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
     
     # Download MISP using git in the /var/www/ directory. Remove unnecessary items.
@@ -117,7 +116,6 @@ FROM php-base as python-build
         else
             git clone --branch "${CORE_TAG}" --depth 1 https://github.com/MISP/MISP.git /var/www/MISP
         fi
-
         cd /var/www/MISP || exit; git submodule update --init --recursive .
 EOF
 
@@ -181,6 +179,7 @@ FROM php-base
         gpg-agent \
         mariadb-client \
         rsync \
+        python3-pip \
         # PHP Requirements
         php7.4 \
         php7.4-apcu \
@@ -199,7 +198,7 @@ FROM php-base
         libldap-common \
         librdkafka1 \
         libbrotli1 \
-        libsimdjson14 \
+        libsimdjson19 \
         libzstd1 \
         ssdeep \
         libfuzzy2 \
@@ -213,7 +212,7 @@ FROM php-base
 
     # Install python modules
     COPY --from=python-build /wheels /wheels
-    RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
+    RUN pip install --break-system-packages --no-cache-dir /wheels/*.whl && rm -rf /wheels
 
     # PHP: install prebuilt libraries, then install the app's PHP deps
     COPY --from=php-build ["/usr/lib/php/${PHP_VER}/ssdeep.so", "/usr/lib/php/${PHP_VER}/rdkafka.so", "/usr/lib/php/${PHP_VER}/brotli.so", "/usr/lib/php/${PHP_VER}/simdjson.so", "/usr/lib/php/${PHP_VER}/zstd.so", "/usr/lib/php/${PHP_VER}/"]

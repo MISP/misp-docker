@@ -1,7 +1,8 @@
 ARG DOCKER_HUB_PROXY=""
 
-FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" as python-build
+FROM "${DOCKER_HUB_PROXY}ubuntu:24.04" as python-build
     ENV DEBIAN_FRONTEND noninteractive
+
     ARG MODULES_TAG
     ARG MODULES_COMMIT
     ARG LIBFAUP_COMMIT
@@ -12,8 +13,8 @@ FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" as python-build
         python3-dev \
         python3-pip \
         python3-wheel \
+        pipenv \
         build-essential \
-        pkg-config \
         libpoppler-cpp-dev \
         libfuzzy-dev \
         libffi-dev \
@@ -34,18 +35,14 @@ FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" as python-build
 EOF
 
     WORKDIR /srv/misp-modules
-    RUN pip3 install pipenv
-    # Pin python = 3.12    
     RUN sed -i "s/python_version.*/python_version = \"3.12\"/" Pipfile
-    # Pin numpy < 2.0.0
     RUN sed -i "/\[packages\]/a numpy = \"<2.0.0\"" Pipfile
-    # Add some missing dependencies
     RUN sed -i "/\[packages\]/a pysafebrowsing = \"*\"" Pipfile
     RUN sed -i "/\[packages\]/a sigmf = \"*\"" Pipfile
     RUN sed -i "/\[packages\]/a matplotlib = \"*\"" Pipfile
     RUN pipenv lock
     RUN pipenv requirements > requirements.txt
-    RUN pip3 wheel -r requirements.txt --no-cache-dir -w /wheels/
+    RUN pip wheel -r requirements.txt --no-cache-dir -w /wheels/
     
     WORKDIR /srv/
     RUN rm -rf /srv/misp-modules
@@ -63,32 +60,37 @@ EOF
     RUN ninja
     RUN ninja install
     WORKDIR /srv/faup/src/lib/bindings/python
-    RUN pip3 wheel --no-cache-dir --no-dependencies -w /wheels/ .
+    RUN pip wheel --no-cache-dir --no-dependencies -w /wheels/ .
 
     WORKDIR /srv/
     RUN rm -rf /srv/faup
 
 
-FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm"
+FROM "${DOCKER_HUB_PROXY}ubuntu:24.04"
     ENV DEBIAN_FRONTEND noninteractive
 
     RUN apt-get update && apt-get install -y --no-install-recommends \
         libglib2.0-0 \
-        libzbar0 \
-        libxrender1 \
-        libxext6 \
         libpoppler-cpp0v5 \
         libgl1 \
+        libfuzzy2 \
+        libffi8 \
+        libxext6 \
+        libxml2 \
+        libxslt1.1  \
+        libzbar0 \
+        python3-pip \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
     
     COPY --from=python-build /wheels /wheels
     COPY --from=python-build /usr/local/lib/libfaupl* /usr/local/lib/
-    RUN pip3 install --no-cache-dir --use-deprecated=legacy-resolver /wheels/*.whl; ldconfig && rm -rf /wheels
-    
+    RUN ldconfig
+    RUN pip install --break-system-packages --no-cache-dir --use-deprecated=legacy-resolver /wheels/*.whl && rm -rf /wheels
+
     # Since we compile faup ourselves and lua is not required anymore, we can load our own library 
     #   and skip the pre-compiled blob to improve compatibility with other architectures like ARM
     RUN sed -i s/LoadLibrary\(LOAD_LIB\)/LoadLibrary\(\"\\/usr\\/local\\/lib\\/libfaupl.so\"\)/ \
-        /usr/local/lib/python3.12/site-packages/pyfaup/__init__.py
+        /usr/local/lib/python3.12/dist-packages/pyfaup/__init__.py
 
     # Disable (all) warnings raised when using 'future'
     RUN sed -i '/import sys/a import warnings\nwarnings.warn = lambda *args, **kwargs: None' \
