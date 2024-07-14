@@ -5,19 +5,45 @@ FROM "${DOCKER_HUB_PROXY}ubuntu:24.04" as php-base
     ENV DEBIAN_FRONTEND noninteractive
     ENV LC_ALL C.UTF-8
 
-    ARG CORE_TAG
-    ARG CORE_COMMIT
-
     # Uncomment when building in corporate environments
     # COPY ./rootca.crt /usr/local/share/ca-certificates/rootca.pem
     # COPY ./rootca.crt /usr/lib/ssl/cert.pem
 
     RUN apt-get update; apt-get install -y --no-install-recommends \
-        curl ca-certificates
+        ca-certificates \
+        software-properties-common
+        # && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+    RUN add-apt-repository ppa:ondrej/php
+    RUN add-apt-repository ppa:ondrej/nginx-mainline
+    RUN apt-get update
+
+
+FROM php-base as composer-build
+    ENV DEBIAN_FRONTEND noninteractive
+    ENV COMPOSER_ALLOW_SUPERUSER 1
+    ENV COMPOSER_IPRESOLVE 4
+    ARG CORE_TAG
+    ARG CORE_COMMIT
+
+    RUN apt-get update; apt-get install -y --no-install-recommends \
+        ca-certificates \
+        php7.4
+        # php7.4-apcu \
+        # php7.4-curl \
+        # php7.4-xml \
+        # php7.4-intl \
+        # php7.4-bcmath \
+        # php7.4-mbstring \
+        # php7.4-mysql \
+        # php7.4-redis \
+        # php7.4-gd \
+        # php7.4-fpm \
+        # php7.4-zip \
+        # && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
     WORKDIR /tmp
     ADD https://raw.githubusercontent.com/MISP/MISP/${CORE_COMMIT:-${CORE_TAG}}/app/composer.json /tmp
-    COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+    COPY --from=composer:lts /usr/bin/composer /usr/bin/composer
     RUN composer config --no-interaction allow-plugins.composer/installers true
     RUN composer update
     RUN composer update mirrors
@@ -32,57 +58,6 @@ FROM "${DOCKER_HUB_PROXY}ubuntu:24.04" as php-base
         elasticsearch/elasticsearch:^8.7.0 \
         jakub-onderka/openid-connect-php:^1.0.0 \
         aws/aws-sdk-php
-
-    # RUN curl -vv https://api.github.com/repos/Bacon/BaconQrCode/zipball/8674e51bb65af933a5ffaf1c308a660387c35c22
-
-    # RUN apt-get update; apt-get install -y --no-install-recommends \
-    #     ca-certificates software-properties-common
-    # RUN add-apt-repository ppa:ondrej/php
-    # RUN add-apt-repository ppa:ondrej/nginx-mainline
-    # RUN apt-get update
-
-
-# FROM php-base as composer-build
-#     ENV DEBIAN_FRONTEND noninteractive
-#     ENV COMPOSER_ALLOW_SUPERUSER 1
-#     ENV COMPOSER_IPRESOLVE 4
-#     ARG CORE_TAG
-#     ARG CORE_COMMIT
-# 
-#     RUN apt-get update; apt-get install -y --no-install-recommends \
-#         ca-certificates \
-#         curl \
-#         php7.4 \
-#         php7.4-apcu \
-#         php7.4-curl \
-#         php7.4-xml \
-#         php7.4-intl \
-#         php7.4-bcmath \
-#         php7.4-mbstring \
-#         php7.4-mysql \
-#         php7.4-redis \
-#         php7.4-gd \
-#         php7.4-fpm \
-#         php7.4-zip \
-#         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-# 
-#     WORKDIR /tmp
-#     ADD https://raw.githubusercontent.com/MISP/MISP/${CORE_COMMIT:-${CORE_TAG}}/app/composer.json /tmp
-#     COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-#     RUN composer config --no-interaction allow-plugins.composer/installers true
-#     RUN composer update
-#     RUN composer update mirrors
-#     RUN composer install
-#     RUN composer require --with-all-dependencies --no-interaction \
-#         supervisorphp/supervisor:^4.0 \
-#         guzzlehttp/guzzle \
-#         lstrojny/fxmlrpc \
-#         php-http/message \
-#         php-http/message-factory \
-#         # docker image specific dependencies
-#         elasticsearch/elasticsearch:^8.7.0 \
-#         jakub-onderka/openid-connect-php:^1.0.0 \
-#         aws/aws-sdk-php
 
 
 # FROM php-base as php-build
