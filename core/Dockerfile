@@ -12,7 +12,25 @@ FROM "${DOCKER_HUB_PROXY}ubuntu:24.04" as php-base
     RUN apt-get update; apt-get install -y --no-install-recommends \
         curl ca-certificates
 
-    RUN curl -vv https://api.github.com/repos/Bacon/BaconQrCode/zipball/8674e51bb65af933a5ffaf1c308a660387c35c22
+    WORKDIR /tmp
+    ADD https://raw.githubusercontent.com/MISP/MISP/${CORE_COMMIT:-${CORE_TAG}}/app/composer.json /tmp
+    COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+    RUN composer config --no-interaction allow-plugins.composer/installers true
+    RUN composer update
+    RUN composer update mirrors
+    RUN composer install
+    RUN composer require --with-all-dependencies --no-interaction \
+        supervisorphp/supervisor:^4.0 \
+        guzzlehttp/guzzle \
+        lstrojny/fxmlrpc \
+        php-http/message \
+        php-http/message-factory \
+        # docker image specific dependencies
+        elasticsearch/elasticsearch:^8.7.0 \
+        jakub-onderka/openid-connect-php:^1.0.0 \
+        aws/aws-sdk-php
+
+    # RUN curl -vv https://api.github.com/repos/Bacon/BaconQrCode/zipball/8674e51bb65af933a5ffaf1c308a660387c35c22
 
     # RUN apt-get update; apt-get install -y --no-install-recommends \
     #     ca-certificates software-properties-common
