@@ -24,6 +24,7 @@ FROM php-base as composer-build
     ARG CORE_COMMIT
 
     RUN apt-get install -y --no-install-recommends \
+        ca-certificates \
         php7.4 \
         php7.4-apcu \
         php7.4-curl \
