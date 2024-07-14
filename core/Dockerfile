@@ -45,6 +45,7 @@ FROM php-base as composer-build
     COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
     RUN composer config --no-interaction allow-plugins.composer/installers true
     RUN composer update
+    RUN composer update mirrors
     RUN composer install
     RUN composer require --with-all-dependencies --no-interaction \
         supervisorphp/supervisor:^4.0 \
