@@ -5,6 +5,9 @@ FROM "${DOCKER_HUB_PROXY}ubuntu:24.04" as php-base
     ENV DEBIAN_FRONTEND noninteractive
     ENV LC_ALL C.UTF-8
 
+    ARG CORE_TAG
+    ARG CORE_COMMIT
+
     # Uncomment when building in corporate environments
     # COPY ./rootca.crt /usr/local/share/ca-certificates/rootca.pem
     # COPY ./rootca.crt /usr/lib/ssl/cert.pem
