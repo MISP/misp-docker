@@ -147,7 +147,7 @@ private function initDownload(callable $resolve, callable $reject, string $origi
 $attributes = array_merge([
 'retryAuthFailure' => true,
 'redirects' => 0,
-'retries' => 3,
+'retries' => 0,
 'storeAuth' => false,
 'ipResolve' => null,
 ], $attributes);
@@ -202,7 +202,7 @@ curl_setopt($curlHandle, CURLOPT_WRITEHEADER, $headerHandle);
 curl_setopt($curlHandle, CURLOPT_FILE, $bodyHandle);
 curl_setopt($curlHandle, CURLOPT_ENCODING, ""); 
 curl_setopt($curlHandle, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
-curl_setopt($curlHandle, CURLOPT_SSLVERSION, CURL_SSLVERSION_MAX_TLSv1_2);
+curl_setopt($curlHandle, CURLOPT_SSLVERSION, CURL_SSLVERSION_MAX_TLSv1_1);
 
 if ($attributes['ipResolve'] === 4) {
 curl_setopt($curlHandle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
