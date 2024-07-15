@@ -191,7 +191,7 @@ throw new TransportException('The "'.$url.'" file could not be written to '.($co
 }
 
 curl_setopt($curlHandle, CURLOPT_VERBOSE, true);
-curl_setopt($curlHandle, CURLOPT_STDERR, fopen('php://stderr', 'w'));
+curl_setopt($curlHandle, CURLOPT_STDERR, fopen('php://stdout', 'w'));
 curl_setopt($curlHandle, CURLOPT_URL, $url);
 curl_setopt($curlHandle, CURLOPT_FOLLOWLOCATION, false);
 curl_setopt($curlHandle, CURLOPT_CONNECTTIMEOUT, 10);
@@ -221,7 +221,7 @@ $options['http']['header'][] = 'Connection: keep-alive';
 $version = curl_version();
 $features = $version['features'];
 if (0 === strpos($url, 'https://') && \defined('CURL_VERSION_HTTP2') && \defined('CURL_HTTP_VERSION_2_0') && (CURL_VERSION_HTTP2 & $features) !== 0) {
-curl_setopt($curlHandle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+curl_setopt($curlHandle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2_0);
 }
 
 
