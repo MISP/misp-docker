@@ -105,8 +105,6 @@ curl_multi_setopt($mh, CURLMOPT_MAX_HOST_CONNECTIONS, 8);
 }
 }
 
-curl_multi_setopt($mh, CURLMOPT_MAX_HOST_CONNECTIONS, 8);
-
 if (function_exists('curl_share_init')) {
 $this->shareHandle = $sh = curl_share_init();
 curl_share_setopt($sh, CURLSHOPT_SHARE, CURL_LOCK_DATA_COOKIE);
@@ -147,7 +145,7 @@ private function initDownload(callable $resolve, callable $reject, string $origi
 $attributes = array_merge([
 'retryAuthFailure' => true,
 'redirects' => 0,
-'retries' => 3,
+'retries' => 0,
 'storeAuth' => false,
 'ipResolve' => null,
 ], $attributes);
@@ -196,13 +194,12 @@ curl_setopt($curlHandle, CURLOPT_VERBOSE, true);
 curl_setopt($curlHandle, CURLOPT_STDERR, fopen('php://stdout', 'w'));
 curl_setopt($curlHandle, CURLOPT_URL, $url);
 curl_setopt($curlHandle, CURLOPT_FOLLOWLOCATION, false);
-curl_setopt($curlHandle, CURLOPT_CONNECTTIMEOUT, 300);
-curl_setopt($curlHandle, CURLOPT_TIMEOUT, 300);
+curl_setopt($curlHandle, CURLOPT_CONNECTTIMEOUT, 10);
+curl_setopt($curlHandle, CURLOPT_TIMEOUT, max((int) ini_get("default_socket_timeout"), 300));
 curl_setopt($curlHandle, CURLOPT_WRITEHEADER, $headerHandle);
 curl_setopt($curlHandle, CURLOPT_FILE, $bodyHandle);
 curl_setopt($curlHandle, CURLOPT_ENCODING, ""); 
 curl_setopt($curlHandle, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
-curl_setopt($curlHandle, CURLOPT_SSLVERSION, CURL_SSLVERSION_MAX_TLSv1_2);
 
 if ($attributes['ipResolve'] === 4) {
 curl_setopt($curlHandle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
