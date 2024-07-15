@@ -194,7 +194,7 @@ curl_setopt($curlHandle, CURLOPT_VERBOSE, true);
 curl_setopt($curlHandle, CURLOPT_STDERR, fopen('php://stdout', 'w'));
 curl_setopt($curlHandle, CURLOPT_URL, $url);
 curl_setopt($curlHandle, CURLOPT_FOLLOWLOCATION, false);
-curl_setopt($curlHandle, CURLOPT_CONNECTTIMEOUT, 10);
+curl_setopt($curlHandle, CURLOPT_CONNECTTIMEOUT, 300);
 curl_setopt($curlHandle, CURLOPT_TIMEOUT, max((int) ini_get("default_socket_timeout"), 300));
 curl_setopt($curlHandle, CURLOPT_WRITEHEADER, $headerHandle);
 curl_setopt($curlHandle, CURLOPT_FILE, $bodyHandle);
