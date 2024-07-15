@@ -24,7 +24,7 @@ FROM "${DOCKER_HUB_PROXY}ubuntu:24.04" as composer-build
 
     WORKDIR /tmp
     COPY files/composer.json /tmp/composer.json
-    ADD https://raw.githubusercontent.com/MISP/MISP/${CORE_COMMIT:-${CORE_TAG}}/app/composer.json /tmp
+    # ADD https://raw.githubusercontent.com/MISP/MISP/${CORE_COMMIT:-${CORE_TAG}}/app/composer.json /tmp
     COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
     RUN cp /usr/bin/composer /composer.phar
