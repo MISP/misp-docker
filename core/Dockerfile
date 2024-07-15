@@ -47,8 +47,10 @@ FROM php-base as composer-build
 
     WORKDIR /tmp
     ADD https://raw.githubusercontent.com/MISP/MISP/${CORE_COMMIT:-${CORE_TAG}}/app/composer.json /tmp
-    COPY --from=composer:lts /usr/bin/composer /usr/bin/composer
+    COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+    RUN composer self-update
     RUN composer config --no-interaction allow-plugins.composer/installers true
+    RUN composer diagnose
     RUN composer install -vv
     RUN composer require --with-all-dependencies --no-interaction \
         supervisorphp/supervisor:^4.0 \
