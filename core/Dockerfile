@@ -11,10 +11,16 @@ FROM "${DOCKER_HUB_PROXY}ubuntu:24.04" as php-base
 
     RUN apt-get update; apt-get install -y --no-install-recommends \
         ca-certificates \
-        software-properties-common
-        # && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-    RUN add-apt-repository ppa:ondrej/php
-    RUN add-apt-repository ppa:ondrej/nginx-mainline
+        && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+    COPY files/etc/apt/sources.list.d/ondrej-ubuntu-php-noble.sources /etc/apt/sources.list.d/ondrej-ubuntu-php-noble.sources
+    COPY files/etc/apt/sources.list.d/ondrej-ubuntu-nginx-mainline-noble.sources /etc/apt/sources.list.d/ondrej-ubuntu-nginx-mainline-noble.sources
+
+    # RUN apt-get update; apt-get install -y --no-install-recommends \
+    #    software-properties-common
+    #    # && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+    # RUN add-apt-repository ppa:ondrej/php
+    # RUN add-apt-repository ppa:ondrej/nginx-mainline
     RUN apt-get update
 
 
