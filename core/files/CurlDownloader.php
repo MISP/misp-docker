@@ -200,6 +200,7 @@ curl_setopt($curlHandle, CURLOPT_WRITEHEADER, $headerHandle);
 curl_setopt($curlHandle, CURLOPT_FILE, $bodyHandle);
 curl_setopt($curlHandle, CURLOPT_ENCODING, ""); 
 curl_setopt($curlHandle, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+curl_setopt($curlHandle, CURLOPT_SSLVERSION, CURL_SSLVERSION_MAX_TLSv1_2);
 
 if ($attributes['ipResolve'] === 4) {
 curl_setopt($curlHandle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
