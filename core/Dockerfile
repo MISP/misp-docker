@@ -9,7 +9,7 @@ FROM "${DOCKER_HUB_PROXY}ubuntu:24.04" as php-base
     # COPY ./rootca.crt /usr/local/share/ca-certificates/rootca.pem
     # COPY ./rootca.crt /usr/lib/ssl/cert.pem
 
-    RUN apt-get update; apt-get install -y --no-install-recommends \
+    RUN apt-get update; apt-get upgrade; apt-get install -y --no-install-recommends \
         ca-certificates \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
@@ -62,6 +62,7 @@ FROM php-base as composer-build
 
     COPY files/CurlDownloader.php /out/src/Composer/Util/Http/CurlDownloader.php
     RUN php /out/bin/composer config --no-interaction allow-plugins.composer/installers true
+    RUN php /out/bin/composer config --no-interaction secure-http false
     RUN php /out/bin/composer install -vvvvv
     RUN php /out/bin/composer require --with-all-dependencies --no-interaction \
         supervisorphp/supervisor:^4.0 \

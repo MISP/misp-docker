@@ -145,7 +145,7 @@ private function initDownload(callable $resolve, callable $reject, string $origi
 $attributes = array_merge([
 'retryAuthFailure' => true,
 'redirects' => 0,
-'retries' => 0,
+'retries' => 3,
 'storeAuth' => false,
 'ipResolve' => null,
 ], $attributes);
@@ -195,7 +195,7 @@ curl_setopt($curlHandle, CURLOPT_STDERR, fopen('php://stdout', 'w'));
 curl_setopt($curlHandle, CURLOPT_URL, $url);
 curl_setopt($curlHandle, CURLOPT_FOLLOWLOCATION, false);
 curl_setopt($curlHandle, CURLOPT_CONNECTTIMEOUT, 300);
-curl_setopt($curlHandle, CURLOPT_TIMEOUT, max((int) ini_get("default_socket_timeout"), 300));
+curl_setopt($curlHandle, CURLOPT_TIMEOUT, 300);
 curl_setopt($curlHandle, CURLOPT_WRITEHEADER, $headerHandle);
 curl_setopt($curlHandle, CURLOPT_FILE, $bodyHandle);
 curl_setopt($curlHandle, CURLOPT_ENCODING, ""); 
