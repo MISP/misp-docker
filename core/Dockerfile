@@ -1,30 +1,30 @@
 ARG DOCKER_HUB_PROXY=""
 
 
-FROM "${DOCKER_HUB_PROXY}ubuntu:24.04" as php-base
-    ENV DEBIAN_FRONTEND noninteractive
-    ENV LC_ALL C.UTF-8
+# FROM "${DOCKER_HUB_PROXY}ubuntu:24.04" as php-base
+#     ENV DEBIAN_FRONTEND noninteractive
+#     ENV LC_ALL C.UTF-8
+# 
+#     # Uncomment when building in corporate environments
+#     # COPY ./rootca.crt /usr/local/share/ca-certificates/rootca.pem
+#     # COPY ./rootca.crt /usr/lib/ssl/cert.pem
+# 
+#     RUN apt-get update; apt-get upgrade; apt-get install -y --no-install-recommends \
+#         ca-certificates \
+#         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+# 
+#     # COPY files/etc/apt/sources.list.d/ondrej-ubuntu-php-noble.sources /etc/apt/sources.list.d/ondrej-ubuntu-php-noble.sources
+#     # COPY files/etc/apt/sources.list.d/ondrej-ubuntu-nginx-mainline-noble.sources /etc/apt/sources.list.d/ondrej-ubuntu-nginx-mainline-noble.sources
+# 
+#     # RUN apt-get update; apt-get install -y --no-install-recommends \
+#     #    software-properties-common
+#     #    # && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+#     # RUN add-apt-repository ppa:ondrej/php
+#     # RUN add-apt-repository ppa:ondrej/nginx-mainline
+#     # RUN apt-get update
 
-    # Uncomment when building in corporate environments
-    # COPY ./rootca.crt /usr/local/share/ca-certificates/rootca.pem
-    # COPY ./rootca.crt /usr/lib/ssl/cert.pem
 
-    RUN apt-get update; apt-get upgrade; apt-get install -y --no-install-recommends \
-        ca-certificates \
-        && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-
-    COPY files/etc/apt/sources.list.d/ondrej-ubuntu-php-noble.sources /etc/apt/sources.list.d/ondrej-ubuntu-php-noble.sources
-    COPY files/etc/apt/sources.list.d/ondrej-ubuntu-nginx-mainline-noble.sources /etc/apt/sources.list.d/ondrej-ubuntu-nginx-mainline-noble.sources
-
-    # RUN apt-get update; apt-get install -y --no-install-recommends \
-    #    software-properties-common
-    #    # && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-    # RUN add-apt-repository ppa:ondrej/php
-    # RUN add-apt-repository ppa:ondrej/nginx-mainline
-    RUN apt-get update
-
-
-FROM php-base as composer-build
+FROM "${DOCKER_HUB_PROXY}ubuntu:24.04" as composer-build
     ENV DEBIAN_FRONTEND noninteractive
     ENV COMPOSER_ALLOW_SUPERUSER 1
     ENV COMPOSER_IPRESOLVE 4
@@ -33,29 +33,25 @@ FROM php-base as composer-build
 
     RUN apt-get update; apt-get install -y --no-install-recommends \
         ca-certificates \
-        php7.4 \
-        php7.4-apcu \
-        php7.4-curl \
-        php7.4-xml \
-        php7.4-intl \
-        php7.4-bcmath \
-        php7.4-mbstring \
-        php7.4-mysql \
-        php7.4-redis \
-        php7.4-gd \
-        php7.4-fpm \
-        php7.4-zip \
+        php8.3 \
+        php8.3-apcu \
+        php8.3-curl \
+        php8.3-xml \
+        php8.3-intl \
+        php8.3-bcmath \
+        php8.3-mbstring \
+        php8.3-mysql \
+        php8.3-redis \
+        php8.3-gd \
+        php8.3-fpm \
+        php8.3-zip \
         unzip
         # && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-
-    COPY files/test.php /test.php
-    RUN php7.4 /test.php
 
     WORKDIR /tmp
     ADD https://raw.githubusercontent.com/MISP/MISP/${CORE_COMMIT:-${CORE_TAG}}/app/composer.json /tmp
     COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-    #RUN echo '140.82.113.6    api.github.com' >> /etc/hosts
     RUN cp /usr/bin/composer /composer.phar
     RUN mkdir /out/
     RUN php -r '$phar = new Phar("/composer.phar"); $phar->extractTo("/out/");'
@@ -63,8 +59,8 @@ FROM php-base as composer-build
     COPY files/CurlDownloader.php /out/src/Composer/Util/Http/CurlDownloader.php
     RUN php /out/bin/composer config --no-interaction allow-plugins.composer/installers true
     RUN php /out/bin/composer config --no-interaction secure-http false
-    RUN php /out/bin/composer install -vvvvv
-    RUN php /out/bin/composer require --with-all-dependencies --no-interaction \
+    RUN php /out/bin/composer install -vvvvv --ignore-platform-reqs 
+    RUN php /out/bin/composer require --ignore-platform-reqs  --with-all-dependencies --no-interaction \
         supervisorphp/supervisor:^4.0 \
         guzzlehttp/guzzle \
         lstrojny/fxmlrpc \
