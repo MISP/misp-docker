@@ -54,11 +54,15 @@ FROM php-base as composer-build
     WORKDIR /tmp
     ADD https://raw.githubusercontent.com/MISP/MISP/${CORE_COMMIT:-${CORE_TAG}}/app/composer.json /tmp
     COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-    RUN composer self-update
-    RUN composer config --no-interaction allow-plugins.composer/installers true
-    RUN composer update
-    RUN composer install -vvvvv
-    RUN composer require --with-all-dependencies --no-interaction \
+
+    RUN cp /usr/bin/composer /composer.phar
+    RUN mkdir /out/
+    RUN php -r '$phar = new Phar("/composer.phar"); $phar->extractTo("/out/");'
+
+    COPY files/CurlDownloader.php /out/src/Composer/Util/Http/CurlDownloader.php
+    RUN php /out/bin/composer config --no-interaction allow-plugins.composer/installers true
+    RUN php /out/bin/composer install -vvvvv
+    RUN php /out/bin/composer require --with-all-dependencies --no-interaction \
         supervisorphp/supervisor:^4.0 \
         guzzlehttp/guzzle \
         lstrojny/fxmlrpc \
