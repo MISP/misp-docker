@@ -166,7 +166,7 @@ $this->config->prohibitUrlByConfig($url, $this->io, $options);
 }
 
 $curlHandle = curl_init();
-$headerHandle = fopen('php://temp/maxmemory:32768', 'w+b');
+$headerHandle = fopen('php://temp/maxmemory:65536', 'w+b');
 if (false === $headerHandle) {
 throw new \RuntimeException('Failed to open a temp stream to store curl headers');
 }
@@ -174,7 +174,7 @@ throw new \RuntimeException('Failed to open a temp stream to store curl headers'
 if ($copyTo !== null) {
 $bodyTarget = $copyTo.'~';
 } else {
-$bodyTarget = 'php://temp/maxmemory:524288';
+$bodyTarget = 'php://temp/maxmemory:1524288';
 }
 
 $errorMessage = '';
@@ -202,7 +202,7 @@ curl_setopt($curlHandle, CURLOPT_WRITEHEADER, $headerHandle);
 curl_setopt($curlHandle, CURLOPT_FILE, $bodyHandle);
 curl_setopt($curlHandle, CURLOPT_ENCODING, ""); 
 curl_setopt($curlHandle, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
-curl_setopt($curlHandle, CURLOPT_SSLVERSION, CURL_SSLVERSION_MAX_TLSv1_1);
+# curl_setopt($curlHandle, CURLOPT_SSLVERSION, CURL_SSLVERSION_MAX_TLSv1_1);
 
 if ($attributes['ipResolve'] === 4) {
 curl_setopt($curlHandle, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
