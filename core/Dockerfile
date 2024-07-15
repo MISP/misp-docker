@@ -57,7 +57,7 @@ FROM php-base as composer-build
     RUN composer self-update
     RUN composer config --no-interaction allow-plugins.composer/installers true
     RUN composer update
-    RUN composer install -vv
+    RUN composer install -vvvvv
     RUN composer require --with-all-dependencies --no-interaction \
         supervisorphp/supervisor:^4.0 \
         guzzlehttp/guzzle \
