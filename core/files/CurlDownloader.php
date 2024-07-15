@@ -105,6 +105,8 @@ curl_multi_setopt($mh, CURLMOPT_MAX_HOST_CONNECTIONS, 8);
 }
 }
 
+curl_multi_setopt($mh, CURLMOPT_MAX_HOST_CONNECTIONS, 8);
+
 if (function_exists('curl_share_init')) {
 $this->shareHandle = $sh = curl_share_init();
 curl_share_setopt($sh, CURLSHOPT_SHARE, CURL_LOCK_DATA_COOKIE);
