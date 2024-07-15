@@ -55,6 +55,7 @@ FROM php-base as composer-build
     ADD https://raw.githubusercontent.com/MISP/MISP/${CORE_COMMIT:-${CORE_TAG}}/app/composer.json /tmp
     COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+    #RUN echo '140.82.113.6    api.github.com' >> /etc/hosts
     RUN cp /usr/bin/composer /composer.phar
     RUN mkdir /out/
     RUN php -r '$phar = new Phar("/composer.phar"); $phar->extractTo("/out/");'
