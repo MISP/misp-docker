@@ -18,7 +18,7 @@ FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" as python-build
         libssl-dev \
         ninja-build \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-    
+
     RUN mkdir /wheels
 
     RUN <<-EOF
@@ -31,15 +31,11 @@ EOF
 
     WORKDIR /srv/misp-modules
     RUN pip install pipenv
-    RUN sed -i "s/python_version.*/python_version = \"3.12\"/" Pipfile
-    RUN sed -i "/\[packages\]/a numpy = \"<2.0.0\"" Pipfile
-    RUN sed -i "/\[packages\]/a pysafebrowsing = \"*\"" Pipfile
-    RUN sed -i "/\[packages\]/a sigmf = \"*\"" Pipfile
-    RUN sed -i "/\[packages\]/a matplotlib = \"*\"" Pipfile
-    RUN pipenv lock
+    COPY files/Pipfile Pipfile
+    COPY files/Pipfile.lock Pipfile.lock
     RUN pipenv requirements > requirements.txt
     RUN pip wheel -r requirements.txt --no-cache-dir -w /wheels/
-    
+
     WORKDIR /srv/
     RUN rm -rf /srv/misp-modules
 
@@ -50,7 +46,7 @@ EOF
             git checkout ${LIBFAUP_COMMIT}
         fi
 EOF
-    
+
     WORKDIR /srv/faup/build
     RUN cmake -G "Ninja" ../
     RUN ninja
@@ -76,11 +72,11 @@ FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm"
         libxslt1.1  \
         libzbar0 \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-    
+
     COPY --from=python-build /wheels /wheels
     COPY --from=python-build /usr/local/lib/libfaupl* /usr/local/lib/
     RUN pip install --no-cache-dir --use-deprecated=legacy-resolver /wheels/*.whl; ldconfig && rm -rf /wheels
-    
+
     # Since we compile faup ourselves and lua is not required anymore, we can load our own library 
     #   and skip the pre-compiled blob to improve compatibility with other architectures like ARM
     RUN sed -i s/LoadLibrary\(LOAD_LIB\)/LoadLibrary\(\"\\/usr\\/local\\/lib\\/libfaupl.so\"\)/ \
