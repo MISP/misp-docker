@@ -1,7 +1,7 @@
 ARG DOCKER_HUB_PROXY=""
 
 
-FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" as php-base
+FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" AS php-base
     ENV DEBIAN_FRONTEND noninteractive
 
     # Uncomment when building in corporate environments
@@ -18,7 +18,7 @@ FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" as php-base
     RUN apt-get update
 
 
-FROM php-base as composer-build
+FROM php-base AS composer-build
     ENV DEBIAN_FRONTEND noninteractive
     ENV COMPOSER_ALLOW_SUPERUSER 1
     ARG CORE_TAG
@@ -47,7 +47,7 @@ FROM php-base as composer-build
     RUN composer install
     RUN composer require --with-all-dependencies --no-interaction \
         supervisorphp/supervisor:^4.0 \
-        guzzlehttp/guzzle \
+        guzzlehttp/guzzle:^7.4.5 \
         lstrojny/fxmlrpc \
         php-http/message \
         php-http/message-factory \
@@ -57,7 +57,7 @@ FROM php-base as composer-build
         aws/aws-sdk-php
 
 
-FROM php-base as php-build
+FROM php-base AS php-build
     ENV DEBIAN_FRONTEND noninteractive
     ENV TZ Etc/UTC
 
@@ -68,15 +68,13 @@ FROM php-base as php-build
         php7.4 \
         php7.4-dev \
         php7.4-xml \
+        php-pear \
+        libbrotli-dev \
         libfuzzy-dev \
         librdkafka-dev \
         libsimdjson-dev \
         libzstd-dev \
-        git \
-        php-pear \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-
-    RUN apt-cache search pecl
 
     RUN update-alternatives --set php /usr/bin/php7.4
     RUN update-alternatives --set php-config /usr/bin/php-config7.4
@@ -87,12 +85,11 @@ FROM php-base as php-build
         pecl install ssdeep && \
         pecl install rdkafka && \
         pecl install simdjson && \
-        pecl install zstd
-     RUN git clone --recursive --depth=1 https://github.com/kjdev/php-ext-brotli.git && \
-         cd php-ext-brotli && phpize && ./configure && make && make install
+        pecl install zstd && \
+        pecl install brotli
 
 
-FROM php-base as python-build
+FROM php-base AS python-build
     ENV DEBIAN_FRONTEND noninteractive   
     ARG CORE_TAG
     ARG CORE_COMMIT
@@ -109,7 +106,7 @@ FROM php-base as python-build
     RUN apt-get install -y --no-install-recommends \
         git \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-    
+
     # Download MISP using git in the /var/www/ directory. Remove unnecessary items.
     RUN <<-EOF
         if [ ! -z "${CORE_COMMIT}" ]; then

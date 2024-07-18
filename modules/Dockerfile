@@ -1,6 +1,6 @@
 ARG DOCKER_HUB_PROXY=""
 
-FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" as python-build
+FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" AS python-build
     ENV DEBIAN_FRONTEND noninteractive
     ARG MODULES_TAG
     ARG MODULES_COMMIT
@@ -75,7 +75,8 @@ FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm"
 
     COPY --from=python-build /wheels /wheels
     COPY --from=python-build /usr/local/lib/libfaupl* /usr/local/lib/
-    RUN pip install --no-cache-dir --use-deprecated=legacy-resolver /wheels/*.whl; ldconfig && rm -rf /wheels
+    RUN ldconfig
+    RUN pip install --no-cache-dir --use-deprecated=legacy-resolver /wheels/*.whl && rm -rf /wheels
 
     # Since we compile faup ourselves and lua is not required anymore, we can load our own library 
     #   and skip the pre-compiled blob to improve compatibility with other architectures like ARM
