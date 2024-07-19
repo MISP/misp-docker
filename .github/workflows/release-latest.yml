@@ -8,6 +8,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        target: [misp-core, misp-modules]
+
     permissions:
       contents: read
       packages: write
@@ -43,3 +47,4 @@ jobs:
           push: true
           provenance: false
           files: docker-bake.hcl, env.hcl
+          targets: ${{ matrix.target }}

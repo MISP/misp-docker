@@ -8,6 +8,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        target: [misp-core, misp-modules]
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,3 +36,4 @@ jobs:
           push: false
           provenance: false
           files: docker-bake.hcl, env.hcl
+          targets: ${{ matrix.target }}
