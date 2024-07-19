@@ -77,6 +77,7 @@ FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm"
     COPY --from=python-build /usr/local/lib/libfaupl* /usr/local/lib/
     RUN ldconfig
     RUN pip install --no-cache-dir --use-deprecated=legacy-resolver /wheels/*.whl && rm -rf /wheels
+    RUN pip uninstall -y pip
 
     # Since we compile faup ourselves and lua is not required anymore, we can load our own library 
     #   and skip the pre-compiled blob to improve compatibility with other architectures like ARM

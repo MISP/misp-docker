@@ -149,7 +149,7 @@ EOF
         done;
 
         pip wheel --no-cache-dir -w /wheels/ -r /var/www/MISP/requirements.txt
-        
+
         # Remove files we do not care for
         rm -r /var/www/MISP/PyMISP
         find /var/www/MISP/INSTALL/* ! -name 'MYSQL.sql' -type f -exec rm {} +
@@ -210,6 +210,7 @@ FROM php-base
     # Install python modules
     COPY --from=python-build /wheels /wheels
     RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
+    RUN pip uninstall -y pip
 
     # PHP: install prebuilt libraries, then install the app's PHP deps
     COPY --from=php-build ["/usr/lib/php/${PHP_VER}/ssdeep.so", "/usr/lib/php/${PHP_VER}/rdkafka.so", "/usr/lib/php/${PHP_VER}/brotli.so", "/usr/lib/php/${PHP_VER}/simdjson.so", "/usr/lib/php/${PHP_VER}/zstd.so", "/usr/lib/php/${PHP_VER}/"]
