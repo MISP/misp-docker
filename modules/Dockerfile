@@ -31,8 +31,6 @@ EOF
 
     WORKDIR /srv/misp-modules
     RUN pip install pipenv
-    COPY files/Pipfile Pipfile
-    COPY files/Pipfile.lock Pipfile.lock
     RUN pipenv requirements > requirements.txt
     RUN pip wheel -r requirements.txt --no-cache-dir -w /wheels/
 
