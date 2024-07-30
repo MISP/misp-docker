@@ -1,3 +1,9 @@
+
+## docker-compose -f docker-compose.yml down && docker system prune -af
+## docker-compose -f docker-compose.yml down && docker-compose -f docker-compose.yml build mail redis db misp-core misp-modules && docker-compose -f docker-compose.yml up -d mail redis db misp-core misp-modules && docker ps
+## docker-compose -f docker-compose.yml down && docker-compose -f docker-compose.yml build mail redis db misp-core misp-modules && docker-compose -f docker-compose.yml up -d && docker ps
+
+
 version: '3'
 services:
   # This is capable to relay via gmail, Amazon SES, or generic relays
@@ -94,6 +100,13 @@ services:
       - "ADMIN_KEY=${ADMIN_KEY}"
       - "ADMIN_ORG=${ADMIN_ORG}"
       - "GPG_PASSPHRASE=${GPG_PASSPHRASE}"
+      # MISP system settings
+      - "MEMORY_LIMIT=${MEMORY_LIMIT:-2048M}"
+      - "MAX_EXECUTION_TIME=${MAX_EXECUTION_TIME:-300}"
+      - "UPLOAD_MAX_FILESIZE=${UPLOAD_MAX_FILESIZE:-50M}"
+      - "POST_MAX_SIZE=${POST_MAX_SIZE:-50M}"
+      - "PHP_MAX_INPUT_TIME:${PHP_MAX_INPUT_TIME:-3000}"
+      - "PHP_MAX_EXECUTION_TIME:${PHP_MAX_EXECUTION_TIME:-3000}"
       # OIDC authentication settings
       - "OIDC_ENABLE=${OIDC_ENABLE}"
       - "OIDC_PROVIDER_URL=${OIDC_PROVIDER_URL}"
