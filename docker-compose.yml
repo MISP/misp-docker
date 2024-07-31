@@ -1,9 +1,4 @@
 
-## docker-compose -f docker-compose.yml down && docker system prune -af
-## docker-compose -f docker-compose.yml down && docker-compose -f docker-compose.yml build mail redis db misp-core misp-modules && docker-compose -f docker-compose.yml up -d mail redis db misp-core misp-modules && docker ps
-## docker-compose -f docker-compose.yml down && docker-compose -f docker-compose.yml build mail redis db misp-core misp-modules && docker-compose -f docker-compose.yml up -d && docker ps
-
-
 version: '3'
 services:
   # This is capable to relay via gmail, Amazon SES, or generic relays
