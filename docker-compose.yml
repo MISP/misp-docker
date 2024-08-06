@@ -57,6 +57,7 @@ services:
           - PYPI_MIXBOX_VERSION=${PYPI_MIXBOX_VERSION}
           - PYPI_CYBOX_VERSION=${PYPI_CYBOX_VERSION}
           - PYPI_PYMISP_VERSION=${PYPI_PYMISP_VERSION}
+          - PYPI_MISP_STIX_VERSION=${PYPI_MISP_STIX_VERSION}
     depends_on:
       redis:
         condition: service_healthy

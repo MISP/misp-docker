@@ -102,6 +102,7 @@ FROM php-base AS python-build
     ARG PYPI_MIXBOX_VERSION
     ARG PYPI_CYBOX_VERSION
     ARG PYPI_PYMISP_VERSION
+    ARG PYPI_MISP_STIX_VERSION
 
     RUN apt-get install -y --no-install-recommends \
         git \
@@ -129,7 +130,7 @@ EOF
         # 2. If missing, add it (with optional version from env (defaults to empty string))
         # 3. If present, replace with our specified version if it exists, otherwise leave
         #    the upstream version alone.
-        set -- "redis" "lief" "pydeep2" "python-magic" "misp-lib-stix2" "maec" "mixbox" "cybox" "pymisp"
+        set -- "redis" "lief" "pydeep2" "python-magic" "misp-lib-stix2" "maec" "mixbox" "cybox" "pymisp" "misp-stix"
         for mod in "$@"; do
             mod_version_var=$(echo "PYPI_${mod}_VERSION" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
             mod_version=$(eval "echo \"\$$mod_version_var\"")
@@ -151,11 +152,18 @@ EOF
         pip wheel --no-cache-dir -w /wheels/ -r /var/www/MISP/requirements.txt
 
         # Remove files we do not care for
-        rm -r /var/www/MISP/PyMISP
         find /var/www/MISP/INSTALL/* ! -name 'MYSQL.sql' -type f -exec rm {} +
         find /var/www/MISP/INSTALL/* ! -name 'MYSQL.sql' -type l -exec rm {} +
         # Remove most files in .git - we do not use git functionality in docker
         find /var/www/MISP/.git/* ! -name HEAD -exec rm -rf {} +
+        # Remove libraries' submodules
+        rm -r /var/www/MISP/PyMISP
+        rm -r /var/www/MISP/app/files/scripts/cti-python-stix2
+        rm -r /var/www/MISP/app/files/scripts/misp-stix
+        rm -r /var/www/MISP/app/files/scripts/mixbox
+        rm -r /var/www/MISP/app/files/scripts/python-cybox
+        rm -r /var/www/MISP/app/files/scripts/python-maec
+        rm -r /var/www/MISP/app/files/scripts/python-stix
 EOF
 
 
