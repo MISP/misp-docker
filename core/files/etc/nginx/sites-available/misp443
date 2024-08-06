@@ -1,6 +1,7 @@
 server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2  on;
 
     # disable access logs
     access_log off;
