@@ -148,6 +148,7 @@ services:
           "name": "${SYNCSERVERS_1_NAME}",
           "authkey": "${SYNCSERVERS_1_KEY}",
           "url": "${SYNCSERVERS_1_URL}",
+          "pull_rules": "${SYNCSERVERS_1_PULL_RULES}",
           "pull": true
         }
       # mysql settings

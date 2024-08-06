@@ -421,7 +421,7 @@ create_sync_servers() {
 
         # Add sync server
         echo "... adding new sync server ${NAME} with organization id ${ORG_ID}"
-        JSON_DATA=$(echo "${!DATA}" | jq --arg org_id ${ORG_ID} 'del(.remote_org_uuid) | . + {remote_org_id: $org_id}')
+        JSON_DATA=$(echo "${!DATA}" | jq --arg org_id ${ORG_ID} 'del(.remote_org_uuid) | . + {remote_org_id: $org_id} | del(..|select(. == ""))')
         add_server ${BASE_URL} ${ADMIN_KEY} "$JSON_DATA" > /dev/null
     done
 }
