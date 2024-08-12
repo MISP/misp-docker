@@ -15,6 +15,9 @@
   "Plugin.ZeroMQ_redis_host": {
     "default_value": "${REDIS_FQDN}"
   },
+  "Plugin.ZeroMQ_redis_password": {
+    "default_value": "${REDIS_PASSWORD}"
+  },
   "Plugin.Enrichment_services_url": {
     "default_value": "${MISP_MODULES_FQDN}"
   },
