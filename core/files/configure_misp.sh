@@ -29,6 +29,7 @@ init_minimum_config() {
     /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.osuser" "$(whoami)"
 
     init_settings "minimum_config"
+    /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.osuser" "$(whoami)"
 }
 
 init_configuration() {
