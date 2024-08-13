@@ -104,10 +104,6 @@
   "Security.check_sec_fetch_site_header": {
     "default_value": true
   },
-  "Security.encryption_key": {
-    "default_value": "",
-    "command_args": "-f"
-  },
   "Security.username_in_response_header": {
     "default_value": true
   },

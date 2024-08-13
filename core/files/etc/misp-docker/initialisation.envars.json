@@ -26,5 +26,9 @@
   },
   "Plugin.Export_services_url": {
     "default_value": "${MISP_MODULES_FQDN}"
+  },
+  "Security.encryption_key": {
+    "default_value": "${ENCRYPTION_KEY}",
+    "command_args": "-f"
   }
 }
