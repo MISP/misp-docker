@@ -13,8 +13,9 @@ services:
 
   redis:
     image: valkey/valkey:7.2
+    command: "--requirepass ${REDIS_PASSWORD:-redispassword}"
     healthcheck:
-      test: valkey-cli ping || exit 1
+      test: "valkey-cli -a ${REDIS_PASSWORD:-redispassword} ping || exit 1"
       interval: 2s
       timeout: 1s
       retries: 3
@@ -158,6 +159,8 @@ services:
       - "MYSQL_USER=${MYSQL_USER:-misp}"
       - "MYSQL_PASSWORD=${MYSQL_PASSWORD:-example}"
       - "MYSQL_DATABASE=${MYSQL_DATABASE:-misp}"
+      # redis settings
+      - "REDIS_PASSWORD=${REDIS_PASSWORD:-redispassword}"
       # Debug setting 
       - "DEBUG=${DEBUG}"
       # SMTP setting
@@ -173,6 +176,7 @@ services:
         - LIBFAUP_COMMIT=${LIBFAUP_COMMIT:?Missing .env file, see README.md for instructions}
     environment:
       - "REDIS_BACKEND=redis"
+      - "REDIS_PW=${REDIS_PASSWORD:-redispassword}"
     depends_on:
       redis:
         condition: service_healthy

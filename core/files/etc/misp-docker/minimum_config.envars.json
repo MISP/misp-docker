@@ -5,10 +5,16 @@
   "MISP.redis_host": {
     "default_value": "${REDIS_FQDN}"
   },
+  "MISP.redis_password": {
+    "default_value": "${REDIS_PASSWORD}"
+  },
   "GnuPG.binary": {
     "default_value": "${GPG_BINARY}"
   },
   "SimpleBackgroundJobs.redis_host": {
     "default_value": "${REDIS_FQDN}"
+  },
+  "SimpleBackgroundJobs.redis_password": {
+    "default_value": "${REDIS_PASSWORD}"
   }
 }

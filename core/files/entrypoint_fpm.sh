@@ -19,7 +19,7 @@ change_php_vars() {
         sed -i "s/upload_max_filesize = .*/upload_max_filesize = 50M/" "$FILE"
         sed -i "s/post_max_size = .*/post_max_size = 50M/" "$FILE"
         sed -i "s/session.save_handler = .*/session.save_handler = redis/" "$FILE"
-        sed -i "s|.*session.save_path = .*|session.save_path = '$(echo $REDIS_FQDN | grep -E '^\w+://' || echo tcp://$REDIS_FQDN):6379'|" "$FILE"
+        sed -i "s|.*session.save_path = .*|session.save_path = '$(echo $REDIS_FQDN | grep -E '^\w+://' || echo tcp://$REDIS_FQDN):6379${REDIS_PASSWORD:+?auth=${REDIS_PASSWORD}}'|" "$FILE"
         sed -i "s/session.sid_length = .*/session.sid_length = 64/" "$FILE"
         sed -i "s/session.use_strict_mode = .*/session.use_strict_mode = 1/" "$FILE"
     done
