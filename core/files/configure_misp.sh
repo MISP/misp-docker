@@ -25,7 +25,7 @@ export SETTING_EMAIL="${MISP_EMAIL-$ADMIN_EMAIL}"
 
 init_minimum_config() {
     # Temporarily disable DB to apply config file settings, reenable after if needed 
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.system_setting_db" false
+    /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.system_setting_db" false
     /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.osuser" "$(whoami)"
 
     init_settings "minimum_config"
@@ -217,11 +217,11 @@ set_up_proxy() {
 apply_updates() {
 
     # Disable 'ZeroMQ_enable' to get better logs when applying updates
-#    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" false
+#    /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" false
     # Run updates (strip colors since output might end up in a log)
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin runUpdates | stdbuf -oL sed -r "s/[[:cntrl:]]\[[0-9]{1,3}m//g"
+    /var/www/MISP/app/Console/cake Admin runUpdates | stdbuf -oL sed -r "s/[[:cntrl:]]\[[0-9]{1,3}m//g"
     # Re-enable 'ZeroMQ_enable'
-#    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" true
+#    /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" true
 
 }
 
@@ -276,7 +276,7 @@ apply_critical_fixes() {
     local config_json=$(echo '<?php require_once "/var/www/MISP/app/Config/config.php"; echo json_encode($config, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>'|/usr/bin/php)
     if $(echo $config_json |jq -e 'getpath(("Security.auth" | split("."))) == null'); then
         echo "Updating unset critical setting 'Security.auth' to 'Array()'..."
-        sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+        php /var/www/MISP/tests/modify_config.php modify "{
             \"Security\": {
                 \"auth\": {}
             }
@@ -293,7 +293,7 @@ apply_optional_fixes() {
 # Leaving this here though in case the serverSettings model for those odd settings is fixed one day.
 #setting_is_set() {
 #    local setting="$1"
-#    local current_value="$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting $setting)"
+#    local current_value="$(/var/www/MISP/app/Console/cake Admin getSetting $setting)"
 #    local error_value="$(jq -r '.errorMessage' <<< $current_value)"
 #
 #    if [[ "$current_value" =~ ^\{.*\}$ && "$error_value" != "Value not set." && "$error_value" != Invalid* ]]; then
@@ -339,7 +339,7 @@ enforce_env_settings() {
         local default_value="$(jq -r '."'"$setting"'"["default_value"]' <<< $settings_json)"
         local command_args="$(jq -r '."'"$setting"'"["command_args"] // ""' <<< $settings_json)"
         echo "Enforcing $description setting '$setting' to env var or default value '$default_value'..."
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q $command_args "$setting" "$default_value"
+        /var/www/MISP/app/Console/cake Admin setSetting -q $command_args "$setting" "$default_value"
     done
 }
 
@@ -351,7 +351,7 @@ set_safe_default() {
 
     if ! setting_is_set_alt "$setting"; then
         echo "Updating unset $description setting '$setting' to '$default_value'..."
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q $command_args "$setting" "$default_value"
+        /var/www/MISP/app/Console/cake Admin setSetting -q $command_args "$setting" "$default_value"
     fi
 }
 
@@ -387,7 +387,7 @@ update_ca_certificates() {
     update-ca-certificates
     # Upgrade cake cacert.pem file from Mozilla project
     echo "Updating /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem..."
-    sudo -E -u www-data curl -s --etag-compare /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt --etag-save /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt https://curl.se/ca/cacert.pem -o /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem
+    curl -s --etag-compare /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt --etag-save /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt https://curl.se/ca/cacert.pem -o /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem
 }
 
 create_sync_servers() {
