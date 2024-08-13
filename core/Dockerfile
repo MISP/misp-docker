@@ -156,7 +156,7 @@ EOF
         find /var/www/MISP/INSTALL/* ! -name 'MYSQL.sql' -type l -exec rm {} +
         # Remove most files in .git - we do not use git functionality in docker
         find /var/www/MISP/.git/* ! -name HEAD -exec rm -rf {} +
-        # Remove libraries' submodules
+        # Remove libraries submodules
         rm -r /var/www/MISP/PyMISP
         rm -r /var/www/MISP/app/files/scripts/cti-python-stix2
         rm -r /var/www/MISP/app/files/scripts/misp-stix
