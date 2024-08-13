@@ -26,7 +26,7 @@ export SETTING_EMAIL="${MISP_EMAIL-$ADMIN_EMAIL}"
 init_minimum_config() {
     # Temporarily disable DB to apply config file settings, reenable after if needed 
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.system_setting_db" false
-    /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.osuser" "1005320000"
+    /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.osuser" "$(whoami)"
 
     init_settings "minimum_config"
 }
