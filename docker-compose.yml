@@ -42,7 +42,7 @@ services:
       start_period: 30s
 
   misp-core:
-    image: ghcr.io/misp/misp-docker/misp-core:latest
+    image: ghcr.io/misp/misp-docker/misp-core:${CORE_TAG}
     cap_add:
       - CAP_AUDIT_WRITE
     build:
@@ -169,7 +169,7 @@ services:
       - "SMTP_FQDN=${SMTP_FQDN}"
   
   misp-modules:
-    image: ghcr.io/misp/misp-docker/misp-modules:latest
+    image: ghcr.io/misp/misp-docker/misp-modules:${MODULES_TAG}
     build:
       context: modules/.
       args:
