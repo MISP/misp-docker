@@ -30,9 +30,15 @@ FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" AS python-build
 EOF
 
     WORKDIR /srv/misp-modules
-    RUN pip install pipenv
-    RUN pipenv requirements > requirements.txt
+    COPY files/pyproject.toml /srv/misp-modules/
+    RUN pip install poetry
+    RUN sed -i "s/^python = .*/python = \"$(python -c 'import platform; print(platform.python_version())')\"/" pyproject.toml
+    RUN poetry lock
+    RUN poetry install
+    RUN poetry self add poetry-plugin-export
+    RUN poetry export --without-hashes -f requirements.txt -o requirements.txt
     RUN pip wheel -r requirements.txt --no-cache-dir -w /wheels/
+    RUN poetry build --output /wheels/
 
     WORKDIR /srv/
     RUN rm -rf /srv/misp-modules
