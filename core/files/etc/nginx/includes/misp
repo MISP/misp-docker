@@ -14,8 +14,9 @@ add_header X-Permitted-Cross-Domain-Policies "none" always;
 add_header X-Robots-Tag "none" always;
 add_header X-XSS-Protection "1; mode=block" always;
 
-# remove X-Powered-By, which is an information leak
+# remove X-Powered-By and nginx version, which is an information leak
 fastcgi_hide_header X-Powered-By;
+server_tokens off;
 
 location / {
     try_files $uri $uri/ /index.php$is_args$query_string;

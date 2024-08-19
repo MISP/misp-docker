@@ -38,6 +38,10 @@ variable "PYPI_PYMISP_VERSION" {
   default = ""
 }
 
+variable "PYPI_MISP_STIX" {
+  default = ""
+}
+
 variable "NAMESPACE" {
   default = null
 }

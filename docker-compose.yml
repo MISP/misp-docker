@@ -14,8 +14,9 @@ services:
 
   redis:
     image: valkey/valkey:7.2
+    command: "--requirepass ${REDIS_PASSWORD:-redispassword}"
     healthcheck:
-      test: valkey-cli ping || exit 1
+      test: "valkey-cli -a ${REDIS_PASSWORD:-redispassword} ping || exit 1"
       interval: 2s
       timeout: 1s
       retries: 3
@@ -58,6 +59,7 @@ services:
           - PYPI_MIXBOX_VERSION=${PYPI_MIXBOX_VERSION}
           - PYPI_CYBOX_VERSION=${PYPI_CYBOX_VERSION}
           - PYPI_PYMISP_VERSION=${PYPI_PYMISP_VERSION}
+          - PYPI_MISP_STIX_VERSION=${PYPI_MISP_STIX_VERSION}
     depends_on:
       redis:
         condition: service_healthy
@@ -89,6 +91,7 @@ services:
       - "DISABLE_IPV6=${DISABLE_IPV6}"
       - "DISABLE_SSL_REDIRECT=${DISABLE_SSL_REDIRECT}"
       - "ENABLE_DB_SETTINGS=${ENABLE_DB_SETTINGS}"
+      - "ENCRYPTION_KEY=${ENCRYPTION_KEY}"
       # standard settings
       - "ADMIN_EMAIL=${ADMIN_EMAIL}"
       - "ADMIN_PASSWORD=${ADMIN_PASSWORD}"
@@ -155,6 +158,7 @@ services:
           "name": "${SYNCSERVERS_1_NAME}",
           "authkey": "${SYNCSERVERS_1_KEY}",
           "url": "${SYNCSERVERS_1_URL}",
+          "pull_rules": "${SYNCSERVERS_1_PULL_RULES}",
           "pull": true
         }
       # mysql settings
@@ -163,6 +167,8 @@ services:
       - "MYSQL_USER=${MYSQL_USER:-misp}"
       - "MYSQL_PASSWORD=${MYSQL_PASSWORD:-example}"
       - "MYSQL_DATABASE=${MYSQL_DATABASE:-misp}"
+      # redis settings
+      - "REDIS_PASSWORD=${REDIS_PASSWORD:-redispassword}"
       # Debug setting 
       - "DEBUG=${DEBUG}"
       # SMTP setting
@@ -178,6 +184,7 @@ services:
         - LIBFAUP_COMMIT=${LIBFAUP_COMMIT:?Missing .env file, see README.md for instructions}
     environment:
       - "REDIS_BACKEND=redis"
+      - "REDIS_PW=${REDIS_PASSWORD:-redispassword}"
     depends_on:
       redis:
         condition: service_healthy
