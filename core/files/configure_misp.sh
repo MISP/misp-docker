@@ -221,10 +221,10 @@ init_user() {
     # Create the main user if it is not there already
     sudo -u www-data /var/www/MISP/app/Console/cake user init -q > /dev/null 2>&1
 
-    echo "UPDATE misp.users SET email = \"${ADMIN_EMAIL}\" WHERE id = 1;" | ${MYSQLCMD}
+    echo "UPDATE $MYSQL_DATABASE.users SET email = \"${ADMIN_EMAIL}\" WHERE id = 1;" | ${MYSQLCMD}
 
     if [ ! -z "$ADMIN_ORG" ]; then
-        echo "UPDATE misp.organisations SET name = \"${ADMIN_ORG}\" where id = 1;" | ${MYSQLCMD}
+        echo "UPDATE $MYSQL_DATABASE.organisations SET name = \"${ADMIN_ORG}\" where id = 1;" | ${MYSQLCMD}
     fi
 
     if [ -n "$ADMIN_KEY" ]; then
@@ -254,7 +254,7 @@ init_user() {
     else
         echo "... setting admin password skipped"
     fi
-    echo 'UPDATE misp.users SET change_pw = 0 WHERE id = 1;' | ${MYSQLCMD}
+    echo "UPDATE $MYSQL_DATABASE.users SET change_pw = 0 WHERE id = 1;" | ${MYSQLCMD}
 }
 
 apply_critical_fixes() {

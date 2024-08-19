@@ -73,9 +73,6 @@
   "SimpleBackgroundJobs.redis_database": {
     "default_value": 1
   },
-  "SimpleBackgroundJobs.redis_password": {
-    "default_value": ""
-  },
   "SimpleBackgroundJobs.redis_namespace": {
     "default_value": "background_jobs"
   },
