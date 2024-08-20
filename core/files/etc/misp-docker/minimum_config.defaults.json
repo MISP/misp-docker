@@ -24,9 +24,6 @@
     "default_value": "/etc/ssl/certs/ca-certificates.crt",
     "command_args": "-f"
   },
-  "MISP.redis_port": {
-    "default_value": 6379
-  },
   "MISP.redis_database": {
     "default_value": 13
   },
@@ -63,9 +60,6 @@
   },
   "SimpleBackgroundJobs.supervisor_user": {
     "default_value": "supervisor"
-  },
-  "SimpleBackgroundJobs.redis_port": {
-    "default_value": 6379
   },
   "SimpleBackgroundJobs.redis_database": {
     "default_value": 1

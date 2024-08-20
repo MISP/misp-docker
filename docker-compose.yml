@@ -160,6 +160,8 @@ services:
       - "MYSQL_PASSWORD=${MYSQL_PASSWORD:-example}"
       - "MYSQL_DATABASE=${MYSQL_DATABASE:-misp}"
       # redis settings
+      - "REDIS_HOST=${REDIS_HOST:-redis}"
+      - "REDIS_PORT=${REDIS_PORT:-6379}"
       - "REDIS_PASSWORD=${REDIS_PASSWORD:-redispassword}"
       # Debug setting 
       - "DEBUG=${DEBUG}"
@@ -175,7 +177,8 @@ services:
         - MODULES_COMMIT=${MODULES_COMMIT}
         - LIBFAUP_COMMIT=${LIBFAUP_COMMIT:?Missing .env file, see README.md for instructions}
     environment:
-      - "REDIS_BACKEND=redis"
+      - "REDIS_BACKEND=${REDIS_HOST:-redis}"
+      - "REDIS_PORT=${REDIS_PORT:-6379}"
       - "REDIS_PW=${REDIS_PASSWORD:-redispassword}"
     depends_on:
       redis:

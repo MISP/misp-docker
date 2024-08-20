@@ -3,7 +3,10 @@
     "default_value": "${PYTHON_BIN}"
   },
   "MISP.redis_host": {
-    "default_value": "${REDIS_FQDN}"
+    "default_value": "${REDIS_HOST}"
+  },
+  "MISP.redis_port": {
+    "default_value": "${REDIS_PORT}"
   },
   "MISP.redis_password": {
     "default_value": "${REDIS_PASSWORD}"
@@ -12,7 +15,10 @@
     "default_value": "${GPG_BINARY}"
   },
   "SimpleBackgroundJobs.redis_host": {
-    "default_value": "${REDIS_FQDN}"
+    "default_value": "${REDIS_HOST}"
+  },
+  "SimpleBackgroundJobs.redis_port": {
+    "default_value": "${REDIS_PORT}"
   },
   "SimpleBackgroundJobs.redis_password": {
     "default_value": "${REDIS_PASSWORD}"

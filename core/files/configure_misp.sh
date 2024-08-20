@@ -2,19 +2,8 @@
 
 source /rest_client.sh
 source /utilities.sh
-[ -z "$ADMIN_EMAIL" ] && export ADMIN_EMAIL="admin@admin.test"
-[ -z "$GPG_PASSPHRASE" ] && export GPG_PASSPHRASE="passphrase"
-[ -z "$REDIS_FQDN" ] && export REDIS_FQDN="redis"
-[ -z "$MISP_MODULES_FQDN" ] && export MISP_MODULES_FQDN="http://misp-modules"
 
-# Switches to selectively disable configuration logic
-[ -z "$AUTOCONF_GPG" ] && AUTOCONF_GPG="true"
-[ -z "$AUTOCONF_ADMIN_KEY" ] && AUTOCONF_ADMIN_KEY="true"
-[ -z "$OIDC_ENABLE" ] && OIDC_ENABLE="false"
-[ -z "$LDAP_ENABLE" ] && LDAP_ENABLE="false"
-[ -z "$ENABLE_DB_SETTINGS" ] && ENABLE_DB_SETTINGS="false"
-[ -z "$PROXY_ENABLE" ] && PROXY_ENABLE="false"
-[ -z "$DEBUG" ] && DEBUG=0
+MYSQLCMD="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD -P $MYSQL_PORT -h $MYSQL_HOST -r -N $MYSQL_DATABASE"
 
 # We now use envsubst for safe variable substitution with pseudo-json objects for env var enforcement
 # envsubst won't evaluate anything like $() or conditional variable expansion so lets do that here

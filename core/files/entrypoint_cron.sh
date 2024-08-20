@@ -1,7 +1,5 @@
 #!/bin/bash
 
-[ -z "$CRON_USER_ID" ] && CRON_USER_ID=1
-
 term_procs() {
     echo "Entrypoint CRON caught SIGTERM signal!"
     echo "Killing process $p1_pid"
@@ -12,7 +10,6 @@ term_procs() {
 
 trap term_procs SIGTERM
 
-# Create the misp cron tab
 cat << EOF > /etc/cron.d/misp
 20 2 * * * www-data /var/www/MISP/app/Console/cake Server cacheFeed "$CRON_USER_ID" all > /tmp/cronlog 2>&1
 30 2 * * * www-data /var/www/MISP/app/Console/cake Server fetchFeed "$CRON_USER_ID" all > /tmp/cronlog 2>&1

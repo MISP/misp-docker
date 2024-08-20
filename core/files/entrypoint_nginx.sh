@@ -8,18 +8,7 @@ term_proc() {
 
 trap term_proc SIGTERM
 
-[ -z "$MYSQL_HOST" ] && MYSQL_HOST=db
-[ -z "$MYSQL_PORT" ] && MYSQL_PORT=3306
-[ -z "$MYSQL_USER" ] && MYSQL_USER=misp
-[ -z "$MYSQL_PASSWORD" ] && MYSQL_PASSWORD=example
-[ -z "$MYSQL_DATABASE" ] && MYSQL_DATABASE=misp
-[ -z "$MYSQLCMD" ] && export MYSQLCMD="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD -P $MYSQL_PORT -h $MYSQL_HOST -r -N $MYSQL_DATABASE"
-[ -z "$REDIS_PASSWORD" ] && export REDIS_PASSWORD=redispassword
-[ -z "$CRON_USER_ID" ] && export CRON_USER_ID="1"
-[ -z "$BASE_URL" ] && export BASE_URL="https://localhost"
-[ -z "$DISABLE_IPV6" ] && export DISABLE_IPV6=false
-[ -z "$DISABLE_SSL_REDIRECT" ] && export DISABLE_SSL_REDIRECT=false
-[ -z "$SMTP_FQDN" ] && export SMTP_FQDN=mail
+MYSQLCMD="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD -P $MYSQL_PORT -h $MYSQL_HOST -r -N $MYSQL_DATABASE"
 
 init_mysql(){
     # Test when MySQL is ready....
