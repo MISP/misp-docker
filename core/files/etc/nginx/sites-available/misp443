@@ -26,8 +26,4 @@ server {
 
     # include misp
     include includes/misp;
-
-    fastcgi_read_timeout 3000;
-    fastcgi_send_timeout 3000;
-    fastcgi_connect_timeout 3000;
 }

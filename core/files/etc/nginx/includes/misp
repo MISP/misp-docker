@@ -20,13 +20,11 @@ server_tokens off;
 
 location / {
     try_files $uri $uri/ /index.php$is_args$query_string;
-    fastcgi_send_timeout 3000;
 }
 
 location ~ ^/[^/]+\.php(/|$) {
     include snippets/fastcgi-php.conf;
     fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
-    fastcgi_send_timeout 3000;
     fastcgi_split_path_info ^(.+\.php)(/.+)$;
     set $path_info $fastcgi_path_info;
     fastcgi_param PATH_INFO $path_info;
