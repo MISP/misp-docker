@@ -1,5 +1,3 @@
-
-version: '3'
 services:
   # This is capable to relay via gmail, Amazon SES, or generic relays
   # See: https://hub.docker.com/r/ixdotai/smtp
@@ -99,10 +97,10 @@ services:
       - "ADMIN_ORG=${ADMIN_ORG}"
       - "GPG_PASSPHRASE=${GPG_PASSPHRASE}"
       # MISP system settings
-      - "MEMORY_LIMIT=${MEMORY_LIMIT:-2048M}"
-      - "MAX_EXECUTION_TIME=${MAX_EXECUTION_TIME:-300}"
-      - "UPLOAD_MAX_FILESIZE=${UPLOAD_MAX_FILESIZE:-50M}"
-      - "POST_MAX_SIZE=${POST_MAX_SIZE:-50M}"
+      - "PHP_MEMORY_LIMIT=${PHP_MEMORY_LIMIT:-2048M}"
+      - "PHP_MAX_EXECUTION_TIME=${PHP_MAX_EXECUTION_TIME:-300}"
+      - "PHP_UPLOAD_MAX_FILESIZE=${PHP_UPLOAD_MAX_FILESIZE:-50M}"
+      - "PHP_POST_MAX_SIZE=${PHP_POST_MAX_SIZE:-50M}"
       - "PHP_MAX_INPUT_TIME:${PHP_MAX_INPUT_TIME:-3000}"
       - "PHP_MAX_EXECUTION_TIME:${PHP_MAX_EXECUTION_TIME:-3000}"
       # OIDC authentication settings
