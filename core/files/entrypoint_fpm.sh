@@ -23,11 +23,9 @@ change_php_vars() {
         sed -i "s/session.sid_length = .*/session.sid_length = 64/" "$FILE"
         sed -i "s/session.use_strict_mode = .*/session.use_strict_mode = 1/" "$FILE"
 
-        # sed -i 's|;*max_input_time\s*=.*|max_input_time = 3000|' /etc/php/7.4/fpm/php.ini
-        sed -i "s|;*max_input_time\s*=.*|max_input_time = $PHP_MAX_INPUT_TIME|" "$FILE"
+        sed -i "s|;*max_input_time\s*=.*|max_input_time = ${PHP_MAX_INPUT_TIME:-3000}|" "$FILE"
+        sed -i "s|;*max_execution_time\s*=.*|max_execution_time = ${PHP_MAX_EXECUTION_TIME:-3000}|" "$FILE"
 
-        # sed -i 's|;*max_execution_time\s*=.*|max_execution_time = 3000|' /etc/php/7.4/fpm/php.ini
-        sed -i "s|;*max_execution_time\s*=.*|max_execution_time = $PHP_MAX_EXECUTION_TIME|" "$FILE"
 
     done
 }
