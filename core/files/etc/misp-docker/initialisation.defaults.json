@@ -89,11 +89,17 @@
   "Plugin.Import_services_enable": {
     "default_value": true
   },
+  "Plugin.Action_services_enable": {
+    "default_value": true
+  },
   "Plugin.Export_services_enable": {
     "default_value": true
   },
   "Plugin.Cortex_services_enable": {
     "default_value": false
+  },
+  "Plugin.Workflow_enable": {
+    "default_value": true
   },
   "Security.advanced_authkeys": {
     "default_value": true
