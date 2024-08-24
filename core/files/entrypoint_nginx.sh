@@ -199,6 +199,14 @@ flip_nginx() {
 }
 
 init_nginx() {
+    # Adjust timeouts
+    echo "... adjusting 'fastcgi_read_timeout' to ${FASTCGI_READ_TIMEOUT}"
+    sed -i "s/fastcgi_read_timeout .*;/fastcgi_read_timeout ${FASTCGI_READ_TIMEOUT};/" /etc/nginx/includes/misp
+    echo "... adjusting 'fastcgi_send_timeout' to ${FASTCGI_SEND_TIMEOUT}"
+    sed -i "s/fastcgi_send_timeout .*;/fastcgi_send_timeout ${FASTCGI_SEND_TIMEOUT};/" /etc/nginx/includes/misp
+    echo "... adjusting 'fastcgi_connect_timeout' to ${FASTCGI_CONNECT_TIMEOUT}"
+    sed -i "s/fastcgi_connect_timeout .*;/fastcgi_connect_timeout ${FASTCGI_CONNECT_TIMEOUT};/" /etc/nginx/includes/misp
+
     # Testing for files also test for links, and generalize better to mounted files
     if [[ ! -f "/etc/nginx/sites-enabled/misp80" ]]; then
         echo "... enabling port 80 redirect"

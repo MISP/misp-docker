@@ -33,5 +33,15 @@ export ENABLE_DB_SETTINGS=${ENABLE_DB_SETTINGS:-false}
 export PROXY_ENABLE=${PROXY_ENABLE:-false}
 export DEBUG=${DEBUG:-0}
 
+export FASTCGI_READ_TIMEOUT=${FASTCGI_READ_TIMEOUT:-300s}
+export FASTCGI_SEND_TIMEOUT=${FASTCGI_SEND_TIMEOUT:-300s}
+export FASTCGI_CONNECT_TIMEOUT=${FASTCGI_CONNECT_TIMEOUT:-300s}
+
+export PHP_MEMORY_LIMIT=${PHP_MEMORY_LIMIT:-2048M}
+export PHP_MAX_EXECUTION_TIME=${PHP_MAX_EXECUTION_TIME:-300}
+export PHP_UPLOAD_MAX_FILESIZE=${PHP_UPLOAD_MAX_FILESIZE:-50M}
+export PHP_POST_MAX_SIZE=${PHP_POST_MAX_SIZE:-50M}
+export PHP_MAX_INPUT_TIME:${PHP_MAX_INPUT_TIME:-300}
+
 # start supervisord using the main configuration file so we have a socket interface
 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf

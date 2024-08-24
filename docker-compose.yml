@@ -42,7 +42,9 @@ services:
       start_period: 30s
 
   misp-core:
-    image: ghcr.io/misp/misp-docker/misp-core:latest
+    image: ghcr.io/misp/misp-docker/misp-core:${CORE_RUNNING_TAG:-latest}
+    cap_add:
+      - CAP_AUDIT_WRITE
     build:
       context: core/.
       args:
@@ -167,9 +169,19 @@ services:
       - "DEBUG=${DEBUG}"
       # SMTP setting
       - "SMTP_FQDN=${SMTP_FQDN}"
+      # NGINX settings
+      - "FASTCGI_READ_TIMEOUT=${FASTCGI_READ_TIMEOUT:-300s}"
+      - "FASTCGI_SEND_TIMEOUT=${FASTCGI_SEND_TIMEOUT:-300s}"
+      - "FASTCGI_CONNECT_TIMEOUT=${FASTCGI_CONNECT_TIMEOUT:-300s}"
+      # PHP settings
+      - "PHP_MEMORY_LIMIT=${PHP_MEMORY_LIMIT:-2048M}"
+      - "PHP_MAX_EXECUTION_TIME=${PHP_MAX_EXECUTION_TIME:-300}"
+      - "PHP_UPLOAD_MAX_FILESIZE=${PHP_UPLOAD_MAX_FILESIZE:-50M}"
+      - "PHP_POST_MAX_SIZE=${PHP_POST_MAX_SIZE:-50M}"
+      - "PHP_MAX_INPUT_TIME:${PHP_MAX_INPUT_TIME:-300}"
   
   misp-modules:
-    image: ghcr.io/misp/misp-docker/misp-modules:latest
+    image: ghcr.io/misp/misp-docker/misp-modules:${MODULES_RUNNING_TAG:-latest}
     build:
       context: modules/.
       args:
