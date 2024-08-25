@@ -11,6 +11,15 @@
   "MISP.redis_password": {
     "default_value": "${REDIS_PASSWORD}"
   },
+  "Plugin.ZeroMQ_redis_host": {
+    "default_value": "${REDIS_HOST}"
+  },
+  "Plugin.ZeroMQ_redis_port": {
+    "default_value": "${REDIS_PORT}"
+  },
+  "Plugin.ZeroMQ_redis_password": {
+    "default_value": "${REDIS_PASSWORD}"
+  },
   "GnuPG.binary": {
     "default_value": "${GPG_BINARY}"
   },

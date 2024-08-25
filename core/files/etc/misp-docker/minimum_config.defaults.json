@@ -33,6 +33,9 @@
   "MISP.menu_custom_right_link_html": {
     "default_value": ""
   },
+  "Plugin.ZeroMQ_enable": {
+    "default_value": false
+  },
   "Security.rest_client_enable_arbitrary_urls": {
     "default_value": false
   },

@@ -419,11 +419,11 @@ echo "MISP | Update CA certificates ..." && update_ca_certificates
 
 echo "MISP | Apply minimum configuration directives ..." && init_minimum_config
 
-echo "MISP | Apply DB updates ..." && apply_updates
-
 echo "MISP | Initialize configuration ..." && init_configuration
 
 echo "MISP | Initialize workers ..." && init_workers
+
+echo "MISP | Apply DB updates ..." && apply_updates
 
 echo "MISP | Configure GPG key ..." && configure_gnupg
 
@@ -431,11 +431,11 @@ echo "MISP | Init default user and organization ..." && init_user
 
 echo "MISP | Resolve critical issues ..." && apply_critical_fixes
 
+echo "MISP | Update components ..." && update_components
+
 echo "MISP | Resolve non-critical issues ..." && apply_optional_fixes
 
 echo "MISP | Create sync servers ..." && create_sync_servers
-
-echo "MISP | Update components ..." && update_components
 
 echo "MISP | Set Up OIDC ..." && set_up_oidc
 

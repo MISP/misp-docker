@@ -287,5 +287,8 @@ if [[ -x /custom/files/customize_misp.sh ]]; then
     /custom/files/customize_misp.sh
 fi
 
+# Restart PHP workers
+supervisorctl restart php-fpm
+
 # Wait for it
 wait "$master_pid"

@@ -21,5 +21,8 @@
   },
   "Plugin.Enrichment_hover_timeout": {
     "default_value": 5
+  },
+  "Plugin.Workflow_enable": {
+    "default_value": true
   }
 }

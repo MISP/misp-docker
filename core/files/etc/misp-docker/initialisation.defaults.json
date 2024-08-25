@@ -80,9 +80,6 @@
   "MISP.event_alert_republish_ban_threshold": {
     "default_value": 120
   },
-  "Plugin.ZeroMQ_enable": {
-    "default_value": false
-  },
   "Plugin.Enrichment_services_enable": {
     "default_value": true
   },
@@ -97,9 +94,6 @@
   },
   "Plugin.Cortex_services_enable": {
     "default_value": false
-  },
-  "Plugin.Workflow_enable": {
-    "default_value": true
   },
   "Security.advanced_authkeys": {
     "default_value": true
