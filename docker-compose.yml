@@ -67,7 +67,7 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: curl -ks https://localhost/users/heartbeat > /dev/null || exit 1
+      test: curl -ks ${BASE_URL:-https://localhost}/users/heartbeat > /dev/null || exit 1
       interval: 2s
       timeout: 1s
       retries: 3
