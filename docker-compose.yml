@@ -53,7 +53,7 @@ services:
   misp-core:
     image: ghcr.io/misp/misp-docker/misp-core:${CORE_RUNNING_TAG:-latest}
     cap_add:
-      - CAP_AUDIT_WRITE
+      - AUDIT_WRITE
     build:
       context: core/.
       args:
