@@ -30,6 +30,15 @@ services:
       - "MYSQL_PASSWORD=${MYSQL_PASSWORD:-example}"
       - "MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-password}"
       - "MYSQL_DATABASE=${MYSQL_DATABASE:-misp}"
+    command: "\
+      --innodb-buffer-pool-size=${INNODB_BUFFER_POOL_SIZE:-2048M} \
+      --innodb-change-buffering=${INNODB_CHANGE_BUFFERING:-none} \
+      --innodb-io-capacity=${INNODB_IO_CAPACITY:-1000} \
+      --innodb-io-capacity-max=${INNODB_IO_CAPACITY_MAX:-2000} \
+      --innodb-log-file-size=${INNODB_LOG_FILE_SIZE:-600M} \
+      --innodb-read-io-threads=${INNODB_READ_IO_THREADS:-16} \
+      --innodb-stats-persistent=${INNODB_STATS_PERSISTENT:-ON} \
+      --innodb-write-io-threads=${INNODB_WRITE_IO_THREADS:-4}"
     volumes:
       - mysql_data:/var/lib/mysql
     cap_add:
