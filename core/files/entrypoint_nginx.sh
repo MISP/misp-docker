@@ -8,19 +8,17 @@ term_proc() {
 
 trap term_proc SIGTERM
 
-MYSQLCMD="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD -P $MYSQL_PORT -h $MYSQL_HOST -r -N $MYSQL_DATABASE"
-
 init_mysql(){
     # Test when MySQL is ready....
     # wait for Database come ready
     isDBup () {
-        echo "SHOW STATUS" | $MYSQLCMD 1>/dev/null
+        echo "SHOW STATUS" | $MYSQL_CMD 1>/dev/null
         echo $?
     }
 
     isDBinitDone () {
         # Table attributes has existed since at least v2.1
-        echo "DESCRIBE attributes" | $MYSQLCMD 1>/dev/null
+        echo "DESCRIBE attributes" | $MYSQL_CMD 1>/dev/null
         echo $?
     }
 
@@ -40,7 +38,7 @@ init_mysql(){
         export DB_ALREADY_INITIALISED=true
     else
         echo "... database has not been initialized, importing MySQL scheme..."
-        $MYSQLCMD < /var/www/MISP/INSTALL/MYSQL.sql
+        $MYSQL_CMD < /var/www/MISP/INSTALL/MYSQL.sql
     fi
 }
 
