@@ -351,11 +351,15 @@ init_settings() {
 }
 
 update_components() {
-    sudo -b -u www-data /var/www/MISP/app/Console/cake Admin updateGalaxies
-    sudo -b -u www-data /var/www/MISP/app/Console/cake Admin updateTaxonomies
-    sudo -b -u www-data /var/www/MISP/app/Console/cake Admin updateWarningLists
-    sudo -b -u www-data /var/www/MISP/app/Console/cake Admin updateNoticeLists
-    sudo -b -u www-data /var/www/MISP/app/Console/cake Admin updateObjectTemplates "$CRON_USER_ID"
+    UPDATE_SUDO_CMD="sudo -u www-data"
+    if [ ! -z "${DB_ALREADY_INITIALISED}" ]; then
+        UPDATE_SUDO_CMD="sudo -b -u www-data"
+    fi
+    ${UPDATE_SUDO_CMD} /var/www/MISP/app/Console/cake Admin updateGalaxies
+    ${UPDATE_SUDO_CMD} /var/www/MISP/app/Console/cake Admin updateTaxonomies
+    ${UPDATE_SUDO_CMD} /var/www/MISP/app/Console/cake Admin updateWarningLists
+    ${UPDATE_SUDO_CMD} /var/www/MISP/app/Console/cake Admin updateNoticeLists
+    ${UPDATE_SUDO_CMD} /var/www/MISP/app/Console/cake Admin updateObjectTemplates "$CRON_USER_ID"
 }
 
 update_ca_certificates() {
