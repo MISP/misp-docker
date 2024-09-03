@@ -353,7 +353,9 @@ init_settings() {
 update_components() {
     UPDATE_SUDO_CMD="sudo -u www-data"
     if [ ! -z "${DB_ALREADY_INITIALISED}" ]; then
-        UPDATE_SUDO_CMD="sudo -b -u www-data"
+        if [ ! -z "${BACKGROUND_COMPONENT_UPDATES}" ]; then
+            UPDATE_SUDO_CMD="sudo -b -u www-data"
+        fi
     fi
     ${UPDATE_SUDO_CMD} /var/www/MISP/app/Console/cake Admin updateGalaxies
     ${UPDATE_SUDO_CMD} /var/www/MISP/app/Console/cake Admin updateTaxonomies
