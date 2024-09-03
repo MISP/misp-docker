@@ -37,6 +37,7 @@ init_mysql(){
 
     if [ $(isDBinitDone) -eq 0 ]; then
         echo "... database has already been initialized"
+        export DB_ALREADY_INITIALISED=true
     else
         echo "... database has not been initialized, importing MySQL scheme..."
         $MYSQLCMD < /var/www/MISP/INSTALL/MYSQL.sql
