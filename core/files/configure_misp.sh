@@ -351,11 +351,11 @@ init_settings() {
 }
 
 update_components() {
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateGalaxies
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateTaxonomies
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateWarningLists
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateNoticeLists
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin updateObjectTemplates "$CRON_USER_ID"
+    sudo -b -u www-data /var/www/MISP/app/Console/cake Admin updateGalaxies
+    sudo -b -u www-data /var/www/MISP/app/Console/cake Admin updateTaxonomies
+    sudo -b -u www-data /var/www/MISP/app/Console/cake Admin updateWarningLists
+    sudo -b -u www-data /var/www/MISP/app/Console/cake Admin updateNoticeLists
+    sudo -b -u www-data /var/www/MISP/app/Console/cake Admin updateObjectTemplates "$CRON_USER_ID"
 }
 
 update_ca_certificates() {
@@ -431,7 +431,7 @@ echo "MISP | Init default user and organization ..." && init_user
 
 echo "MISP | Resolve critical issues ..." && apply_critical_fixes
 
-echo "MISP | Update components ..." && update_components
+echo "MISP | Start component updates (background task) ..." && update_components
 
 echo "MISP | Resolve non-critical issues ..." && apply_optional_fixes
 
