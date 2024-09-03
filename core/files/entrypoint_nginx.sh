@@ -288,7 +288,9 @@ if [[ -x /custom/files/customize_misp.sh ]]; then
 fi
 
 # Restart PHP workers
+echo "INIT | Configure PHP ..."
 supervisorctl restart php-fpm
+echo "INIT | Done ..."
 
 # Wait for it
 wait "$master_pid"

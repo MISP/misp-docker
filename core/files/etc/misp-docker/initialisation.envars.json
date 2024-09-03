@@ -12,18 +12,6 @@
   "MISP.contact": {
     "default_value": "${SETTING_CONTACT}"
   },
-  "Plugin.Enrichment_services_url": {
-    "default_value": "${MISP_MODULES_FQDN}"
-  },
-  "Plugin.Import_services_url": {
-    "default_value": "${MISP_MODULES_FQDN}"
-  },
-  "Plugin.Action_services_url": {
-    "default_value": "${MISP_MODULES_FQDN}"
-  },
-  "Plugin.Export_services_url": {
-    "default_value": "${MISP_MODULES_FQDN}"
-  },
   "Security.encryption_key": {
     "default_value": "${ENCRYPTION_KEY}",
     "command_args": "-f"

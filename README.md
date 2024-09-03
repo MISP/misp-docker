@@ -34,13 +34,13 @@ The underlying spirit of this project is to allow "repeatable deployments", and 
 
 ### Run
 
--   `docker-compose pull` if you want to use pre-built images or `docker-compose build` if you want to build your own (see the `Troubleshooting` section in case of errors)
--   `docker-compose up`
+-   `docker compose pull` if you want to use pre-built images or `docker compose build` if you want to build your own (see the `Troubleshooting` section in case of errors)
+-   `docker compose up`
 -   Login to `https://localhost`
     -   User: `admin@admin.test`
     -   Password: `admin`
 
-Keeping the image up-to-date with upstream should be as simple as running `docker-compose pull`.
+Keeping the image up-to-date with upstream should be as simple as running `docker compose pull`.
 
 ### Configuration
 
@@ -133,7 +133,6 @@ Custom root CA certificates can be mounted under `/usr/local/share/ca-certificat
 ## Troubleshooting
 
 -   Make sure you run a fairly recent version of Docker and Docker Compose (if in doubt, update following the steps outlined in https://docs.docker.com/engine/install/ubuntu/)
--   Some Linux distributions provide a recent version of Docker but a legacy version of Docker Compose, so you can try running `docker compose` instead of `docker-compose`
 -   Make sure you are not running an old image or container; when in doubt run `docker system prune --volumes` and clone this repository into an empty directory
 
 ## Versioning
