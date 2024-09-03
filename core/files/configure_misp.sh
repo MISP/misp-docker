@@ -354,6 +354,7 @@ update_components() {
     UPDATE_SUDO_CMD="sudo -u www-data"
     if [ ! -z "${DB_ALREADY_INITIALISED}" ]; then
         if [ ! -z "${BACKGROUND_COMPONENT_UPDATES}" ]; then
+            echo "... updates will run in the background"
             UPDATE_SUDO_CMD="sudo -b -u www-data"
         fi
     fi
@@ -437,7 +438,7 @@ echo "MISP | Init default user and organization ..." && init_user
 
 echo "MISP | Resolve critical issues ..." && apply_critical_fixes
 
-echo "MISP | Start component updates (background task) ..." && update_components
+echo "MISP | Start component updates ..." && update_components
 
 echo "MISP | Resolve non-critical issues ..." && apply_optional_fixes
 
