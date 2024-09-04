@@ -23,7 +23,7 @@ change_php_vars() {
         echo "Configure PHP | Setting 'max_input_time = ${PHP_MAX_INPUT_TIME}'"
         sed -i "s/max_input_time = .*/max_input_time = ${PHP_MAX_INPUT_TIME}/" "$FILE"
         sed -i "s/session.save_handler = .*/session.save_handler = redis/" "$FILE"
-        echo "Configure PHP | Setting 'session.save_path = '$(echo $REDIS_HOST | grep -E '^\w+://' || echo tcp://$REDIS_HOST):6379?auth=${REDIS_PASSWORD}'"
+        echo "Configure PHP | Setting 'session.save_path = '$(echo $REDIS_HOST | grep -E '^\w+://' || echo tcp://$REDIS_HOST):6379?auth=${REDIS_PASSWORD//?/x}'"
         sed -i "s|.*session.save_path = .*|session.save_path = '$(echo $REDIS_HOST | grep -E '^\w+://' || echo tcp://$REDIS_HOST):6379?auth=${REDIS_PASSWORD}'|" "$FILE"
         sed -i "s/session.sid_length = .*/session.sid_length = 64/" "$FILE"
         sed -i "s/session.use_strict_mode = .*/session.use_strict_mode = 1/" "$FILE"
