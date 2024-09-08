@@ -185,6 +185,7 @@ FROM php-base
         gpg-agent \
         mariadb-client \
         rsync \
+        python3-setuptools \
         # PHP Requirements
         php7.4 \
         php7.4-apcu \
@@ -228,6 +229,13 @@ FROM php-base
     COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/composer.lock /var/www/MISP/app/composer.lock
     COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/Vendor /var/www/MISP/app/Vendor
     COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/Plugin /var/www/MISP/app/Plugin
+
+    # python3-setuptools has been deprecated upstream (and 'distutils.version' is needed by 'mixbox')
+    RUN cp /usr/lib/python3/dist-packages/setuptools/_distutils/version.py \
+        /usr/local/lib/python3.12/site-packages/mixbox/distutils_version.py
+    RUN sed -i 's/from distutils\.version/from mixbox.distutils_version/' \
+        /usr/local/lib/python3.12/site-packages/mixbox/parser.py
+    RUN apt-get remove --purge python3-setuptools -y
 
     # Gather these in one layer, only act on actual directories under /etc/php/
     RUN <<-EOF
