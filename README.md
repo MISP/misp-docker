@@ -130,6 +130,71 @@ Custom root CA certificates can be mounted under `/usr/local/share/ca-certificat
       - "./rootca.pem:/usr/local/share/ca-certificates/rootca.crt"
 ```
 
+## Podman
+
+### Use Podman-systemd instead of Docker to:
+
+- Run containers in **rootless** mode
+- Manage containers with **systemd**
+- Write container descriptions in an **ignition** file and deploy them to an OS like **Fedora CoreOS** or similar (not covered in this documentation)
+
+### Copy the following directories and files:
+
+- Files from `podman-systemd` to `$USER/.config/containers/systemd/`
+- `template.vars` to `$USER/.config/containers/systemd/vars.env`
+
+### Change the necessary DB variables in `vars.env`:
+
+```
+MYSQL_HOST=
+MYSQL_USER=
+MYSQL_PASSWORD=
+MYSQL_ROOT_PASSWORD=
+MYSQL_DATABASE=
+```
+
+### Set the Redis password:
+
+```
+REDIS_PASSWORD=
+```
+
+### Set the base URL:
+
+```
+BASE_URL=https://<IP>:10443
+```
+
+### Reload systemd user daemon:
+
+```
+systemctl --user daemon-reload
+```
+
+### Start services:
+
+```
+systemctl --user start misp-mail.service
+systemctl --user start misp-db.service
+systemctl --user start misp-redis.service
+systemctl --user start misp-core.service
+systemctl --user start misp-modules.service
+```
+
+Wait a bit and check your service at https://<IP>:10443
+
+### To make services persistent across reboots and logouts:
+
+```
+sudo loginctl enable-linger $USER
+```
+
+### To enable Podman to periodically check for new container versions, activate the specific timer `podman-auto-update.timer`:
+
+```
+systemctl --user enable podman-auto-update.timer --now
+```
+
 ## Troubleshooting
 
 -   Make sure you run a fairly recent version of Docker and Docker Compose (if in doubt, update following the steps outlined in https://docs.docker.com/engine/install/ubuntu/)

@@ -1,0 +1,3 @@
+[Network]
+NetworkName=misp-net
+DisableDNS=false
