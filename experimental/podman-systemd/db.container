@@ -1,0 +1,26 @@
+[Unit]
+Description=MISP Database system
+Requires=misp-net-network.service
+After=misp-net-network.service
+
+[Container]
+AutoUpdate=registry
+ContainerName=db
+Image=docker.io/library/mariadb:10.11
+Network=misp-net
+Volume=mysql_data:/var/lib/mysql
+PodmanArgs=--network-alias db
+EnvironmentFile=vars.env
+AddCapability=SYS_NICE
+HealthCmd=mysqladmin --user=${MYSQL_USER} --password=${MYSQL_PASSWORD} status
+HealthInterval=2s
+HealthTimeout=1s
+HealthRetries=3
+HealthStartPeriod=30s
+
+[Service]
+EnvironmentFile=%h/.config/containers/systemd/vars.env
+Restart=always
+
+[Install]
+WantedBy=default.target

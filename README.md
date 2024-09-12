@@ -141,3 +141,65 @@ A GitHub Action builds both `misp-core` and `misp-modules` images automatically 
 -   `misp-core:${commit-sha1}[0:7]` and `misp-modules:${commit-sha1}[0:7]` where `${commit-sha1}` is the commit hash triggering the build
 -   `misp-core:latest` and `misp-modules:latest` in order to track the latest builds available 
 -   `misp-core:${CORE_TAG}` and `misp-modules:${MODULES_TAG}` reflecting the underlying version of MISP and MISP modules (as specified inside the `template.env` file at build time)
+
+## Podman (experimental)
+
+It is possible to run the image using `podman-systemd` rather than `docker` to:
+- Run containers in **rootless** mode
+- Manage containers with **systemd**
+- Write container descriptions in an **ignition** file and deploy them (not covered in this documentation)
+
+Note that this is **experimental** and it is **NOT SUPPORTED** (issues will be automatically closed).
+
+### Configuration
+
+Copy the following directories and files:
+- Content of `experimental/podman-systemd` to `$USER/.config/containers/systemd/`
+- `template.vars` to `$USER/.config/containers/systemd/vars.env`
+
+Edit `vars.env`, and initialize the following MySQL settings: 
+```bash
+MYSQL_HOST=
+MYSQL_USER=
+MYSQL_PASSWORD=
+MYSQL_ROOT_PASSWORD=
+MYSQL_DATABASE=
+```
+
+Set the Redis password:
+```bash
+REDIS_PASSWORD=
+```
+
+Set the base URL:
+```bash
+BASE_URL=https://<IP>:10443
+```
+
+### Run
+
+Reload systemd user daemon:
+```bash
+systemctl --user daemon-reload
+```
+
+Start services:
+```bash
+systemctl --user start misp-mail.service
+systemctl --user start misp-db.service
+systemctl --user start misp-redis.service
+systemctl --user start misp-core.service
+systemctl --user start misp-modules.service
+```
+
+Wait a bit and check your service at `https://<IP>:10443`.
+If everything checks out, you can make services persistent across reboots and logouts:
+```bash
+sudo loginctl enable-linger $USER
+```
+
+You can even set podman to check for new container versions by activating the specific timer `podman-auto-update.timer`:
+```bash
+systemctl --user enable podman-auto-update.timer --now
+```
+

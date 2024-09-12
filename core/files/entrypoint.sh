@@ -45,5 +45,8 @@ export PHP_UPLOAD_MAX_FILESIZE=${PHP_UPLOAD_MAX_FILESIZE:-50M}
 export PHP_POST_MAX_SIZE=${PHP_POST_MAX_SIZE:-50M}
 export PHP_MAX_INPUT_TIME=${PHP_MAX_INPUT_TIME:-300}
 
+export NGINX_X_FORWARDED_FOR=${NGINX_X_FORWARDED_FOR:-false}
+export NGINX_SET_REAL_IP_FROM=${NGINX_SET_REAL_IP_FROM}
+
 # start supervisord using the main configuration file so we have a socket interface
 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf

@@ -1,0 +1,19 @@
+[Unit]
+Description=MISP Modules
+After=redis.service
+Requires=redis.service
+
+[Container]
+AutoUpdate=registry
+ContainerName=misp-modules
+Image=ghcr.io/misp/misp-docker/misp-modules:latest
+Network=misp-net
+PodmanArgs=--network-alias misp-modules
+EnvironmentFile=vars.env
+
+[Service]
+EnvironmentFile=%h/.config/containers/systemd/vars.env
+ExecStartPre=/bin/sleep 30
+
+[Install]
+WantedBy=default.target

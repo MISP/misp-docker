@@ -206,6 +206,26 @@ init_nginx() {
     echo "... adjusting 'fastcgi_connect_timeout' to ${FASTCGI_CONNECT_TIMEOUT}"
     sed -i "s/fastcgi_connect_timeout .*;/fastcgi_connect_timeout ${FASTCGI_CONNECT_TIMEOUT};/" /etc/nginx/includes/misp
 
+    # Adjust forwarding header settings (clean up first)
+    sed -i '/real_ip_header/d' /etc/nginx/includes/misp
+    sed -i '/real_ip_recursive/d' /etc/nginx/includes/misp
+    sed -i '/set_real_ip_from/d' /etc/nginx/includes/misp
+    if [[ "$NGINX_X_FORWARDED_FOR" = "true" ]]; then
+        echo "... enabling X-Forwarded-For header"
+        echo "... setting 'real_ip_header X-Forwarded-For'"
+        echo "... setting 'real_ip_recursive on'"
+        sed -i "/index index.php/a real_ip_header X-Forwarded-For;\nreal_ip_recursive on;" /etc/nginx/includes/misp
+        if [[ ! -z "$NGINX_SET_REAL_IP_FROM" ]]; then
+            SET_REAL_IP_FROM_PRINT=$(echo $NGINX_SET_REAL_IP_FROM | tr ',' '\n')
+            for real_ip in ${SET_REAL_IP_FROM_PRINT[@]}; do
+                echo "... setting 'set_real_ip_from ${real_ip}'"
+            done
+            SET_REAL_IP_FROM=$(echo $NGINX_SET_REAL_IP_FROM | tr ',' '\n' | while read line; do echo -n "set_real_ip_from ${line};\n"; done)
+            SET_REAL_IP_FROM_ESCAPED=$(echo $SET_REAL_IP_FROM | sed '$!s/$/\\/' | sed 's/\\n$//')
+            sed -i "/real_ip_recursive on/a $SET_REAL_IP_FROM_ESCAPED" /etc/nginx/includes/misp
+        fi
+    fi
+
     # Testing for files also test for links, and generalize better to mounted files
     if [[ ! -f "/etc/nginx/sites-enabled/misp80" ]]; then
         echo "... enabling port 80 redirect"

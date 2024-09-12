@@ -1,0 +1,26 @@
+[Unit]
+Description=MISP Redis system
+Requires=misp-net-network.service
+After=misp-net-network.service
+
+[Container]
+EnvironmentFile=vars.env
+AutoUpdate=registry
+ContainerName=redis
+Image=docker.io/valkey/valkey:7.2
+Network=misp-net
+Volume=redis_data:/data
+PodmanArgs=--network-alias redis
+Exec=--requirepass ${REDIS_PASSWORD}
+HealthCmd=valkey-cli -a ${REDIS_PASSWORD} ping
+HealthInterval=2s
+HealthTimeout=1s
+HealthRetries=3
+HealthStartPeriod=30s
+
+[Service]
+EnvironmentFile=%h/.config/containers/systemd/vars.env
+Restart=always
+
+[Install]
+WantedBy=default.target
