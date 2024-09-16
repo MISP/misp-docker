@@ -185,7 +185,6 @@ FROM php-base
         gpg-agent \
         mariadb-client \
         rsync \
-        python3-setuptools \
         # PHP Requirements
         php7.4 \
         php7.4-apcu \
@@ -219,7 +218,6 @@ FROM php-base
     # Install python modules
     COPY --from=python-build /wheels /wheels
     RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
-    RUN pip uninstall -y pip
 
     # PHP: install prebuilt libraries, then install the app's PHP deps
     COPY --from=php-build ["/usr/lib/php/${PHP_VER}/ssdeep.so", "/usr/lib/php/${PHP_VER}/rdkafka.so", "/usr/lib/php/${PHP_VER}/brotli.so", "/usr/lib/php/${PHP_VER}/simdjson.so", "/usr/lib/php/${PHP_VER}/zstd.so", "/usr/lib/php/${PHP_VER}/"]
@@ -230,12 +228,13 @@ FROM php-base
     COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/Vendor /var/www/MISP/app/Vendor
     COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/Plugin /var/www/MISP/app/Plugin
 
-    # python3-setuptools has been deprecated upstream (and 'distutils.version' is needed by 'mixbox')
-    RUN cp /usr/lib/python3/dist-packages/setuptools/_distutils/version.py \
+    # 'setuptools' is needed at runtime by 'mixbox'
+    RUN pip install setuptools
+    RUN cp /usr/local/lib/python3.12/site-packages/setuptools/_distutils/version.py \
         /usr/local/lib/python3.12/site-packages/mixbox/distutils_version.py
     RUN sed -i 's/from distutils\.version/from mixbox.distutils_version/' \
         /usr/local/lib/python3.12/site-packages/mixbox/parser.py
-    RUN apt-get remove --purge python3-setuptools -y
+    RUN pip uninstall -y setuptools pip
 
     # Gather these in one layer, only act on actual directories under /etc/php/
     RUN <<-EOF
