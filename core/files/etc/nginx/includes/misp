@@ -24,7 +24,7 @@ location / {
 
 location ~ ^/[^/]+\.php(/|$) {
     include snippets/fastcgi-php.conf;
-    fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+    fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
     fastcgi_read_timeout 300s;
     fastcgi_send_timeout 300s;
     fastcgi_connect_timeout 300s;

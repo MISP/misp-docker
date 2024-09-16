@@ -6,7 +6,12 @@ FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" AS python-build
     ARG MODULES_COMMIT
     ARG LIBFAUP_COMMIT
 
+    # Uncomment when building in corporate environments
+    # COPY ./cert.pem /usr/local/share/ca-certificates/rootca.pem
+    # COPY ./cert.pem /usr/lib/ssl/cert.pem
+
     RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates \
         cmake \
         git \
         build-essential \

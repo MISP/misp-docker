@@ -6,3 +6,4 @@
 .env
 env.hcl
 rootca.crt
+cert.pem
