@@ -185,9 +185,9 @@ systemctl --user daemon-reload
 
 Start services:
 ```bash
-systemctl --user start misp-mail.service
-systemctl --user start misp-db.service
-systemctl --user start misp-redis.service
+systemctl --user start mail.service
+systemctl --user start db.service
+systemctl --user start redis.service
 systemctl --user start misp-core.service
 systemctl --user start misp-modules.service
 ```
