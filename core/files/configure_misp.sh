@@ -72,46 +72,72 @@ GPGEOF
 }
 
 set_up_oidc() {
-    if [[ "$OIDC_ENABLE" != "true" ]]; then
-        echo "... OIDC authentication disabled"
-        return
-    fi
+    if [[ "$OIDC_ENABLE" == "true" ]]; then
+        if [[ -z "$OIDC_ROLES_MAPPING" ]]; then
+            OIDC_ROLES_MAPPING="\"\""
+        fi
 
-    if [[ -z "$OIDC_ROLES_MAPPING" ]]; then
-        OIDC_ROLES_MAPPING="\"\""
-    fi
+        # Check required variables
+        # OIDC_ISSUER may be empty
+        check_env_vars OIDC_PROVIDER_URL OIDC_CLIENT_ID OIDC_CLIENT_SECRET OIDC_ROLES_PROPERTY OIDC_ROLES_MAPPING OIDC_DEFAULT_ORG
 
-    # Check required variables
-    # OIDC_ISSUER may be empty
-    check_env_vars OIDC_PROVIDER_URL OIDC_CLIENT_ID OIDC_CLIENT_SECRET OIDC_ROLES_PROPERTY OIDC_ROLES_MAPPING OIDC_DEFAULT_ORG
+        # Configure OIDC in MISP
+        sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+            \"Security\": {
+                \"auth\": [\"OidcAuth.Oidc\"]
+            }
+        }" > /dev/null
 
-    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
-        \"Security\": {
-            \"auth\": [\"OidcAuth.Oidc\"]
-        }
-    }" > /dev/null
+        # Set OIDC authentication details in MISP
+        sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+            \"OidcAuth\": {
+                \"provider_url\": \"${OIDC_PROVIDER_URL}\",
+                ${OIDC_ISSUER:+\"issuer\": \"${OIDC_ISSUER}\",}
+                \"client_id\": \"${OIDC_CLIENT_ID}\",
+                \"client_secret\": \"${OIDC_CLIENT_SECRET}\",
+                \"roles_property\": \"${OIDC_ROLES_PROPERTY}\",
+                \"role_mapper\": ${OIDC_ROLES_MAPPING},
+                \"default_org\": \"${OIDC_DEFAULT_ORG}\"
+            }
+        }" > /dev/null
 
-    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
-        \"OidcAuth\": {
-            \"provider_url\": \"${OIDC_PROVIDER_URL}\",
-            ${OIDC_ISSUER:+\"issuer\": \"${OIDC_ISSUER}\",}
-            \"client_id\": \"${OIDC_CLIENT_ID}\",
-            \"client_secret\": \"${OIDC_CLIENT_SECRET}\",
-            \"roles_property\": \"${OIDC_ROLES_PROPERTY}\",
-            \"role_mapper\": ${OIDC_ROLES_MAPPING},
-            \"default_org\": \"${OIDC_DEFAULT_ORG}\"
-        }
-    }" > /dev/null
+        # Set the custom logout URL for OIDC if it is defined
+        if [[ -n "${OIDC_LOGOUT_URL}" ]]; then
+            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_custom_logout" "${OIDC_LOGOUT_URL}&post_logout_redirect_uri=${BASE_URL}/users/login"
+        else
+            echo "OIDC_LOGOUT_URL is not set"
+        fi
 
-    # Set the custom logout URL for the OIDC plugin only if OIDC_LOGOUT_URL is defined
-    if [[ -n "${OIDC_LOGOUT_URL}" ]]; then
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_custom_logout" "${OIDC_LOGOUT_URL}&post_logout_redirect_uri=${BASE_URL}/users/login"
+        # Disable password confirmation as recommended in https://github.com/MISP/MISP/issues/8116
+        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
+
+        echo "... OIDC authentication enabled"
+
     else
-        echo "OIDC_LOGOUT_URL is not set"
-    fi
+        # Reset OIDC authentication settings to empty values
+        sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+            \"OidcAuth\": {
+                \"provider_url\": \"\",
+                \"issuer\": \"\",
+                \"client_id\": \"\",
+                \"client_secret\": \"\",
+                \"roles_property\": \"\",
+                \"role_mapper\": \"\",
+                \"default_org\": \"\"
+            }
+        }" > /dev/null
 
-    # Disable password confirmation as stated at https://github.com/MISP/MISP/issues/8116
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
+        # Use sed to remove the OidcAuth.Oidc entry from the 'auth' array in the config.php
+        sudo sed -i "/'auth' =>/,/)/ { /0 => 'OidcAuth.Oidc',/d; }" /var/www/MISP/app/Config/config.php
+
+        # Remove the custom logout URL
+        sed -i "/'CustomAuth_custom_logout' =>/d" /var/www/MISP/app/Config/config.php
+
+        # Re-enable password confirmation if necessary
+        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" true
+
+        echo "... OIDC authentication disabled"
+    fi
 }
 
 set_up_ldap() {
