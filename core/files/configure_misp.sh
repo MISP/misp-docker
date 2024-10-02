@@ -103,6 +103,13 @@ set_up_oidc() {
         }
     }" > /dev/null
 
+    # Set the custom logout URL for the OIDC plugin only if OIDC_LOGOUT_URL is defined
+    if [[ -n "${OIDC_LOGOUT_URL}" ]]; then
+        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_custom_logout" "${OIDC_LOGOUT_URL}&post_logout_redirect_uri=${BASE_URL}/users/login"
+    else
+        echo "OIDC_LOGOUT_URL is not set"
+    fi
+
     # Disable password confirmation as stated at https://github.com/MISP/MISP/issues/8116
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
 }
