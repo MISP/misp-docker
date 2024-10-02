@@ -128,10 +128,10 @@ set_up_oidc() {
         }" > /dev/null
 
         # Use sed to remove the OidcAuth.Oidc entry from the 'auth' array in the config.php
-        sudo sed -i "/'auth' =>/,/)/ { /0 => 'OidcAuth.Oidc',/d; }" /var/www/MISP/app/Config/config.php
+        sudo -u www-data sed -i "/'auth' =>/,/)/ { /0 => 'OidcAuth.Oidc',/d; }" /var/www/MISP/app/Config/config.php
 
         # Remove the custom logout URL
-        sed -i "/'CustomAuth_custom_logout' =>/d" /var/www/MISP/app/Config/config.php
+        sudo -u www-data sed -i "/'CustomAuth_custom_logout' =>/d" /var/www/MISP/app/Config/config.php
 
         # Re-enable password confirmation if necessary
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" true
