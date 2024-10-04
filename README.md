@@ -134,6 +134,7 @@ Custom root CA certificates can be mounted under `/usr/local/share/ca-certificat
 
 -   Make sure you run a fairly recent version of Docker and Docker Compose (if in doubt, update following the steps outlined in https://docs.docker.com/engine/install/ubuntu/)
 -   Make sure you are not running an old image or container; when in doubt run `docker system prune --volumes` and clone this repository into an empty directory
+-   If you receive an error that the 'start_interval' does not match any of the regexes, update Docker following the steps outlined in https://docs.docker.com/engine/install/ubuntu/)
 
 ## Versioning
 

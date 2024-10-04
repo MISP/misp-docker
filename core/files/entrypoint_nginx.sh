@@ -226,6 +226,47 @@ init_nginx() {
         fi
     fi
 
+    # Adjust Content-Security-Policy
+    echo "... adjusting Content-Security-Policy"
+    # Remove any existing CSP header
+    sed -i '/add_header Content-Security-Policy/d' /etc/nginx/includes/misp
+
+    if [[ -n "$CONTENT_SECURITY_POLICY" ]]; then
+        # If $CONTENT_SECURITY_POLICY is set, add CSP header
+        echo "... setting Content-Security-Policy to '$CONTENT_SECURITY_POLICY'"
+        sed -i "/add_header X-Download-Options/a add_header Content-Security-Policy \"$CONTENT_SECURITY_POLICY\";" /etc/nginx/includes/misp
+    else
+        # Otherwise, do not add any CSP headers
+        echo "... no Content-Security-Policy header will be set as CONTENT_SECURITY_POLICY is not defined"
+    fi
+
+    # Adjust X-Frame-Options
+    echo "... adjusting X-Frame-Options"
+    # Remove any existing X-Frame-Options header
+    sed -i '/add_header X-Frame-Options/d' /etc/nginx/includes/misp
+
+    if [[ -z "$X_FRAME_OPTIONS" ]]; then
+        echo "... setting 'X-Frame-Options SAMEORIGIN'"
+        sed -i "/add_header X-Download-Options/a add_header X-Frame-Options \"SAMEORIGIN\" always;" /etc/nginx/includes/misp
+    else
+        echo "... setting 'X-Frame-Options $X_FRAME_OPTIONS'"
+        sed -i "/add_header X-Download-Options/a add_header X-Frame-Options \"$X_FRAME_OPTIONS\";" /etc/nginx/includes/misp
+    fi
+
+    # Adjust HTTP Strict Transport Security (HSTS)
+    echo "... adjusting HTTP Strict Transport Security (HSTS)"
+    # Remove any existing HSTS header
+    sed -i '/add_header Strict-Transport-Security/d' /etc/nginx/includes/misp
+
+    if [[ -n "$HSTS_MAX_AGE" ]]; then
+        # If $HSTS_MAX_AGE is defined, add the HSTS header
+        echo "... setting HSTS to 'max-age=$HSTS_MAX_AGE; includeSubdomains'"
+        sed -i "/add_header X-Download-Options/a add_header Strict-Transport-Security \"max-age=$HSTS_MAX_AGE; includeSubdomains\";" /etc/nginx/includes/misp
+    else
+        # Otherwise, do nothing, keeping without the HSTS header
+        echo "... no HSTS header will be set as HSTS_MAX_AGE is not defined"
+    fi
+
     # Testing for files also test for links, and generalize better to mounted files
     if [[ ! -f "/etc/nginx/sites-enabled/misp80" ]]; then
         echo "... enabling port 80 redirect"
