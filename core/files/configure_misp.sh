@@ -236,7 +236,7 @@ set_session() {
         }
     }" > /dev/null
 
-    echo "... Session configured."
+    echo "... Session configured"
 }
 
 set_up_proxy() {
