@@ -219,7 +219,7 @@ set_up_aad() {
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
 }
 
-set_session() {
+set_up_session() {
     # Command to modify MISP session configuration
     sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
         \"Session\": {
@@ -237,15 +237,6 @@ set_session() {
     }" > /dev/null
 
     echo "... Session configured"
-}
-
-set_up_proxy() {
-    if [[ "$PROXY_ENABLE" == "true" ]]; then
-        echo "... configuring proxy settings"
-        init_settings "proxy"
-    else
-        echo "... Proxy disabled"
-    fi
 }
 
 set_up_proxy() {
@@ -440,7 +431,7 @@ echo "MISP | Set Up LDAP ..." && set_up_ldap
 
 echo "MISP | Set Up AAD ..." && set_up_aad
 
-echo "MISP | Set Up Session ..." && set_session
+echo "MISP | Set Up Session ..." && set_up_session
 
 echo "MISP | Set Up Proxy ..." && set_up_proxy
 
