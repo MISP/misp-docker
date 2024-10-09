@@ -223,15 +223,15 @@ set_up_session() {
     # Command to modify MISP session configuration
     sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
         \"Session\": {
-            \"timeout\": ${PHP_TIMEOUT},
-            \"cookie_timeout\": ${PHP_COOKIE_TIMEOUT},
-            \"defaults\": \"${PHP_DEFAULTS}\",
-            \"autoRegenerate\": ${PHP_AUTO_REGENERATE},
-            \"checkAgent\": ${PHP_CHECK_AGENT},
+            \"timeout\": ${PHP_SESSION_TIMEOUT},
+            \"cookie_timeout\": ${PHP_SESSION_COOKIE_TIMEOUT},
+            \"defaults\": \"${PHP_SESSION_DEFAULTS}\",
+            \"autoRegenerate\": ${PHP_SESSION_AUTO_REGENERATE},
+            \"checkAgent\": ${PHP_SESSION_CHECK_AGENT},
             \"ini\": {
-                \"session.cookie_secure\": ${PHP_COOKIE_SECURE},
-                \"session.cookie_domain\": \"${PHP_COOKIE_DOMAIN}\",
-                \"session.cookie_samesite\": \"${PHP_COOKIE_SAMESITE}\"
+                \"session.cookie_secure\": ${PHP_SESSION_COOKIE_SECURE},
+                \"session.cookie_domain\": \"${PHP_SESSION_COOKIE_DOMAIN}\",
+                \"session.cookie_samesite\": \"${PHP_SESSION_COOKIE_SAMESITE}\"
             }
         }
     }" > /dev/null
