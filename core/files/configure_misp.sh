@@ -219,6 +219,26 @@ set_up_aad() {
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
 }
 
+set_up_session() {
+    # Command to modify MISP session configuration
+    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+        \"Session\": {
+            \"timeout\": ${PHP_SESSION_TIMEOUT},
+            \"cookie_timeout\": ${PHP_SESSION_COOKIE_TIMEOUT},
+            \"defaults\": \"${PHP_SESSION_DEFAULTS}\",
+            \"autoRegenerate\": ${PHP_SESSION_AUTO_REGENERATE},
+            \"checkAgent\": ${PHP_SESSION_CHECK_AGENT},
+            \"ini\": {
+                \"session.cookie_secure\": ${PHP_SESSION_COOKIE_SECURE},
+                \"session.cookie_domain\": \"${PHP_SESSION_COOKIE_DOMAIN}\",
+                \"session.cookie_samesite\": \"${PHP_SESSION_COOKIE_SAMESITE}\"
+            }
+        }
+    }" > /dev/null
+
+    echo "... Session configured"
+}
+
 set_up_proxy() {
     if [[ "$PROXY_ENABLE" == "true" ]]; then
         echo "... configuring proxy settings"
@@ -410,6 +430,8 @@ echo "MISP | Set Up OIDC ..." && set_up_oidc
 echo "MISP | Set Up LDAP ..." && set_up_ldap
 
 echo "MISP | Set Up AAD ..." && set_up_aad
+
+echo "MISP | Set Up Session ..." && set_up_session
 
 echo "MISP | Set Up Proxy ..." && set_up_proxy
 
