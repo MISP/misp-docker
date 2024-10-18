@@ -27,6 +27,14 @@ Notable features:
 
 The underlying spirit of this project is to allow "repeatable deployments", and all pull requests in this direction will be merged post-haste.
 
+## Warning 
+
+As part of our recent efforts to reduce the number of CVEs affecting the Docker images, we recently changed the base image from Debian Bookworm to Ubuntu 24.04.
+
+While the transition did not affect MISP and MISP modules, the GitHub Action triggered a bug affecting `libcurl`  and Ubuntu 24.04 when running on `linux/arm64` and establishing TLS connections to `api.github.com` when the server decides toreturn a 302. The issue is being discussed here https://github.com/curl/curl/issues/14154 and being further investigated here https://bugs.launchpad.net/ubuntu/+source/curl/+bug/2073448.
+
+To allow the build to complete, we temporarily disabled TLS verification (see `core/Dockerfile` when using `composer` to install PHP dependencies; the temporary workaround affects only the build when the target platform is `linux/arm64`, leaving the `linux/amd64` build unaffected.
+
 ## Getting Started
 
 -   Copy the `template.env` to `.env` 
