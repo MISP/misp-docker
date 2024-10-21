@@ -129,6 +129,47 @@ Custom root CA certificates can be mounted under `/usr/local/share/ca-certificat
       # mount custom ca root certificates
       - "./rootca.pem:/usr/local/share/ca-certificates/rootca.crt"
 ```
+Backup and Restore MISP in Docker using Volume Archiving and Copy-Paste in another instance.
+
+1. **Stop the MISP container**:
+
+   ```bash
+   docker compose down
+   ```
+
+2. **Create an archive of the `misp-docker_mysql_data` volume**:
+   Use `tar` to archive the volume data:
+
+   ```bash
+   tar -cvzf /root/misp_mysql_backup.tar.gz /var/lib/docker/volumes/misp-docker_mysql_data/
+   ```
+
+3. **Start the MISP container**:
+
+   ```bash
+   docker compose up -d
+   ```
+
+## Restore
+
+1. **Stop the MISP container**:
+
+   ```bash
+   docker compose down>
+   ```
+
+2. **Unpack the backup and overwrite the existing data**:
+   Use the `--overwrite` option to replace the existing files:
+
+   ```bash
+   tar -xvzf /path_to_backup/misp_mysql_backup.tar.gz -C /var/lib/docker/volumes/misp-docker_mysql_data/ --overwrite
+   ```
+
+3. **Start the MISP container**:
+
+   ```bash
+   docker compose up -d
+   ```
 
 ## Troubleshooting
 
