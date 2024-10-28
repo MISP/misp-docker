@@ -19,7 +19,8 @@ services:
       interval: 2s
       timeout: 1s
       retries: 3
-      start_period: 30s
+      start_period: 5s
+      start_interval: 5s
 
   db:
     # We use MariaDB because it supports ARM and has the expected collations
@@ -49,6 +50,7 @@ services:
       timeout: 1s
       retries: 3
       start_period: 30s
+      start_interval: 5s
 
   misp-core:
     image: ghcr.io/misp/misp-docker/misp-core:${CORE_RUNNING_TAG:-latest}
@@ -74,6 +76,8 @@ services:
       redis:
         condition: service_healthy
       db:
+        condition: service_healthy
+      misp-modules:
         condition: service_healthy
     healthcheck:
       test: curl -ks ${BASE_URL:-https://localhost}/users/heartbeat > /dev/null || exit 1
@@ -223,6 +227,13 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    healthcheck:
+      test: "/bin/bash -c '</dev/tcp/localhost/6666'"
+      interval: 2s
+      timeout: 1s
+      retries: 3
+      start_period: 5s
+      start_interval: 5s
 
 volumes:
     mysql_data:
