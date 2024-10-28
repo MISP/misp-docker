@@ -9,6 +9,7 @@ term_proc() {
 trap term_proc SIGTERM
 
 change_php_vars() {
+    ESCAPED=$(printf '%s\n' "$REDIS_PASSWORD" | sed -e 's/[\/&]/\\&/g')
     for FILE in /etc/php/*/fpm/php.ini
     do
         [[ -e $FILE ]] || break
@@ -23,8 +24,8 @@ change_php_vars() {
         echo "Configure PHP | Setting 'max_input_time = ${PHP_MAX_INPUT_TIME}'"
         sed -i "s/max_input_time = .*/max_input_time = ${PHP_MAX_INPUT_TIME}/" "$FILE"
         sed -i "s/session.save_handler = .*/session.save_handler = redis/" "$FILE"
-        echo "Configure PHP | Setting 'session.save_path = '$(echo $REDIS_HOST | grep -E '^\w+://' || echo tcp://$REDIS_HOST):6379?auth=${REDIS_PASSWORD}'"
-        sed -i "s|.*session.save_path = .*|session.save_path = '$(echo $REDIS_HOST | grep -E '^\w+://' || echo tcp://$REDIS_HOST):6379?auth=${REDIS_PASSWORD}'|" "$FILE"
+        echo "Configure PHP | Setting 'session.save_path = '$(echo $REDIS_HOST | grep -E '^\w+://' || echo tcp://$REDIS_HOST):$REDIS_PORT?auth=${ESCAPED}'"
+        sed -i "s|.*session.save_path = .*|session.save_path = '$(echo $REDIS_HOST | grep -E '^\w+://' || echo tcp://$REDIS_HOST):$REDIS_PORT?auth=${ESCAPED}'|" "$FILE"
         sed -i "s/session.sid_length = .*/session.sid_length = 64/" "$FILE"
         sed -i "s/session.use_strict_mode = .*/session.use_strict_mode = 1/" "$FILE"
     done
