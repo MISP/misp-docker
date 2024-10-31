@@ -97,10 +97,20 @@ set_up_oidc() {
                 \"client_secret\": \"${OIDC_CLIENT_SECRET}\",
                 \"roles_property\": \"${OIDC_ROLES_PROPERTY}\",
                 \"role_mapper\": ${OIDC_ROLES_MAPPING},
-                \"default_org\": \"${OIDC_DEFAULT_ORG}\",
-                \"scopes\": ${OIDC_SCOPES}
+                \"default_org\": \"${OIDC_DEFAULT_ORG}\"
             }
         }" > /dev/null
+
+        # Check if OIDC_SCOPES is set and not empty
+        if [[ -n "$OIDC_SCOPES" ]]; then
+            # Run the modify_config.php script to update OidcAuth configuration with the provided OIDC_SCOPES
+            # The 'scopes' field will only be added if OIDC_SCOPES has a value
+            sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+                \"OidcAuth\": {
+                    ${OIDC_SCOPES:+\"scopes\": \"${OIDC_SCOPES}\"}
+                }
+            }" > /dev/null
+        fi
 
         # Set the custom logout URL for OIDC if it is defined
         if [[ -n "${OIDC_LOGOUT_URL}" ]]; then
@@ -127,6 +137,10 @@ set_up_oidc() {
                 \"default_org\": \"\"
             }
         }" > /dev/null
+
+        # Remove the line containing 'scopes' => from config.php
+        # This prevents an empty scopes entry from being loaded in the configuration.
+        sudo -u www-data sed -i "/'scopes' =>/d" /var/www/MISP/app/Config/config.php
 
         # Use sed to remove the OidcAuth.Oidc entry from the 'auth' array in the config.php
         sudo -u www-data sed -i "/'auth' =>/,/)/ { /0 => 'OidcAuth.Oidc',/d; }" /var/www/MISP/app/Config/config.php
