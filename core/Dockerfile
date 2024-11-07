@@ -78,7 +78,7 @@ FROM php-base AS php-build
         pecl install zstd && \
         pecl install brotli
 
-    # install pect-text-ssdeep 1.2
+    # install pecl-text-ssdeep 1.2
     RUN git clone --recursive --depth=1 https://github.com/JakubOnderka/pecl-text-ssdeep.git /tmp/pecl-text-ssdeep
     RUN cd /tmp/pecl-text-ssdeep && phpize && ./configure && make && make install
 

@@ -279,10 +279,13 @@ init_user() {
     echo "UPDATE $MYSQL_DATABASE.users SET email = \"${ADMIN_EMAIL}\" WHERE id = 1;" | ${MYSQL_CMD}
 
     if [ ! -z "$ADMIN_ORG" ]; then
+        echo "... setting admin org to '${ADMIN_ORG}'"
         echo "UPDATE $MYSQL_DATABASE.organisations SET name = \"${ADMIN_ORG}\" where id = 1;" | ${MYSQL_CMD}
+        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.org" "${ADMIN_ORG}"
     fi
 
     if [ ! -z "$ADMIN_ORG_UUID" ]; then
+        echo "... setting admin org uuid to '${ADMIN_ORG_UUID}'"
         echo "UPDATE $MYSQL_DATABASE.organisations SET uuid = \"${ADMIN_ORG_UUID}\" where id = 1;" | ${MYSQL_CMD}
     fi
 
