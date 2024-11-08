@@ -282,6 +282,10 @@ init_user() {
         echo "UPDATE $MYSQL_DATABASE.organisations SET name = \"${ADMIN_ORG}\" where id = 1;" | ${MYSQL_CMD}
     fi
 
+    if [ ! -z "$ADMIN_ORG_UUID" ]; then
+        echo "UPDATE $MYSQL_DATABASE.organisations SET uuid = \"${ADMIN_ORG_UUID}\" where id = 1;" | ${MYSQL_CMD}
+    fi
+
     if [ -n "$ADMIN_KEY" ]; then
         echo "... setting admin key to '${ADMIN_KEY}'"
         CHANGE_CMD=(sudo -u www-data /var/www/MISP/app/Console/cake User change_authkey 1 "${ADMIN_KEY}")
