@@ -101,13 +101,13 @@ set_up_oidc() {
             }
         }" > /dev/null
 
-        # Check if OIDC_SCOPES is set and not empty
-        if [[ -n "$OIDC_SCOPES" ]]; then
+        # Check if OIDC_SCOPES is set and is an array
+        if [[ "$(echo "$OIDC_SCOPES" | jq type -r)" == "array" ]]; then
             # Run the modify_config.php script to update OidcAuth configuration with the provided OIDC_SCOPES
             # The 'scopes' field will only be added if OIDC_SCOPES has a value
             sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
                 \"OidcAuth\": {
-                    ${OIDC_SCOPES:+\"scopes\": \"${OIDC_SCOPES}\"}
+                    \"scopes\": ${OIDC_SCOPES}
                 }
             }" > /dev/null
         fi
