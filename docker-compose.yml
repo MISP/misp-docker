@@ -112,6 +112,7 @@ services:
       - "ADMIN_PASSWORD=${ADMIN_PASSWORD}"
       - "ADMIN_KEY=${ADMIN_KEY}"
       - "ADMIN_ORG=${ADMIN_ORG}"
+      - "ADMIN_ORG_UUID=${ADMIN_ORG_UUID}"
       - "GPG_PASSPHRASE=${GPG_PASSPHRASE}"
       # OIDC authentication settings
       - "OIDC_ENABLE=${OIDC_ENABLE}"
