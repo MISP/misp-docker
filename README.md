@@ -109,6 +109,17 @@ If it is a setting controlled by an environment variable which is meant to overr
     -   `./gnupg`: `/var/www/MISP/.gnupg/`
 -   If you need to automatically run additional steps each time the container starts, create a new file `files/customize_misp.sh`, and replace the variable `${CUSTOM_PATH}` inside `docker-compose.yml` with its parent path.
 
+#### Using slow disks as volume mounts
+
+Using a slow disk as the mounted volume or a volume with high latency like NFS, EFS or S3 might significantly increase the startup time and downgrade the performance of the service. To address this we will mount the bare minimum that needs to be persisted.
+
+- Remove the `/var/www/MISP/app/files/` volume mount.
+- Add the following volume mounts instead:
+    - `./img/`: `/var/www/MISP/app/files/img`
+    - `./terms`: `/var/www/MISP/app/files/terms`
+    - `./attachments`: `/var/www/MISP/app/attachments`
+- Set the environment variable `ATTACHMENTS_DIR` to the above folder location (it is important that it doesn't replace the `/var/www/MISP/app/files/` folder). 
+
 ## Installing custom root CA certificates
 
 Custom root CA certificates can be mounted under `/usr/local/share/ca-certificates` and will be installed during the `misp-core` container start.
