@@ -12,6 +12,9 @@
   "MISP.contact": {
     "default_value": "${SETTING_CONTACT}"
   },
+  "MISP.attachments_dir": {
+    "default_value": "${ATTACHMENTS_DIR}"
+  },
   "Security.encryption_key": {
     "default_value": "${ENCRYPTION_KEY}",
     "command_args": "-f"

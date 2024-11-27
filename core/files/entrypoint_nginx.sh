@@ -138,6 +138,15 @@ EOT
 }
 
 update_misp_data_files(){
+    # If $MISP_APP_FILES_PATH was not changed since the build, skip file updates there
+    FILES_VERSION=
+    MISP_APP_FILES_PATH=/var/www/MISP/app/files
+    if [ -f ${MISP_APP_FILES_PATH}/VERSION ]; then
+        FILES_VERSION=$(cat ${MISP_APP_FILES_PATH}/VERSION)
+    fi
+    if [ $FILES_VERSION = ${CORE_COMMIT:-${CORE_TAG}} ]; then
+        return 0;
+    fi
     for DIR in $(ls /var/www/MISP/app/files.dist); do
         if [ "$DIR" = "certs" ] || [ "$DIR" = "img" ] || [ "$DIR" == "taxonomies" ] ; then
             echo "... rsync -azh \"/var/www/MISP/app/files.dist/$DIR\" \"/var/www/MISP/app/files/\""
@@ -150,21 +159,29 @@ update_misp_data_files(){
 }
 
 enforce_misp_data_permissions(){
-    echo "... chown -R www-data:www-data /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
-    # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
-    echo "... chmod -R 0550 files /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp -not -perm 550 -type f -exec chmod 0550 {} +
-    # Directories are also writable, because there seems to be a requirement to add new files every once in a while
-    echo "... chmod -R 0770 directories /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp -not -perm 770 -type d -exec chmod 0770 {} +
-    # We make 'files' and 'tmp' (logs) directories and files user and group writable (we removed the SGID bit)
-    echo "... chmod -R u+w,g+w /var/www/MISP/app/tmp" && chmod -R u+w,g+w /var/www/MISP/app/tmp
-    
-    echo "... chown -R www-data:www-data /var/www/MISP/app/files" && find /var/www/MISP/app/files \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
-    # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
-    echo "... chmod -R 0550 files /var/www/MISP/app/files" && find /var/www/MISP/app/files -not -perm 550 -type f -exec chmod 0550 {} +
-    # Directories are also writable, because there seems to be a requirement to add new files every once in a while
-    echo "... chmod -R 0770 directories /var/www/MISP/app/files" && find /var/www/MISP/app/files -not -perm 770 -type d -exec chmod 0770 {} +
-    # We make 'files' and 'tmp' (logs) directories and files user and group writable (we removed the SGID bit)
-    echo "... chmod -R u+w,g+w /var/www/MISP/app/files" && chmod -R u+w,g+w /var/www/MISP/app/files
+    # If $MISP_APP_FILES_PATH was not changed since the build, skip file updates there
+    FILES_VERSION=
+    MISP_APP_FILES_PATH=/var/www/MISP/app/files
+    if [ -f ${MISP_APP_FILES_PATH}/VERSION ]; then
+        FILES_VERSION=$(cat ${MISP_APP_FILES_PATH}/VERSION)
+    fi
+    if [ $FILES_VERSION != ${CORE_COMMIT:-${CORE_TAG}} ]; then
+        echo "... chown -R www-data:www-data /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
+        # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
+        echo "... chmod -R 0550 files /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp -not -perm 550 -type f -exec chmod 0550 {} +
+        # Directories are also writable, because there seems to be a requirement to add new files every once in a while
+        echo "... chmod -R 0770 directories /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp -not -perm 770 -type d -exec chmod 0770 {} +
+        # We make 'files' and 'tmp' (logs) directories and files user and group writable (we removed the SGID bit)
+        echo "... chmod -R u+w,g+w /var/www/MISP/app/tmp" && chmod -R u+w,g+w /var/www/MISP/app/tmp
+        
+        echo "... chown -R www-data:www-data /var/www/MISP/app/files" && find /var/www/MISP/app/files \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
+        # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
+        echo "... chmod -R 0550 files /var/www/MISP/app/files" && find /var/www/MISP/app/files -not -perm 550 -type f -exec chmod 0550 {} +
+        # Directories are also writable, because there seems to be a requirement to add new files every once in a while
+        echo "... chmod -R 0770 directories /var/www/MISP/app/files" && find /var/www/MISP/app/files -not -perm 770 -type d -exec chmod 0770 {} +
+        # We make 'files' and 'tmp' (logs) directories and files user and group writable (we removed the SGID bit)
+        echo "... chmod -R u+w,g+w /var/www/MISP/app/files" && chmod -R u+w,g+w /var/www/MISP/app/files
+    fi
     
     echo "... chown -R www-data:www-data /var/www/MISP/app/Config" && find /var/www/MISP/app/Config \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
     # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory

@@ -253,6 +253,7 @@ EOF
 
     RUN <<-EOF
         cp -R /var/www/MISP/app/files /var/www/MISP/app/files.dist
+        echo "${CORE_COMMIT:-${CORE_TAG}}" > /var/www/MISP/app/files/VERSION
         cp -R /var/www/MISP/app/Config /var/www/MISP/app/Config.dist
         find /var/www/MISP \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data '{}' +;
         find /var/www/MISP -not -perm 550 -type f -exec chmod 0550 '{}' +;
