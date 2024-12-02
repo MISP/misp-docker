@@ -80,6 +80,9 @@
   "MISP.event_alert_republish_ban_threshold": {
     "default_value": 120
   },
+  "MISP.attachments_dir": {
+    "default_value": "/var/www/MISP/app/files"
+  },
   "Security.advanced_authkeys": {
     "default_value": true
   },

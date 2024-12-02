@@ -114,7 +114,6 @@ services:
       - "ADMIN_ORG=${ADMIN_ORG}"
       - "ADMIN_ORG_UUID=${ADMIN_ORG_UUID}"
       - "GPG_PASSPHRASE=${GPG_PASSPHRASE}"
-      - "ATTACHMENTS_DIR=${ATTACHMENTS_DIR:-/var/www/MISP/app/files}"
       # OIDC authentication settings
       - "OIDC_ENABLE=${OIDC_ENABLE}"
       - "OIDC_PROVIDER_URL=${OIDC_PROVIDER_URL}"
