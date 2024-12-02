@@ -143,8 +143,10 @@ update_misp_data_files(){
     MISP_APP_FILES_PATH=/var/www/MISP/app/files
     if [ -f ${MISP_APP_FILES_PATH}/VERSION ]; then
         FILES_VERSION=$(cat ${MISP_APP_FILES_PATH}/VERSION)
+        echo "... found local files/VERSION:" $FILES_VERSION
     fi
     if [ $FILES_VERSION = ${CORE_COMMIT:-${CORE_TAG}} ]; then
+        echo "... local files/ match distribution version, skipping file sync"
         return 0;
     fi
     for DIR in $(ls /var/www/MISP/app/files.dist); do
