@@ -141,13 +141,14 @@ update_misp_data_files(){
     # If $MISP_APP_FILES_PATH was not changed since the build, skip file updates there
     FILES_VERSION=
     MISP_APP_FILES_PATH=/var/www/MISP/app/files
+    CORE_COMMIT=${CORE_COMMIT:-${CORE_TAG}}
     if [ -f ${MISP_APP_FILES_PATH}/VERSION ]; then
         FILES_VERSION=$(cat ${MISP_APP_FILES_PATH}/VERSION)
         echo "... found local files/VERSION:" $FILES_VERSION
-    fi
-    if [ $FILES_VERSION = ${CORE_COMMIT:-${CORE_TAG}} ]; then
-        echo "... local files/ match distribution version, skipping file sync"
-        return 0;
+        if [ "$FILES_VERSION" = "${CORE_COMMIT:-$(jq -r '"v\(.major).\(.minor).\(.hotfix)"' /var/www/MISP/VERSION.json)}" ]; then
+            echo "... local files/ match distribution version, skipping file sync"
+            return 0;
+        fi
     fi
     for DIR in $(ls /var/www/MISP/app/files.dist); do
         if [ "$DIR" = "certs" ] || [ "$DIR" = "img" ] || [ "$DIR" == "taxonomies" ] ; then
@@ -162,12 +163,11 @@ update_misp_data_files(){
 
 enforce_misp_data_permissions(){
     # If $MISP_APP_FILES_PATH was not changed since the build, skip file updates there
-    FILES_VERSION=
     MISP_APP_FILES_PATH=/var/www/MISP/app/files
-    if [ -f ${MISP_APP_FILES_PATH}/VERSION ]; then
-        FILES_VERSION=$(cat ${MISP_APP_FILES_PATH}/VERSION)
-    fi
-    if [ $FILES_VERSION != ${CORE_COMMIT:-${CORE_TAG}} ]; then
+    CORE_COMMIT=${CORE_COMMIT:-${CORE_TAG}}
+    if [ -f "${MISP_APP_FILES_PATH}/VERSION" ] && [ "$(cat ${MISP_APP_FILES_PATH}/VERSION)" = "${CORE_COMMIT:-$(jq -r '"v\(.major).\(.minor).\(.hotfix)"' /var/www/MISP/VERSION.json)}" ]; then
+        echo "... local files/ match distribution version, skipping data permissions in files/"
+    else
         echo "... chown -R www-data:www-data /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
         # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
         echo "... chmod -R 0550 files /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp -not -perm 550 -type f -exec chmod 0550 {} +
