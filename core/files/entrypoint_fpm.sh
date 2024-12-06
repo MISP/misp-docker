@@ -29,6 +29,35 @@ change_php_vars() {
         sed -i "s/session.sid_length = .*/session.sid_length = 64/" "$FILE"
         sed -i "s/session.use_strict_mode = .*/session.use_strict_mode = 1/" "$FILE"
     done
+
+    for FILE in /etc/php/*/fpm/pool.d/www.conf
+    do
+        [[ -e $FILE ]] || break
+        echo "Configure PHP | Setting 'pm.max_children = ${PHP_FCGI_CHILDREN}'"
+        sed -i -E "s/;?pm.max_children = .*/pm.max_children = ${PHP_FCGI_CHILDREN}/" "$FILE"
+        echo "Configure PHP | Setting 'pm.start_servers = ${PHP_FCGI_START_SERVERS}'"
+        sed -i -E "s/;?pm.start_servers = .*/pm.start_servers = ${PHP_FCGI_START_SERVERS}/" "$FILE"
+        echo "Configure PHP | Setting 'pm.(min|max)_spare_servers = ${PHP_FCGI_START_SERVERS}'"
+        sed -i -E "s/;?pm.min_spare_servers = .*/pm.min_spare_servers = ${PHP_FCGI_SPARE_SERVERS}/" "$FILE"
+        if [[ "$PHP_FCGI_START_SERVERS" -gt "$PHP_FCGI_SPARE_SERVERS" ]]; then
+            sed -i -E "s/;?pm.max_spare_servers = .*/pm.max_spare_servers = ${PHP_FCGI_START_SERVERS}/" "$FILE"
+        else
+            sed -i -E "s/;?pm.max_spare_servers = .*/pm.max_spare_servers = ${PHP_FCGI_SPARE_SERVERS}/" "$FILE"
+        fi
+        echo "Configure PHP | Setting 'pm.max_requests = ${PHP_FCGI_MAX_REQUESTS}'"
+        sed -i -E "s/;?pm.max_requests = .*/pm.max_requests = ${PHP_FCGI_MAX_REQUESTS}/" "$FILE"
+        if [[ "$FASTCGI_STATUS_LISTEN" != "" ]]; then
+            echo "Configure PHP | Setting 'pm.status_path = /status'"
+            sed -i -E "s/;?pm.status_path = .*/pm.status_path = \/status/" "$FILE"
+            echo "Configure PHP | Setting 'pm.status_path = /run/php/php-fpm-status.sock'"
+            sed -i -E "s/;?pm.status_listen = .*/pm.status_listen = \/run\/php\/php-fpm-status.sock/" "$FILE"
+        else
+            echo "Configure PHP | Disabling 'pm.status_path'"
+            sed -i -E "s/^pm.status_path = /;pm.status_path = /" "$FILE"
+            echo "Configure PHP | Disabling 'pm.status_listen'"
+            sed -i -E "s/^pm.status_listen =/;pm.status_listen =/" "$FILE"
+        fi
+    done
 }
 
 echo "Configure PHP | Change PHP values ..." && change_php_vars
