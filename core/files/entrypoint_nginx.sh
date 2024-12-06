@@ -343,7 +343,7 @@ init_nginx() {
     if [[ "$FASTCGI_STATUS_LISTEN" != "" ]]; then
         echo "... enabling php-fpm status page"
         ln -s /etc/nginx/sites-available/php-fpm-status /etc/nginx/sites-enabled/php-fpm-status
-        sed -i -E "s/ listen [^;]+/ listen $FASTCGI_STATUS_LISTEN" /etc/nginx/sites-enabled/php-fpm-status
+        sed -i -E "s/ listen [^;]+/ listen $FASTCGI_STATUS_LISTEN/" /etc/nginx/sites-enabled/php-fpm-status
     elif [[ -f /etc/nginx/sites-enabled/php-fpm-status ]]; then
         echo "... disabling php-fpm status page"
         rm /etc/nginx/sites-enabled/php-fpm-status
