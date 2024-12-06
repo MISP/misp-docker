@@ -63,7 +63,7 @@ change_php_vars() {
 echo "Configure PHP | Change PHP values ..." && change_php_vars
 
 echo "Configure PHP | Starting PHP FPM"
-/usr/sbin/php-fpm8.2 -R -F & master_pid=$!
+/usr/sbin/php-fpm8.3 -R -F & master_pid=$!
 
 # Wait for it
 wait "$master_pid"
