@@ -76,5 +76,20 @@ export NGINX_X_FORWARDED_FOR=${NGINX_X_FORWARDED_FOR:-false}
 export NGINX_SET_REAL_IP_FROM=${NGINX_SET_REAL_IP_FROM}
 export NGINX_CLIENT_MAX_BODY_SIZE=${NGINX_CLIENT_MAX_BODY_SIZE:-50M}
 
-# start supervisord using the main configuration file so we have a socket interface
-/usr/local/bin/supervisord -c /etc/supervisor/supervisord.conf
+if [ -n "$KUBERNETES_SERVICE_HOST" ]; then
+  case "$CONTAINER_NAME" in
+    nginx*)
+      exec /entrypoint_k8s_nginx.sh
+    ;;
+    php*)
+      exec /entrypoint_k8s_fpm.sh
+    ;;
+    cron*)
+      mv /etc/supervisor/conf.d/10-supervisor.conf{.k8s,}
+      exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
+    ;;
+  esac
+else
+  # start supervisord using the main configuration file so we have a socket interface
+  /usr/local/bin/supervisord -c /etc/supervisor/supervisord.conf
+fi

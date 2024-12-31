@@ -64,6 +64,10 @@ change_php_vars() {
     done
 }
 
+if [ -n "${BASH_SOURCE[0]}" ]; then
+    return
+fi
+
 echo "Configure PHP | Change PHP values ..." && change_php_vars
 
 echo "Configure PHP | Starting PHP FPM"
