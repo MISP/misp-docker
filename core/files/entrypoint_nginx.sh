@@ -210,7 +210,7 @@ flip_nginx() {
     echo "... nginx docroot set to ${NGINX_DOC_ROOT}"
     sed -i "s|root.*var/www.*|root ${NGINX_DOC_ROOT};|" /etc/nginx/includes/misp
 
-    if [[ "$reload" = "true" ]]; then
+    if [[ "$reload" = "true" ]] && [[ -z "$KUBERNETES_SERVICE_HOST" ]]; then
         echo "... nginx reloaded"
         nginx -s reload
     fi
@@ -352,6 +352,9 @@ init_nginx() {
     flip_nginx false false
 }
 
+if [ -n "${BASH_SOURCE[0]}" ]; then
+    return
+fi
 
 # Initialize MySQL
 echo "INIT | Initialize MySQL ..." && init_mysql
