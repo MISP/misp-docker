@@ -1,7 +1,7 @@
 ARG DOCKER_HUB_PROXY=""
 
 
-FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" AS php-base
+FROM "${DOCKER_HUB_PROXY}ubuntu:24.04" AS php-base
     ENV DEBIAN_FRONTEND noninteractive
 
     # Uncomment when building in corporate environments
@@ -19,29 +19,48 @@ FROM php-base AS composer-build
     ENV COMPOSER_ALLOW_SUPERUSER 1
     ARG CORE_TAG
     ARG CORE_COMMIT
+    ARG TARGETPLATFORM
 
     RUN apt-get install -y --no-install-recommends \
-        php8.2 \
-        php8.2-apcu \
-        php8.2-curl \
-        php8.2-xml \
-        php8.2-intl \
-        php8.2-bcmath \
-        php8.2-mbstring \
-        php8.2-mysql \
-        php8.2-redis \
-        php8.2-gd \
-        php8.2-fpm \
-        php8.2-zip \
+        php8.3 \
+        php8.3-apcu \
+        php8.3-curl \
+        php8.3-xml \
+        php8.3-intl \
+        php8.3-bcmath \
+        php8.3-mbstring \
+        php8.3-mysql \
+        php8.3-redis \
+        php8.3-gd \
+        php8.3-fpm \
+        php8.3-zip \
         unzip \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
     WORKDIR /tmp
     RUN curl -o /tmp/composer.json https://raw.githubusercontent.com/MISP/MISP/${CORE_COMMIT:-${CORE_TAG}}/app/composer.json
-    COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-    RUN composer config --no-interaction allow-plugins.composer/installers true
-    RUN composer install
-    RUN composer require --with-all-dependencies --no-interaction \
+    COPY --from=composer:2.7.7 /usr/bin/composer /usr/bin/composer
+
+    # See:
+    #   - https://github.com/curl/curl/issues/14154
+    #   - https://bugs.launchpad.net/ubuntu/+source/curl/+bug/2073448
+    RUN <<-EOF
+        if [ "$TARGETPLATFORM" = "linux/arm64" ]; then
+            cp /usr/bin/composer /composer.phar
+            mkdir /out/
+            php -r '$phar = new Phar("/composer.phar"); $phar->extractTo("/out/");'
+            sed -i "/'verify_peer_name' =>.*/a 'verify_peer_status' => CURLOPT_SSL_VERIFYSTATUS," /out/src/Composer/Util/Http/CurlDownloader.php
+            sed -i "/\$options = StreamContextFactory.*/a \$options['ssl']['verify_peer'] = false;" /out/src/Composer/Util/Http/CurlDownloader.php
+            sed -i "/\$options = StreamContextFactory.*/a \$options['ssl']['verify_peer_name'] = false;" /out/src/Composer/Util/Http/CurlDownloader.php
+            sed -i "/\$options = StreamContextFactory.*/a \$options['ssl']['verify_peer_status'] = false;" /out/src/Composer/Util/Http/CurlDownloader.php
+            rm /usr/bin/composer
+            ln -s /out/bin/composer /usr/bin/composer
+        fi
+EOF
+
+    RUN php /usr/bin/composer config --no-interaction allow-plugins.composer/installers true
+    RUN php /usr/bin/composer install
+    RUN php /usr/bin/composer require --with-all-dependencies --no-interaction \
         elasticsearch/elasticsearch:^8.7.0 \
         jakub-onderka/openid-connect-php:^1.0.0 \
         aws/aws-sdk-php
@@ -56,9 +75,9 @@ FROM php-base AS php-build
         g++ \
         git \
         make \
-        php8.2 \
-        php8.2-dev \
-        php8.2-xml \
+        php8.3 \
+        php8.3-dev \
+        php8.3-xml \
         php-pear \
         libbrotli-dev \
         libfuzzy-dev \
@@ -67,9 +86,9 @@ FROM php-base AS php-build
         libzstd-dev \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-    RUN update-alternatives --set php /usr/bin/php8.2
-    RUN update-alternatives --set php-config /usr/bin/php-config8.2
-    RUN update-alternatives --set phpize /usr/bin/phpize8.2
+    RUN update-alternatives --set php /usr/bin/php8.3
+    RUN update-alternatives --set php-config /usr/bin/php-config8.3
+    RUN update-alternatives --set phpize /usr/bin/phpize8.3
 
     RUN cp "/usr/lib/$(gcc -dumpmachine)"/libfuzzy.* /usr/lib
     RUN pecl channel-update pecl.php.net && \
@@ -99,6 +118,8 @@ FROM php-base AS python-build
 
     RUN apt-get install -y --no-install-recommends \
         git \
+        python3-pip \
+        python3-wheel \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
     # Download MISP using git in the /var/www/ directory. Remove unnecessary items.
@@ -178,25 +199,28 @@ FROM php-base
         gpg-agent \
         mariadb-client \
         rsync \
+        python3-setuptools \
+        python3-pip \
+        python3-wheel \
         # PHP Requirements
-        php8.2 \
-        php8.2-apcu \
-        php8.2-curl \
-        php8.2-xml \
-        php8.2-intl \
-        php8.2-bcmath \
-        php8.2-mbstring \
-        php8.2-mysql \
-        php8.2-redis \
-        php8.2-gd \
-        php8.2-fpm \
-        php8.2-zip \
-        php8.2-ldap \
+        php8.3 \
+        php8.3-apcu \
+        php8.3-curl \
+        php8.3-xml \
+        php8.3-intl \
+        php8.3-bcmath \
+        php8.3-mbstring \
+        php8.3-mysql \
+        php8.3-redis \
+        php8.3-gd \
+        php8.3-fpm \
+        php8.3-zip \
+        php8.3-ldap \
         libmagic1 \
         libldap-common \
         librdkafka1 \
         libbrotli1 \
-        libsimdjson14 \
+        libsimdjson19 \
         libzstd1 \
         ssdeep \
         libfuzzy2 \
@@ -206,11 +230,11 @@ FROM php-base
         curl jq \
         && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-    RUN update-alternatives --set php /usr/bin/php8.2
+    RUN update-alternatives --set php /usr/bin/php8.3
 
     # Install python modules
     COPY --from=python-build /wheels /wheels
-    RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
+    RUN pip install --break-system-packages --no-cache-dir /wheels/*.whl && rm -rf /wheels
 
     # PHP: install prebuilt libraries, then install the app's PHP deps
     COPY --from=php-build ["/usr/lib/php/${PHP_VER}/ssdeep.so", "/usr/lib/php/${PHP_VER}/rdkafka.so", "/usr/lib/php/${PHP_VER}/brotli.so", "/usr/lib/php/${PHP_VER}/simdjson.so", "/usr/lib/php/${PHP_VER}/zstd.so", "/usr/lib/php/${PHP_VER}/"]
@@ -222,12 +246,11 @@ FROM php-base
     COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/Plugin /var/www/MISP/app/Plugin
 
     # 'setuptools' is needed at runtime by 'mixbox'
-    RUN pip install setuptools
-    RUN cp /usr/local/lib/python3.12/site-packages/setuptools/_distutils/version.py \
-        /usr/local/lib/python3.12/site-packages/mixbox/distutils_version.py
+    RUN cp /usr/lib/python3/dist-packages/setuptools/_distutils/version.py \
+        /usr/local/lib/python3.12/dist-packages/mixbox/distutils_version.py
     RUN sed -i 's/from distutils\.version/from mixbox.distutils_version/' \
-        /usr/local/lib/python3.12/site-packages/mixbox/parser.py
-    RUN pip uninstall -y setuptools pip
+        /usr/local/lib/python3.12/dist-packages/mixbox/parser.py
+    RUN apt-get remove --purge python3-pip python3-wheel python3-setuptools -y
 
     # Gather these in one layer, only act on actual directories under /etc/php/
     RUN <<-EOF
