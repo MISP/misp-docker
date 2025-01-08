@@ -217,6 +217,12 @@ flip_nginx() {
 }
 
 init_nginx() {
+    # Optional location of PHP-FPM sock file
+    if [[ -n "$PHP_FPM_SOCK_FILE" ]]; then
+        echo "... setting 'fastcgi_pass' to unix:${PHP_FPM_SOCK_FILE}"
+        sed -i "s@fastcgi_pass .*;@fastcgi_pass unix:${PHP_FPM_SOCK_FILE};@" /etc/nginx/includes/misp
+    fi
+
     # Adjust timeouts
     echo "... adjusting 'fastcgi_read_timeout' to ${FASTCGI_READ_TIMEOUT}"
     sed -i "s/fastcgi_read_timeout .*;/fastcgi_read_timeout ${FASTCGI_READ_TIMEOUT};/" /etc/nginx/includes/misp

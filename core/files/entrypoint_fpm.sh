@@ -28,6 +28,7 @@ change_php_vars() {
         sed -i "s|.*session.save_path = .*|session.save_path = '$(echo $REDIS_HOST | grep -E '^\w+://' || echo tcp://$REDIS_HOST):$REDIS_PORT?auth=${ESCAPED}'|" "$FILE"
         sed -i "s/session.sid_length = .*/session.sid_length = 64/" "$FILE"
         sed -i "s/session.use_strict_mode = .*/session.use_strict_mode = 1/" "$FILE"
+        sed -i "s|session.cookie_domain = .*|session.cookie_domain = ${BASE_URL}|" "$FILE"
     done
 
     for FILE in /etc/php/*/fpm/pool.d/www.conf
@@ -56,6 +57,10 @@ change_php_vars() {
             sed -i -E "s/^pm.status_path = /;pm.status_path = /" "$FILE"
             echo "Configure PHP | Disabling 'pm.status_listen'"
             sed -i -E "s/^pm.status_listen =/;pm.status_listen =/" "$FILE"
+        fi
+        if [[ -n "$PHP_FPM_SOCK_FILE" ]]; then
+            echo "Configure PHP | Setting 'listen' to ${PHP_FPM_SOCK_FILE}"
+            sed -i "/^listen =/s@=.*@= ${PHP_FPM_SOCK_FILE}@" "$FILE"
         fi
     done
 }

@@ -74,11 +74,13 @@ if [ -n "$KUBERNETES_SERVICE_HOST" ]; then
       exec /entrypoint_k8s_nginx.sh
     ;;
     php*)
+      # Not ideal, but let supervisord manage the workers still
+      mv /etc/supervisor/conf.d/10-supervisor.conf{.k8s,}
+      /usr/bin/supervisord -c /etc/supervisor/supervisord.conf &
       exec /entrypoint_k8s_fpm.sh
     ;;
     cron*)
-      mv /etc/supervisor/conf.d/10-supervisor.conf{.k8s,}
-      exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
+      exec /entrypoint_cron.sh
     ;;
   esac
 else

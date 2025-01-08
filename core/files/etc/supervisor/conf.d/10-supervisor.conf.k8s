@@ -10,12 +10,3 @@ stderr_logfile_maxbytes=0
 port=127.0.0.1:9001
 username=supervisor
 password=supervisor
-
-[program:cron]
-command=/entrypoint_cron.sh
-autorestart=true
-redirect_stderr=true
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
