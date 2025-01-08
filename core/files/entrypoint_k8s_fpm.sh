@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
 source /entrypoint_nginx.sh
 source /entrypoint_fpm.sh
@@ -10,7 +10,6 @@ echo "INIT | Initialize MySQL ..." && init_mysql
 echo "INIT | Initialize MISP files and configurations ..." && init_misp_data_files
 echo "INIT | Update MISP app/files directory ..." && update_misp_data_files
 echo "INIT | Enforce MISP permissions ..." && enforce_misp_data_permissions
-echo "INIT | Flip NGINX live ..." && flip_nginx true true
 
 # Run configure MISP script
 echo "INIT | Configure MISP installation ..."

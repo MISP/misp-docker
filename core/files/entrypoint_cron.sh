@@ -30,6 +30,11 @@ if [[ ! -p /tmp/cronlog ]]; then
     mkfifo -m 777 /tmp/cronlog
 fi
 
+if [ -n "$KUBERNETES_SERVICE_HOST" ]; then
+    tail -f /tmp/cronlog &
+    exec cron -l -f
+fi
+
 # Build another fifo for the cron pipe
 if [[ ! -p /tmp/cronpipe ]]; then
     mkfifo /tmp/cronpipe
