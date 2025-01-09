@@ -225,6 +225,10 @@ init_nginx() {
     echo "... adjusting 'fastcgi_connect_timeout' to ${FASTCGI_CONNECT_TIMEOUT}"
     sed -i "s/fastcgi_connect_timeout .*;/fastcgi_connect_timeout ${FASTCGI_CONNECT_TIMEOUT};/" /etc/nginx/includes/misp
 
+    # Adjust maximum allowed size of the client request body
+    echo "... adjusting 'client_max_body_size' to ${NGINX_CLIENT_MAX_BODY_SIZE}"
+    sed -i "s/client_max_body_size .*;/client_max_body_size ${NGINX_CLIENT_MAX_BODY_SIZE};/" /etc/nginx/includes/misp
+
     # Adjust forwarding header settings (clean up first)
     sed -i '/real_ip_header/d' /etc/nginx/includes/misp
     sed -i '/real_ip_recursive/d' /etc/nginx/includes/misp
