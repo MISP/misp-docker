@@ -19,6 +19,8 @@ change_php_vars() {
         sed -i "s/max_execution_time = .*/max_execution_time = ${PHP_MAX_EXECUTION_TIME}/" "$FILE"
         echo "Configure PHP | Setting 'upload_max_filesize = ${PHP_UPLOAD_MAX_FILESIZE}'"
         sed -i "s/upload_max_filesize = .*/upload_max_filesize = ${PHP_UPLOAD_MAX_FILESIZE}/" "$FILE"
+        echo "Configure PHP | Setting 'max_file_uploads = ${PHP_MAX_FILE_UPLOADS}'"
+        sed -i "s/max_file_uploads = .*/max_file_uploads = ${PHP_MAX_FILE_UPLOADS}/" "$FILE"
         echo "Configure PHP | Setting 'post_max_size = ${PHP_POST_MAX_SIZE}'"
         sed -i "s/post_max_size = .*/post_max_size = ${PHP_POST_MAX_SIZE}/" "$FILE"
         echo "Configure PHP | Setting 'max_input_time = ${PHP_MAX_INPUT_TIME}'"
