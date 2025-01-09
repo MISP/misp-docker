@@ -178,6 +178,8 @@ FROM php-base
         gpg-agent \
         mariadb-client \
         rsync \
+        # Include rsyslog to support syslogger
+        rsyslog \
         # PHP Requirements
         php8.2 \
         php8.2-apcu \
@@ -261,9 +263,6 @@ EOF
         # Diagnostics wants this file to be present and writable even if we do not use git in docker land
         touch /var/www/MISP/.git/ORIG_HEAD && chmod 0600 /var/www/MISP/.git/ORIG_HEAD && chown www-data:www-data /var/www/MISP/.git/ORIG_HEAD
 EOF
-
-    # Include rsyslog to support syslogger
-    RUN apt-get update ; apt-get install -y rsyslog
 
     # Copy all our image specific files to appropriate locations
     COPY files/ /
