@@ -95,6 +95,10 @@ To override these behaviours edit the docker-compose.yml file's misp-core volume
 If it is just a default setting that is meant to be set if not already set by the user, add it in one of the `*.default.json` files.
 If it is a setting controlled by an environment variable which is meant to override whatever is set, add it in one of the `*.envars.json` files (note that you can still specify a default value).
 
+#### LDAP Authentication
+
+You can configure LDAP authentication in MISP using 2 methods. Using the native plugin: LdapAuth (https://github.com/MISP/MISP/tree/2.5/app/Plugin/LdapAuth) or or use the previous approach with ApacheSecureAuth. LdapAuth is to be recommended, because it does not require rproxy apache with the ldap module.
+
 ### Production
 
 -   It is recommended to specify the build you want run by editing `docker-compose.yml` (see here for the list of available tags https://github.com/orgs/MISP/packages)

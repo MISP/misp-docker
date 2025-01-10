@@ -155,35 +155,89 @@ set_up_oidc() {
     fi
 }
 
+set_up_apachesecureauth() {
+    if [[ "$APACHESECUREAUTH_LDAP_ENABLE" != "true" ]]; then
+        echo "... LDAP APACHESECUREAUTH authentication disabled"
+        return
+    fi
+
+
+    if [ ! -z "$APACHESECUREAUTH_LDAP_OLD_VAR_DETECT" ]; then
+        echo "WARNING: old variables used for APACHESECUREAUTH bloc in env file. Switch to the new naming convention."
+    fi
+
+    # Check required variables
+    # APACHESECUREAUTH_LDAP_SEARCH_FILTER may be empty
+    check_env_vars APACHESECUREAUTH_LDAP_APACHE_ENV APACHESECUREAUTH_LDAP_SERVER APACHESECUREAUTH_LDAP_STARTTLS APACHESECUREAUTH_LDAP_READER_USER APACHESECUREAUTH_LDAP_READER_PASSWORD APACHESECUREAUTH_LDAP_DN APACHESECUREAUTH_LDAP_SEARCH_ATTRIBUTE APACHESECUREAUTH_LDAP_FILTER APACHESECUREAUTH_LDAP_DEFAULT_ROLE_ID
+ APACHESECUREAUTH_LDAP_DEFAULT_ORG APACHESECUREAUTH_LDAP_OPT_PROTOCOL_VERSION APACHESECUREAUTH_LDAP_OPT_NETWORK_TIMEOUT APACHESECUREAUTH_LDAP_OPT_REFERRALS
+
+    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+        \"ApacheSecureAuth\": {
+            \"apacheEnv\": \"${APACHESECUREAUTH_LDAP_APACHE_ENV}\",
+            \"ldapServer\": \"${APACHESECUREAUTH_LDAP_SERVER}\",
+            \"starttls\": ${APACHESECUREAUTH_LDAP_STARTTLS},
+            \"ldapProtocol\": ${APACHESECUREAUTH_LDAP_OPT_PROTOCOL_VERSION},
+            \"ldapNetworkTimeout\": ${APACHESECUREAUTH_LDAP_OPT_NETWORK_TIMEOUT},
+            \"ldapReaderUser\": \"${APACHESECUREAUTH_LDAP_READER_USER}\",
+            \"ldapReaderPassword\": \"${APACHESECUREAUTH_LDAP_READER_PASSWORD}\",
+            \"ldapDN\": \"${APACHESECUREAUTH_LDAP_DN}\",
+            \"ldapSearchFilter\": \"${APACHESECUREAUTH_LDAP_SEARCH_FILTER}\",
+            \"ldapSearchAttribut\": \"${APACHESECUREAUTH_LDAP_SEARCH_ATTRIBUTE}\",
+            \"ldapFilter\": ${APACHESECUREAUTH_LDAP_FILTER},
+            \"ldapDefaultRoleId\": ${APACHESECUREAUTH_LDAP_DEFAULT_ROLE_ID},
+            \"ldapDefaultOrg\": \"${APACHESECUREAUTH_LDAP_DEFAULT_ORG}\",
+            \"ldapAllowReferrals\": ${APACHESECUREAUTH_LDAP_OPT_REFERRALS},
+            \"ldapEmailField\": ${APACHESECUREAUTH_LDAP_EMAIL_FIELD}
+        }
+    }" > /dev/null
+
+    # Disable password confirmation as stated at https://github.com/MISP/MISP/issues/8116
+    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
+}
+
 set_up_ldap() {
-    if [[ "$LDAP_ENABLE" != "true" ]]; then
-        echo "... LDAP authentication disabled"
+    if [[ "$LDAPAUTH_ENABLE" != "true" ]]; then
+        echo "... LDAPAUTH authentication disabled"
         return
     fi
 
     # Check required variables
-    # LDAP_SEARCH_FILTER may be empty
-    check_env_vars LDAP_APACHE_ENV LDAP_SERVER LDAP_STARTTLS LDAP_READER_USER LDAP_READER_PASSWORD LDAP_DN LDAP_SEARCH_ATTRIBUTE LDAP_FILTER LDAP_DEFAULT_ROLE_ID LDAP_DEFAULT_ORG LDAP_OPT_PROTOCOL_VERSION LDAP_OPT_NETWORK_TIMEOUT LDAP_OPT_REFERRALS 
+    # LDAPAUTH_LDAPSEARCHFILTER may be empty
+    check_env_vars LDAPAUTH_LDAPSERVER LDAPAUTH_LDAPDN LDAPAUTH_LDAPREADERUSER LDAPAUTH_LDAPREADERPASSWORD LDAPAUTH_LDAPSEARCHATTRIBUTE LDAPAUTH_LDAPDEFAULTROLEID LDAPAUTH_LDAPDEFAULTORGID LDAPAUTH_LDAPEMAILFIELD LDAPAUTH_LDAPNETWORKTIMEOUT LDAPAUTH_LDAPPROTOCOL LDAPAUTH_LDAPALLOWREFERRALS LDAPAUTH_STARTTLS LDAPA
+UTH_MIXEDAUTH LDAPAUTH_UPDATEUSER LDAPAUTH_DEBUG LDAPAUTH_LDAPTLSREQUIRECERT LDAPAUTH_LDAPTLSCUSTOMCACERT LDAPAUTH_LDAPTLSCRLCHECK LDAPAUTH_LDAPTLSPROTOCOLMIN
 
     sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
-        \"ApacheSecureAuth\": {
-            \"apacheEnv\": \"${LDAP_APACHE_ENV}\",
-            \"ldapServer\": \"${LDAP_SERVER}\",
-            \"starttls\": ${LDAP_STARTTLS},
-            \"ldapProtocol\": ${LDAP_OPT_PROTOCOL_VERSION},
-            \"ldapNetworkTimeout\": ${LDAP_OPT_NETWORK_TIMEOUT},
-            \"ldapReaderUser\": \"${LDAP_READER_USER}\",
-            \"ldapReaderPassword\": \"${LDAP_READER_PASSWORD}\",
-            \"ldapDN\": \"${LDAP_DN}\",
-            \"ldapSearchFilter\": \"${LDAP_SEARCH_FILTER}\",
-            \"ldapSearchAttribut\": \"${LDAP_SEARCH_ATTRIBUTE}\",
-            \"ldapFilter\": ${LDAP_FILTER},
-            \"ldapDefaultRoleId\": ${LDAP_DEFAULT_ROLE_ID},
-            \"ldapDefaultOrg\": \"${LDAP_DEFAULT_ORG}\",
-            \"ldapAllowReferrals\": ${LDAP_OPT_REFERRALS},
-            \"ldapEmailField\": ${LDAP_EMAIL_FIELD}
-        }
+        \"LdapAuth\": {
+          \"ldapServer\": \"${LDAPAUTH_LDAPSERVER}\",
+          \"ldapDn\": \"${LDAPAUTH_LDAPDN}\",
+          \"ldapReaderUser\": \"${LDAPAUTH_LDAPREADERUSER}\",
+          \"ldapReaderPassword\": \"${LDAPAUTH_LDAPREADERPASSWORD}\",
+          \"ldapSearchFilter\": \"${LDAPAUTH_LDAPSEARCHFILTER}\",
+          \"ldapSearchAttribute\": \"${LDAPAUTH_LDAPSEARCHATTRIBUTE}\",
+          \"ldapEmailField\": ${LDAPAUTH_LDAPEMAILFIELD},
+          \"ldapNetworkTimeout\": ${LDAPAUTH_LDAPNETWORKTIMEOUT},
+          \"ldapProtocol\": ${LDAPAUTH_LDAPPROTOCOL},
+          \"ldapAllowReferrals\": ${LDAPAUTH_LDAPALLOWREFERRALS},
+          \"starttls\": ${LDAPAUTH_STARTTLS},
+          \"mixedAuth\": ${LDAPAUTH_MIXEDAUTH},
+          \"ldapDefaultOrgId\": ${LDAPAUTH_LDAPDEFAULTORGID},
+          \"ldapDefaultRoleId\": ${LDAPAUTH_LDAPDEFAULTROLEID},
+          \"updateUser\": ${LDAPAUTH_UPDATEUSER},
+          \"debug\": ${LDAPAUTH_DEBUG},
+          \"ldapTlsRequireCert\": \"${LDAPAUTH_LDAPTLSREQUIRECERT}\",
+          \"ldapTlsCustomCaCert\": ${LDAPAUTH_LDAPTLSCUSTOMCACERT},
+          \"ldapTlsCrlCheck\": \"${LDAPAUTH_LDAPTLSCRLCHECK}\",
+          \"ldapTlsProtocolMin\": \"${LDAPAUTH_LDAPTLSPROTOCOLMIN}\"
+       }
     }" > /dev/null
+
+    # Configure LdapAuth in MISP
+    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+            \"Security\": {
+                \"auth\": [\"LdapAuth.Ldap\"]
+            }
+        }" > /dev/null
+
 
     # Disable password confirmation as stated at https://github.com/MISP/MISP/issues/8116
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
@@ -448,6 +502,8 @@ echo "MISP | Resolve non-critical issues ..." && apply_optional_fixes
 echo "MISP | Create sync servers ..." && create_sync_servers
 
 echo "MISP | Set Up OIDC ..." && set_up_oidc
+
+echo "MISP | Set Up apachesecureauth ..." && set_up_apachesecureauth
 
 echo "MISP | Set Up LDAP ..." && set_up_ldap
 
