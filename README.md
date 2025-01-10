@@ -97,7 +97,11 @@ If it is a setting controlled by an environment variable which is meant to overr
 
 #### LDAP Authentication
 
-You can configure LDAP authentication in MISP using 2 methods. Using the native plugin: LdapAuth (https://github.com/MISP/MISP/tree/2.5/app/Plugin/LdapAuth) or or use the previous approach with ApacheSecureAuth. LdapAuth is to be recommended, because it does not require rproxy apache with the ldap module.
+You can configure LDAP authentication in MISP using 2 methods:
+-  native plugin: LdapAuth (https://github.com/MISP/MISP/tree/2.5/app/Plugin/LdapAuth) 
+-  previous approach with ApacheSecureAuth (https://gist.github.com/Kagee/f35ed25216369481437210753959d372). 
+
+LdapAuth is to be recommended, because it doesn't require rproxy apache with the ldap module.
 
 ### Production
 
