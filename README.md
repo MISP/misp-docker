@@ -129,7 +129,13 @@ Custom root CA certificates can be mounted under `/usr/local/share/ca-certificat
       # mount custom ca root certificates
       - "./rootca.pem:/usr/local/share/ca-certificates/rootca.crt"
 ```
-Backup and Restore MISP in Docker using Volume Archiving and Copy-Paste in another instance.
+
+## Database Management
+
+It is possible to backup and restore the underlying database using volume archiving.
+The process is *NOT* battle-tested, so it is *NOT* to be followed uncritically.
+
+### Backup
 
 1. **Stop the MISP container**:
 
@@ -147,15 +153,15 @@ Backup and Restore MISP in Docker using Volume Archiving and Copy-Paste in anoth
 3. **Start the MISP container**:
 
    ```bash
-   docker compose up -d
+   docker compose up
    ```
 
-## Restore
+### Restore
 
 1. **Stop the MISP container**:
 
    ```bash
-   docker compose down>
+   docker compose down
    ```
 
 2. **Unpack the backup and overwrite the existing data**:
@@ -168,7 +174,7 @@ Backup and Restore MISP in Docker using Volume Archiving and Copy-Paste in anoth
 3. **Start the MISP container**:
 
    ```bash
-   docker compose up -d
+   docker compose up
    ```
 
 ## Troubleshooting
