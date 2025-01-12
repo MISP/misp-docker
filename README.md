@@ -149,6 +149,45 @@ Custom root CA certificates can be mounted under `/usr/local/share/ca-certificat
       - "./rootca.pem:/usr/local/share/ca-certificates/rootca.crt"
 ```
 
+## Database Management
+
+It is possible to backup and restore the underlying database using volume archiving.
+The process is *NOT* battle-tested, so it is *NOT* to be followed uncritically.
+
+### Backup
+
+1. Stop the MISP containers:
+   ```bash
+   docker compose down
+   ```
+
+2. Create an archive of the `misp-docker_mysql_data` volume using `tar`:
+   ```bash
+   tar -cvzf /root/misp_mysql_backup.tar.gz /var/lib/docker/volumes/misp-docker_mysql_data/
+   ```
+
+3. Start the MISP containers:
+   ```bash
+   docker compose up
+   ```
+
+### Restore
+
+1. Stop the MISP containers:
+   ```bash
+   docker compose down
+   ```
+
+2. Unpack the backup and overwrite existing data by using the `--overwrite` option to replace existing files:
+   ```bash
+   tar -xvzf /path_to_backup/misp_mysql_backup.tar.gz -C /var/lib/docker/volumes/misp-docker_mysql_data/ --overwrite
+   ```
+
+3. Start the MISP containers:
+   ```bash
+   docker compose up
+   ```
+
 ## Troubleshooting
 
 -   Make sure you run a fairly recent version of Docker and Docker Compose (if in doubt, update following the steps outlined in https://docs.docker.com/engine/install/ubuntu/)
