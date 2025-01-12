@@ -178,6 +178,8 @@ FROM php-base
         gpg-agent \
         mariadb-client \
         rsync \
+        # Include rsyslog to support syslogger
+        rsyslog \
         # PHP Requirements
         php8.2 \
         php8.2-apcu \
