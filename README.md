@@ -137,42 +137,34 @@ The process is *NOT* battle-tested, so it is *NOT* to be followed uncritically.
 
 ### Backup
 
-1. **Stop the MISP container**:
-
+1. Stop the MISP containers:
    ```bash
    docker compose down
    ```
 
-2. **Create an archive of the `misp-docker_mysql_data` volume**:
-   Use `tar` to archive the volume data:
-
+2. Create an archive of the `misp-docker_mysql_data` volume using `tar`:
    ```bash
    tar -cvzf /root/misp_mysql_backup.tar.gz /var/lib/docker/volumes/misp-docker_mysql_data/
    ```
 
-3. **Start the MISP container**:
-
+3. Start the MISP containers:
    ```bash
    docker compose up
    ```
 
 ### Restore
 
-1. **Stop the MISP container**:
-
+1. Stop the MISP containers:
    ```bash
    docker compose down
    ```
 
-2. **Unpack the backup and overwrite the existing data**:
-   Use the `--overwrite` option to replace the existing files:
-
+2. Unpack the backup and overwrite existing data by using the `--overwrite` option to replace existing files:
    ```bash
    tar -xvzf /path_to_backup/misp_mysql_backup.tar.gz -C /var/lib/docker/volumes/misp-docker_mysql_data/ --overwrite
    ```
 
-3. **Start the MISP container**:
-
+3. Start the MISP containers:
    ```bash
    docker compose up
    ```
