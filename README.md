@@ -95,6 +95,14 @@ To override these behaviours edit the docker-compose.yml file's misp-core volume
 If it is just a default setting that is meant to be set if not already set by the user, add it in one of the `*.default.json` files.
 If it is a setting controlled by an environment variable which is meant to override whatever is set, add it in one of the `*.envars.json` files (note that you can still specify a default value).
 
+#### LDAP Authentication
+
+You can configure LDAP authentication in MISP using 2 methods:
+-  native plugin: LdapAuth (https://github.com/MISP/MISP/tree/2.5/app/Plugin/LdapAuth) 
+-  previous approach with ApacheSecureAuth (https://gist.github.com/Kagee/f35ed25216369481437210753959d372). 
+
+LdapAuth is to be recommended, because it doesn't require rproxy apache with the ldap module.
+
 ### Production
 
 -   It is recommended to specify the build you want run by editing `docker-compose.yml` (see here for the list of available tags https://github.com/orgs/MISP/packages)
@@ -140,6 +148,45 @@ Custom root CA certificates can be mounted under `/usr/local/share/ca-certificat
       # mount custom ca root certificates
       - "./rootca.pem:/usr/local/share/ca-certificates/rootca.crt"
 ```
+
+## Database Management
+
+It is possible to backup and restore the underlying database using volume archiving.
+The process is *NOT* battle-tested, so it is *NOT* to be followed uncritically.
+
+### Backup
+
+1. Stop the MISP containers:
+   ```bash
+   docker compose down
+   ```
+
+2. Create an archive of the `misp-docker_mysql_data` volume using `tar`:
+   ```bash
+   tar -cvzf /root/misp_mysql_backup.tar.gz /var/lib/docker/volumes/misp-docker_mysql_data/
+   ```
+
+3. Start the MISP containers:
+   ```bash
+   docker compose up
+   ```
+
+### Restore
+
+1. Stop the MISP containers:
+   ```bash
+   docker compose down
+   ```
+
+2. Unpack the backup and overwrite existing data by using the `--overwrite` option to replace existing files:
+   ```bash
+   tar -xvzf /path_to_backup/misp_mysql_backup.tar.gz -C /var/lib/docker/volumes/misp-docker_mysql_data/ --overwrite
+   ```
+
+3. Start the MISP containers:
+   ```bash
+   docker compose up
+   ```
 
 ## Troubleshooting
 
