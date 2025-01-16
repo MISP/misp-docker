@@ -1,7 +1,4 @@
 {
-  "MISP.ca_path": {
-    "default_value": "/var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem"
-  },
   "MISP.language": {
     "default_value": "eng"
   },
