@@ -20,6 +20,7 @@ export CRON_USER_ID=${CRON_USER_ID:-1}
 export BASE_URL=${BASE_URL:-https://localhost}
 export DISABLE_IPV6=${DISABLE_IPV6:-false}
 export DISABLE_SSL_REDIRECT=${DISABLE_SSL_REDIRECT:-false}
+export DISABLE_CA_REFRESH=${DISABLE_CA_REFRESH:-false}
 export SMTP_FQDN=${SMTP_FQDN:-mail}
 
 export ADMIN_EMAIL=${ADMIN_EMAIL:-admin@admin.test}
