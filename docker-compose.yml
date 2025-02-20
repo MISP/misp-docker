@@ -13,7 +13,7 @@ services:
 
   redis:
     image: valkey/valkey:7.2
-    command: "--requirepass '${REDIS_PASSWORD:-redispassword}'"
+    command: "--save '' --requirepass '${REDIS_PASSWORD:-redispassword}'"
     healthcheck:
       test: "valkey-cli -a '${REDIS_PASSWORD:-redispassword}' -p ${REDIS_PORT:-6379} ping | grep -q PONG || exit 1"
       interval: 2s
@@ -107,6 +107,7 @@ services:
       - "ENABLE_DB_SETTINGS=${ENABLE_DB_SETTINGS}"
       - "ENABLE_BACKGROUND_UPDATES=${ENABLE_BACKGROUND_UPDATES}"
       - "ENCRYPTION_KEY=${ENCRYPTION_KEY}"
+      - "DISABLE_CA_REFRESH=${DISABLE_CA_REFRESH}"
       # standard settings
       - "ADMIN_EMAIL=${ADMIN_EMAIL}"
       - "ADMIN_PASSWORD=${ADMIN_PASSWORD}"
