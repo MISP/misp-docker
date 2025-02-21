@@ -7,3 +7,5 @@
 env.hcl
 rootca.crt
 cert.pem
+
+__pycache__
