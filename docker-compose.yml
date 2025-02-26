@@ -253,7 +253,7 @@ services:
       args:
         - MODULES_TAG=${MODULES_TAG:?Missing .env file, see README.md for instructions}
         - MODULES_COMMIT=${MODULES_COMMIT}
-        - LIBFAUP_COMMIT=${LIBFAUP_COMMIT:?Missing .env file, see README.md for instructions}
+        - MODULES_INSTALL_FLAG=${MODULES_INSTALL_FLAG:?Missing .env file, see README.md for instructions}
     environment:
       - "REDIS_BACKEND=${REDIS_HOST:-redis}"
       - "REDIS_PORT=${REDIS_PORT:-6379}"

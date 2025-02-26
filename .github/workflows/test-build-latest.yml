@@ -31,7 +31,7 @@ jobs:
           echo "NAMESPACE=local" >> "$GITHUB_ENV"
 
       - name: Build
-        uses: docker/bake-action@v4
+        uses: docker/bake-action@v5
         with:
           push: false
           provenance: false
