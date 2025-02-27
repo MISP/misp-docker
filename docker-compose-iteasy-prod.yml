@@ -4,6 +4,8 @@ services:
   # See: https://hub.docker.com/r/ixdotai/smtp
   mail:
     image: ixdotai/smtp
+    networks:
+      - iteasyopsnetwork
     environment:
       - "SMARTHOST_ADDRESS=${SMARTHOST_ADDRESS}"
       - "SMARTHOST_PORT=${SMARTHOST_PORT}"
@@ -13,6 +15,8 @@ services:
 
   redis:
     image: valkey/valkey:7.2
+    networks:
+      - iteasyopsnetwork
     command: "--requirepass '${REDIS_PASSWORD:-redispassword}'"
     healthcheck:
       test: "valkey-cli -a '${REDIS_PASSWORD:-redispassword}' -p ${REDIS_PORT:-6379} ping | grep -q PONG || exit 1"
@@ -25,6 +29,8 @@ services:
   db:
     # We use MariaDB because it supports ARM and has the expected collations
     image: mariadb:10.11
+    networks:
+      - iteasyopsnetwork
     restart: always
     environment:
       - "MYSQL_USER=${MYSQL_USER:-misp}"
@@ -54,6 +60,8 @@ services:
 
   misp-core:
     image: ghcr.io/misp/misp-docker/misp-core:${CORE_RUNNING_TAG:-latest}
+    networks:
+      - iteasyopsnetwork
     cap_add:
       - AUDIT_WRITE
     build:
@@ -247,6 +255,8 @@ services:
 
   misp-modules:
     image: ghcr.io/misp/misp-docker/misp-modules:${MODULES_RUNNING_TAG:-latest}
+    networks:
+      - iteasyopsnetwork
     build:
       context: modules/.
       args:
@@ -271,6 +281,8 @@ services:
     build:
       context: ./was
       dockerfile: Dockerfile
+    networks:
+      - iteasyopsnetwork
     environment:
       - "MISP_URL=${MISP_URL:-https://misp-core}"
       - "MISP_KEY=${ADMIN_KEY:?Missing .env file}"
@@ -287,3 +299,4 @@ volumes:
 networks:
   iteasyopsnetwork:
     external: true
+    name: iteasyopsnetwork
