@@ -274,7 +274,11 @@ services:
     environment:
       - "MISP_URL=${MISP_URL:-https://misp-core}"
       - "MISP_KEY=${ADMIN_KEY:?Missing .env file}"
-    command: python /app/app.py
+    volumes:
+      - ./was:/app
+    ports:
+      - "8080:8080"
+    command: flask --app /app/app.py --debug run --host=0.0.0.0 --port=8080
     depends_on:
       misp-core:
         condition: service_healthy
