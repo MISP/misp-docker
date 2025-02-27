@@ -58,7 +58,7 @@ variable "MODULES_COMMIT" {
   default = ""
 }
 
-variable "LIBFAUP_COMMIT" {
+variable "MODULES_INSTALL_FLAG" {
   default = ""
 }
 
@@ -88,7 +88,7 @@ target "misp-modules" {
   args = {
     "MODULES_TAG": "${MODULES_TAG}",
     "MODULES_COMMIT": "${MODULES_COMMIT}",
-    "LIBFAUP_COMMIT": "${LIBFAUP_COMMIT}",
+    "MODULES_INSTALL_FLAG": "${MODULES_INSTALL_FLAG}",
   }
   platforms = "${PLATFORMS}"
 }

@@ -423,9 +423,13 @@ update_components() {
 update_ca_certificates() {
     # Upgrade host os certificates
     update-ca-certificates
-    # Upgrade cake cacert.pem file from Mozilla project
-    echo "Updating /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem..."
-    sudo -E -u www-data curl -s --etag-compare /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt --etag-save /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt https://curl.se/ca/cacert.pem -o /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem
+    if [[ "$DISABLE_CA_REFRESH" = "true" ]]; then
+        echo "Updating /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem using local data..."
+        sudo cp /etc/ssl/certs/ca-certificates.crt /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem
+    else
+        echo "Updating /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem using curl data..."
+        sudo -E -u www-data curl -s --etag-compare /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt --etag-save /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt https://curl.se/ca/cacert.pem -o /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem
+    fi
 }
 
 create_sync_servers() {
