@@ -87,8 +87,8 @@ services:
       start_period: 30s
       start_interval: 30s
     ports:
-      - "80:80"
-      - "443:443"
+      - "10080:80"
+      - "10443:443"
     volumes:
       - "./configs/:/var/www/MISP/app/Config/"
       - "./logs/:/var/www/MISP/app/tmp/logs/"
@@ -276,8 +276,6 @@ services:
       - "MISP_KEY=${ADMIN_KEY:?Missing .env file}"
     volumes:
       - ./was:/app
-    ports:
-      - "8080:8080"
     command: flask --app /app/app.py --debug run --host=0.0.0.0 --port=8080
     depends_on:
       misp-core:
@@ -285,3 +283,7 @@ services:
 
 volumes:
     mysql_data:
+
+networks:
+  iteasyopsnetwork:
+    external: true
