@@ -1,3 +1,4 @@
+.DS_Store
 /configs/
 /files/
 /gnupg/
@@ -9,3 +10,6 @@ rootca.crt
 cert.pem
 
 __pycache__
+
+malware_detection/test/*
+malware_detection/*.csv

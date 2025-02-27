@@ -272,8 +272,8 @@ services:
       context: ./was
       dockerfile: Dockerfile
     environment:
-      - "MISP_URL=${ADMIN_KEY:-https://misp-core}"
-      - "MISP_KEY=${MISP_KEY:?Missing .env file}"
+      - "MISP_URL=${MISP_URL:-https://misp-core}"
+      - "MISP_KEY=${ADMIN_KEY:?Missing .env file}"
     volumes:
       - ./was:/app
     ports:

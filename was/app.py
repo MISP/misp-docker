@@ -30,13 +30,25 @@ def getWebShellListSHA265():
         result = misp.search(
             controller="attributes",
             return_format='text',
-            type_attribute="sha256",
-#             limit=10,
-            tags=["osint:source-type=\"block-or-filter-list\"", "php", "webshell"]
+            type_attribute="md5",
+            tags=["malware", "php", "webshell"]
         )
         return result, 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/getMalwareUrlList', methods=['POST'])
+def getMalwareUrlList():
+    try:
+        result = misp.search(
+            controller="attributes",
+            return_format='text',
+            type_attribute="url",
+        )
+        return result, 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route('/search_attributes', methods=['POST'])
 def search_attributes():
