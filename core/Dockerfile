@@ -2,7 +2,7 @@ ARG DOCKER_HUB_PROXY=""
 
 
 FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" AS php-base
-    ENV DEBIAN_FRONTEND noninteractive
+    ENV DEBIAN_FRONTEND=noninteractive
 
     # Uncomment when building in corporate environments
     # COPY ./cert.pem /usr/local/share/ca-certificates/rootca.pem
@@ -15,8 +15,8 @@ FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" AS php-base
 
 
 FROM php-base AS composer-build
-    ENV DEBIAN_FRONTEND noninteractive
-    ENV COMPOSER_ALLOW_SUPERUSER 1
+    ENV DEBIAN_FRONTEND=noninteractive
+    ENV COMPOSER_ALLOW_SUPERUSER=1
     ARG CORE_TAG
     ARG CORE_COMMIT
 
@@ -48,8 +48,8 @@ FROM php-base AS composer-build
 
 
 FROM php-base AS php-build
-    ENV DEBIAN_FRONTEND noninteractive
-    ENV TZ Etc/UTC
+    ENV DEBIAN_FRONTEND=noninteractive
+    ENV TZ=Etc/UTC
 
     RUN apt-get install -y --no-install-recommends \
         gcc \
@@ -83,7 +83,7 @@ FROM php-base AS php-build
     RUN cd /tmp/pecl-text-ssdeep && phpize && ./configure && make && make install
 
 FROM php-base AS python-build
-    ENV DEBIAN_FRONTEND noninteractive   
+    ENV DEBIAN_FRONTEND=noninteractive   
     ARG CORE_TAG
     ARG CORE_COMMIT
     ARG PYPI_REDIS_VERSION
@@ -161,7 +161,7 @@ EOF
 
 
 FROM php-base
-    ENV DEBIAN_FRONTEND noninteractive
+    ENV DEBIAN_FRONTEND=noninteractive
     ARG CORE_TAG
     ARG CORE_COMMIT
     ARG PHP_VER

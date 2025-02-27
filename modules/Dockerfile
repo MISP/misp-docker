@@ -1,7 +1,7 @@
 ARG DOCKER_HUB_PROXY=""
 
 FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" AS python-build
-    ENV DEBIAN_FRONTEND noninteractive
+    ENV DEBIAN_FRONTEND=noninteractive
     ARG MODULES_TAG
     ARG MODULES_COMMIT
     ARG MODULES_INSTALL_FLAG
@@ -47,7 +47,7 @@ EOF
 
 
 FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm"
-    ENV DEBIAN_FRONTEND noninteractive
+    ENV DEBIAN_FRONTEND=noninteractive
 
     RUN apt-get update && apt-get install -y --no-install-recommends \
         libglib2.0-0 \
