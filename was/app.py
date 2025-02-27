@@ -1,5 +1,5 @@
-from flask import Flask, jsonify
-from pymisp import PyMISP
+from flask import Flask, jsonify # type: ignore
+from pymisp import PyMISP # type: ignore
 import os
 
 MISP_URL = os.getenv("MISP_URL")  # MISP 서버 주소
