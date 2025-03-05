@@ -19,6 +19,7 @@ FROM php-base AS composer-build
     ENV COMPOSER_ALLOW_SUPERUSER=1
     ARG CORE_TAG
     ARG CORE_COMMIT
+    ARG CORE_FLAVOR
 
     RUN apt-get install -y --no-install-recommends \
         php8.2 \
