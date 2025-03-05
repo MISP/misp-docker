@@ -58,10 +58,6 @@ variable "MODULES_COMMIT" {
   default = ""
 }
 
-variable "MODULES_INSTALL_FLAG" {
-  default = ""
-}
-
 variable "CORE_TAG" {
   default = ""
 }
@@ -77,7 +73,9 @@ variable "PHP_VER" {
 group "default" {
   targets = [
     "misp-modules",
+    "misp-modules-lite",
     "misp-core",
+    "misp-core-lite",
   ]
 }
 
@@ -88,7 +86,19 @@ target "misp-modules" {
   args = {
     "MODULES_TAG": "${MODULES_TAG}",
     "MODULES_COMMIT": "${MODULES_COMMIT}",
-    "MODULES_INSTALL_FLAG": "${MODULES_INSTALL_FLAG}",
+    "MODULES_FLAVOR": "full",
+  }
+  platforms = "${PLATFORMS}"
+}
+
+target "misp-modules-lite" {
+  context = "modules/."
+  dockerfile = "Dockerfile"
+  tags = flatten(["${NAMESPACE}/misp-modules-lite:latest", "${NAMESPACE}/misp-modules-lite:${COMMIT_HASH}", MODULES_TAG != "" ? ["${NAMESPACE}/misp-modules-lite:${MODULES_TAG}"] : []])
+  args = {
+    "MODULES_TAG": "${MODULES_TAG}",
+    "MODULES_COMMIT": "${MODULES_COMMIT}",
+    "MODULES_FLAVOR": "lite",
   }
   platforms = "${PLATFORMS}"
 }
@@ -100,6 +110,29 @@ target "misp-core" {
   args = {
     "CORE_TAG": "${CORE_TAG}",
     "CORE_COMMIT": "${CORE_COMMIT}",
+    "CORE_FLAVOR": "full",
+    "PHP_VER": "${PHP_VER}",
+    "PYPI_REDIS_VERSION": "${PYPI_REDIS_VERSION}",
+    "PYPI_LIEF_VERSION": "${PYPI_LIEF_VERSION}",
+    "PYPI_PYDEEP2_VERSION": "${PYPI_PYDEEP2_VERSION}",
+    "PYPI_PYTHON_MAGIC_VERSION": "${PYPI_PYTHON_MAGIC_VERSION}",
+    "PYPI_MISP_LIB_STIX2_VERSION": "${PYPI_MISP_LIB_STIX2_VERSION}",
+    "PYPI_MAEC_VERSION": "${PYPI_MAEC_VERSION}",
+    "PYPI_MIXBOX_VERSION": "${PYPI_MIXBOX_VERSION}",
+    "PYPI_CYBOX_VERSION": "${PYPI_CYBOX_VERSION}",
+    "PYPI_PYMISP_VERSION": "${PYPI_PYMISP_VERSION}",
+  }
+  platforms = "${PLATFORMS}"
+}
+
+target "misp-core-lite" {
+  context = "core/."
+  dockerfile = "Dockerfile"
+  tags = flatten(["${NAMESPACE}/misp-core-lite:latest", "${NAMESPACE}/misp-core-lite:${COMMIT_HASH}", CORE_TAG != "" ? ["${NAMESPACE}/misp-core-lite:${CORE_TAG}"] : []])
+  args = {
+    "CORE_TAG": "${CORE_TAG}",
+    "CORE_COMMIT": "${CORE_COMMIT}",
+    "CORE_FLAVOR": "lite",
     "PHP_VER": "${PHP_VER}",
     "PYPI_REDIS_VERSION": "${PYPI_REDIS_VERSION}",
     "PYPI_LIEF_VERSION": "${PYPI_LIEF_VERSION}",

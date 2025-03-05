@@ -19,68 +19,120 @@ FROM php-base AS composer-build
     ENV COMPOSER_ALLOW_SUPERUSER=1
     ARG CORE_TAG
     ARG CORE_COMMIT
+    ARG CORE_FLAVOR
 
-    RUN apt-get install -y --no-install-recommends \
-        php8.2 \
-        php8.2-apcu \
-        php8.2-curl \
-        php8.2-xml \
-        php8.2-intl \
-        php8.2-bcmath \
-        php8.2-mbstring \
-        php8.2-mysql \
-        php8.2-redis \
-        php8.2-gd \
-        php8.2-fpm \
-        php8.2-zip \
-        unzip \
-        && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+    RUN <<-EOF
+        if [ "${CORE_FLAVOR}" = "lite" ]; then
+            apt-get install -y --no-install-recommends \
+                php8.2 \
+                php8.2-curl \
+                php8.2-xml \
+                php8.2-mysql \
+                php8.2-redis \
+                php8.2-gd \
+                php8.2-fpm \
+                php8.2-zip \
+                unzip
+        else
+            apt-get install -y --no-install-recommends \
+                php8.2 \
+                php8.2-apcu \
+                php8.2-curl \
+                php8.2-xml \
+                php8.2-intl \
+                php8.2-bcmath \
+                php8.2-mbstring \
+                php8.2-mysql \
+                php8.2-redis \
+                php8.2-gd \
+                php8.2-fpm \
+                php8.2-zip \
+                unzip
+        fi
+        apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+EOF
 
     WORKDIR /tmp
     RUN curl -o /tmp/composer.json https://raw.githubusercontent.com/MISP/MISP/${CORE_COMMIT:-${CORE_TAG}}/app/composer.json
+    RUN sed -i '/cake-resque/d' /tmp/composer.json
+    RUN sed -i 's/authentication",/authentication"/' /tmp/composer.json
+
     COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
     RUN composer config --no-interaction allow-plugins.composer/installers true
     RUN composer install
-    RUN composer require --with-all-dependencies --no-interaction \
-        elasticsearch/elasticsearch:^8.7.0 \
-        jakub-onderka/openid-connect-php:^1.0.0 \
-        aws/aws-sdk-php
+    RUN <<-EOF
+        if [ "${CORE_FLAVOR}" = "lite" ]; then
+            :
+        else
+            composer require --with-all-dependencies --no-interaction \
+                elasticsearch/elasticsearch:^8.7.0 \
+                jakub-onderka/openid-connect-php:^1.0.0 \
+                aws/aws-sdk-php
+        fi
+EOF
 
 
 FROM php-base AS php-build
     ENV DEBIAN_FRONTEND=noninteractive
     ENV TZ=Etc/UTC
+    ARG PHP_VER
+    ARG CORE_FLAVOR
 
-    RUN apt-get install -y --no-install-recommends \
-        gcc \
-        g++ \
-        git \
-        make \
-        php8.2 \
-        php8.2-dev \
-        php8.2-xml \
-        php-pear \
-        libbrotli-dev \
-        libfuzzy-dev \
-        librdkafka-dev \
-        libsimdjson-dev \
-        libzstd-dev \
-        && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+    RUN <<-EOF
+        if [ "${CORE_FLAVOR}" = "lite" ]; then
+            apt-get install -y --no-install-recommends \
+                gcc \
+                g++ \
+                git \
+                make \
+                php8.2 \
+                php8.2-dev \
+                php8.2-xml \
+                php-pear
+        else
+            apt-get install -y --no-install-recommends \
+                gcc \
+                g++ \
+                git \
+                make \
+                php8.2 \
+                php8.2-dev \
+                php8.2-xml \
+                php-pear \
+                libbrotli-dev \
+                libfuzzy-dev \
+                librdkafka-dev \
+                libsimdjson-dev \
+                libzstd-dev
+        fi
+        apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+EOF
 
     RUN update-alternatives --set php /usr/bin/php8.2
     RUN update-alternatives --set php-config /usr/bin/php-config8.2
     RUN update-alternatives --set phpize /usr/bin/phpize8.2
 
-    RUN cp "/usr/lib/$(gcc -dumpmachine)"/libfuzzy.* /usr/lib
-    RUN pecl channel-update pecl.php.net && \
-        pecl install rdkafka && \
-        pecl install simdjson && \
-        pecl install zstd && \
-        pecl install brotli
+    RUN <<-EOF
+        pecl channel-update pecl.php.net
+        if [ "${CORE_FLAVOR}" = "lite" ]; then
+            tar -czf /pecl_libs.tar.gz -T /dev/null
+        else
+            cp "/usr/lib/$(gcc -dumpmachine)"/libfuzzy.* /usr/lib
+            pecl install rdkafka
+            pecl install simdjson
+            pecl install zstd
+            pecl install brotli
+            git clone --recursive --depth=1 https://github.com/JakubOnderka/pecl-text-ssdeep.git /tmp/pecl-text-ssdeep
+            cd /tmp/pecl-text-ssdeep && phpize && ./configure && make && make install
+            tar -czf /pecl_libs.tar.gz \
+                /usr/lib/php/${PHP_VER}/ssdeep.so \
+                /usr/lib/php/${PHP_VER}/rdkafka.so \
+                /usr/lib/php/${PHP_VER}/brotli.so \
+                /usr/lib/php/${PHP_VER}/simdjson.so \
+                /usr/lib/php/${PHP_VER}/zstd.so
+        fi
+EOF
 
-    # install pecl-text-ssdeep 1.2
-    RUN git clone --recursive --depth=1 https://github.com/JakubOnderka/pecl-text-ssdeep.git /tmp/pecl-text-ssdeep
-    RUN cd /tmp/pecl-text-ssdeep && phpize && ./configure && make && make install
 
 FROM php-base AS python-build
     ENV DEBIAN_FRONTEND=noninteractive   
@@ -165,48 +217,76 @@ FROM php-base
     ARG CORE_TAG
     ARG CORE_COMMIT
     ARG PHP_VER
+    ARG CORE_FLAVOR
 
-    RUN apt-get install -y --no-install-recommends \
-        gettext \
-        procps \
-        sudo \
-        nginx \
-        supervisor \
-        cron \
-        openssl \
-        gpg \
-        gpg-agent \
-        mariadb-client \
-        rsync \
-        # Include rsyslog to support syslogger
-        rsyslog \
-        # PHP Requirements
-        php8.2 \
-        php8.2-apcu \
-        php8.2-curl \
-        php8.2-xml \
-        php8.2-intl \
-        php8.2-bcmath \
-        php8.2-mbstring \
-        php8.2-mysql \
-        php8.2-redis \
-        php8.2-gd \
-        php8.2-fpm \
-        php8.2-zip \
-        php8.2-ldap \
-        libmagic1 \
-        libldap-common \
-        librdkafka1 \
-        libbrotli1 \
-        libsimdjson14 \
-        libzstd1 \
-        ssdeep \
-        libfuzzy2 \
-        # Unsure we need these
-        zip unzip \
-        # Require for advanced an unattended configuration
-        curl jq \
-        && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+    RUN <<-EOF
+        if [ "${CORE_FLAVOR}" = "lite" ]; then
+            apt-get install -y --no-install-recommends \
+                gettext \
+                procps \
+                sudo \
+                nginx \
+                supervisor \
+                cron \
+                openssl \
+                gpg \
+                gpg-agent \
+                mariadb-client \
+                rsync \
+                rsyslog \
+                php8.2 \
+                php8.2-curl \
+                php8.2-xml \
+                php8.2-mbstring \
+                php8.2-mysql \
+                php8.2-redis \
+                php8.2-gd \
+                php8.2-fpm \
+                php8.2-zip \
+                unzip \
+                curl \
+                jq
+        else
+            apt-get install -y --no-install-recommends \
+                gettext \
+                procps \
+                sudo \
+                nginx \
+                supervisor \
+                cron \
+                openssl \
+                gpg \
+                gpg-agent \
+                mariadb-client \
+                rsync \
+                rsyslog \
+                php8.2 \
+                php8.2-apcu \
+                php8.2-curl \
+                php8.2-xml \
+                php8.2-intl \
+                php8.2-bcmath \
+                php8.2-mbstring \
+                php8.2-mysql \
+                php8.2-redis \
+                php8.2-gd \
+                php8.2-fpm \
+                php8.2-zip \
+                php8.2-ldap \
+                libmagic1 \
+                libldap-common \
+                librdkafka1 \
+                libbrotli1 \
+                libsimdjson14 \
+                libzstd1 \
+                ssdeep \
+                libfuzzy2 \
+                unzip \
+                curl \
+                jq
+        fi
+        apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+EOF
 
     RUN update-alternatives --set php /usr/bin/php8.2
 
@@ -215,7 +295,8 @@ FROM php-base
     RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
 
     # PHP: install prebuilt libraries, then install the app's PHP deps
-    COPY --from=php-build ["/usr/lib/php/${PHP_VER}/ssdeep.so", "/usr/lib/php/${PHP_VER}/rdkafka.so", "/usr/lib/php/${PHP_VER}/brotli.so", "/usr/lib/php/${PHP_VER}/simdjson.so", "/usr/lib/php/${PHP_VER}/zstd.so", "/usr/lib/php/${PHP_VER}/"]
+    COPY --from=php-build /pecl_libs.tar.gz /
+    RUN tar -xzf /pecl_libs.tar.gz && rm /pecl_libs.tar.gz
 
     # Do an early chown to limit image size
     COPY --from=python-build --chown=www-data:www-data --chmod=0550 /var/www/MISP /var/www/MISP
@@ -233,7 +314,11 @@ FROM php-base
 
     # Gather these in one layer, only act on actual directories under /etc/php/
     RUN <<-EOF
-        set -- "ssdeep" "rdkafka" "brotli" "simdjson" "zstd"
+        if [ "${CORE_FLAVOR}" = "lite" ]; then
+            set -- 
+        else
+            set -- "ssdeep" "rdkafka" "brotli" "simdjson" "zstd"
+        fi
         for mod in "$@"; do
             for dir in /etc/php/*/; do
                 echo "extension=${mod}.so" > "${dir}mods-available/${mod}.ini"

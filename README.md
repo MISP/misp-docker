@@ -116,6 +116,7 @@ LdapAuth is to be recommended, because it doesn't require rproxy apache with the
     -   `./files`: `/var/www/MISP/app/files/`
     -   `./gnupg`: `/var/www/MISP/.gnupg/`
 -   If you need to automatically run additional steps each time the container starts, create a new file `files/customize_misp.sh`, and replace the variable `${CUSTOM_PATH}` inside `docker-compose.yml` with its parent path.
+-   If you are interested in running streamlined versions of the images (fewer dependencies, easier approval from compliance), you might want to look into the `misp-core-lite` and `misp-modules-lite` images. Just replace the references in the `docker-compose.yml` file followed by `docker compose pull` and `docker compose up`.
 
 #### Using slow disks as volume mounts
 

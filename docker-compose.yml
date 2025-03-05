@@ -61,6 +61,7 @@ services:
       args:
           - CORE_TAG=${CORE_TAG:?Missing .env file, see README.md for instructions}
           - CORE_COMMIT=${CORE_COMMIT}
+          - CORE_FLAVOR=${CORE_FLAVOR:-full}
           - PHP_VER=${PHP_VER:?Missing .env file, see README.md for instructions}
           - PYPI_REDIS_VERSION=${PYPI_REDIS_VERSION}
           - PYPI_LIEF_VERSION=${PYPI_LIEF_VERSION}
@@ -253,14 +254,7 @@ services:
       args:
         - MODULES_TAG=${MODULES_TAG:?Missing .env file, see README.md for instructions}
         - MODULES_COMMIT=${MODULES_COMMIT}
-        - MODULES_INSTALL_FLAG=${MODULES_INSTALL_FLAG:?Missing .env file, see README.md for instructions}
-    environment:
-      - "REDIS_BACKEND=${REDIS_HOST:-redis}"
-      - "REDIS_PORT=${REDIS_PORT:-6379}"
-      - "REDIS_PW=${REDIS_PASSWORD:-redispassword}"
-    depends_on:
-      redis:
-        condition: service_healthy
+        - MODULES_FLAVOR=${MODULES_FLAVOR:-full}
     healthcheck:
       test: "/bin/bash -c '</dev/tcp/localhost/6666'"
       interval: 2s
