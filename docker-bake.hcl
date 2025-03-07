@@ -73,9 +73,9 @@ variable "PHP_VER" {
 group "default" {
   targets = [
     "misp-modules",
-    "misp-modules-lite",
+    "misp-modules-slim",
     "misp-core",
-    "misp-core-lite",
+    "misp-core-slim",
   ]
 }
 
@@ -91,10 +91,10 @@ target "misp-modules" {
   platforms = "${PLATFORMS}"
 }
 
-target "misp-modules-lite" {
+target "misp-modules-slim" {
   context = "modules/."
   dockerfile = "Dockerfile"
-  tags = flatten(["${NAMESPACE}/misp-modules-lite:latest", "${NAMESPACE}/misp-modules-lite:${COMMIT_HASH}", MODULES_TAG != "" ? ["${NAMESPACE}/misp-modules-lite:${MODULES_TAG}"] : []])
+  tags = flatten(["${NAMESPACE}/misp-modules:latest-slim", "${NAMESPACE}/misp-modules:${COMMIT_HASH}-slim", MODULES_TAG != "" ? ["${NAMESPACE}/misp-modules:${MODULES_TAG}-slim"] : []])
   args = {
     "MODULES_TAG": "${MODULES_TAG}",
     "MODULES_COMMIT": "${MODULES_COMMIT}",
@@ -125,10 +125,10 @@ target "misp-core" {
   platforms = "${PLATFORMS}"
 }
 
-target "misp-core-lite" {
+target "misp-core-slim" {
   context = "core/."
   dockerfile = "Dockerfile"
-  tags = flatten(["${NAMESPACE}/misp-core-lite:latest", "${NAMESPACE}/misp-core-lite:${COMMIT_HASH}", CORE_TAG != "" ? ["${NAMESPACE}/misp-core-lite:${CORE_TAG}"] : []])
+  tags = flatten(["${NAMESPACE}/misp-core:latest-slim", "${NAMESPACE}/misp-core:${COMMIT_HASH}-slim", CORE_TAG != "" ? ["${NAMESPACE}/misp-core:${CORE_TAG}-slim"] : []])
   args = {
     "CORE_TAG": "${CORE_TAG}",
     "CORE_COMMIT": "${CORE_COMMIT}",

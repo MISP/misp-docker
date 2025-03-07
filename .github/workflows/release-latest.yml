@@ -10,7 +10,7 @@ jobs:
 
     strategy:
       matrix:
-        target: [misp-core, misp-modules, misp-core-lite, misp-modules-lite]
+        target: [misp-core, misp-modules, misp-core-slim, misp-modules-slim]
 
     permissions:
       contents: read
