@@ -39,6 +39,8 @@ EOF
 
     WORKDIR /srv/misp-modules
     RUN pip install poetry
+    RUN sed -i "s/^requires-python = .*/requires-python = \"$(python -c 'import platform; print(platform.python_version())')\"/" pyproject.toml
+    RUN poetry lock
     RUN poetry self add poetry-plugin-export
     RUN <<-EOF
         if [ "${MODULES_FLAVOR}" = "lite" ]; then
