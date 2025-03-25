@@ -244,6 +244,7 @@ FROM php-base
                 php8.2-fpm \
                 php8.2-zip \
                 unzip \
+                zip \
                 curl \
                 jq
         else
@@ -282,6 +283,7 @@ FROM php-base
                 ssdeep \
                 libfuzzy2 \
                 unzip \
+                zip \
                 curl \
                 jq
         fi
