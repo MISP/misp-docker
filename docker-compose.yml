@@ -12,7 +12,7 @@ services:
 
   redis:
     image: valkey/valkey:7.2
-    command: "--save '' --requirepass '${REDIS_PASSWORD:-redispassword}'"
+    command: "--requirepass '${REDIS_PASSWORD:-redispassword}'"
     healthcheck:
       test: "valkey-cli -a '${REDIS_PASSWORD:-redispassword}' -p ${REDIS_PORT:-6379} ping | grep -q PONG || exit 1"
       interval: 2s

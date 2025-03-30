@@ -290,6 +290,8 @@ FROM php-base
         apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 EOF
 
+    # Remove some defaults (kernel logging) and fix alternatives
+    RUN sed -i '/imklog/s/^/#/' /etc/rsyslog.conf
     RUN update-alternatives --set php /usr/bin/php8.2
 
     # Install python modules

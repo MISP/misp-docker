@@ -61,6 +61,52 @@ init_misp_data_files(){
     [ -f $MISP_APP_CONFIG_PATH/email.php ] || dd if=$MISP_APP_CONFIG_PATH.dist/email.php of=$MISP_APP_CONFIG_PATH/email.php
     [ -f $MISP_APP_CONFIG_PATH/routes.php ] || dd if=$MISP_APP_CONFIG_PATH.dist/routes.php of=$MISP_APP_CONFIG_PATH/routes.php
 
+    if ! grep -q "Detect what auth modules" "$MISP_APP_CONFIG_PATH/bootstrap.php"; then
+        echo "... patch bootstrap.php settings"
+        chmod +w $MISP_APP_CONFIG_PATH/bootstrap.php
+        # workaround for https://forums.docker.com/t/sed-couldnt-open-temporary-file-xyz-permission-denied-when-using-virtiofs/125473
+        sed -z "s|CakePlugin::loadAll(array(.*CakeResque.*));||g" $MISP_APP_CONFIG_PATH/bootstrap.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/bootstrap.php; rm tmp
+        sed "s|CakePlugin::load('AadAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/bootstrap.php; rm tmp
+        sed "s|CakePlugin::load('CertAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/bootstrap.php; rm tmp
+        sed "s|CakePlugin::load('LdapAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/bootstrap.php; rm tmp
+        sed "s|CakePlugin::load('LinOTPAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/bootstrap.php; rm tmp
+        sed "s|CakePlugin::load('OidcAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/bootstrap.php; rm tmp
+        sed "s|CakePlugin::load('ShibbAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/bootstrap.php; rm tmp
+        cat <<EOT >> $MISP_APP_CONFIG_PATH/bootstrap.php
+
+/**
+ * Detect what auth modules need to be loaded based on the loaded config
+ */
+
+if (Configure::read('AadAuth')) {
+    CakePlugin::load('AadAuth');
+}
+
+if (Configure::read('CertAuth')) {
+    CakePlugin::load('CertAuth');
+}
+
+if (Configure::read('LdapAuth')) {
+    CakePlugin::load('LdapAuth');
+}
+
+if (Configure::read('LinOTPAuth')) {
+    CakePlugin::load('LinOTPAuth');
+}
+
+if (Configure::read('OidcAuth')) {
+    CakePlugin::load('OidcAuth');
+}
+
+if (Configure::read('ShibbAuth')) {
+    CakePlugin::load('ShibbAuth');
+}
+
+EOT
+    else
+        echo "... patch bootstrap.php settings not required"
+    fi
+
     echo "... initialize database.php settings"
     # workaround for https://forums.docker.com/t/sed-couldnt-open-temporary-file-xyz-permission-denied-when-using-virtiofs/125473
     # sed -i "s/localhost/$MYSQL_HOST/" $MISP_APP_CONFIG_PATH/database.php
@@ -126,7 +172,6 @@ class EmailConfig {
     );
 }
 EOT
-    chmod -w $MISP_APP_CONFIG_PATH/email.php
 
     # Init files (shared with host)
     echo "... initialize app files"
@@ -191,7 +236,7 @@ enforce_misp_data_permissions(){
     # Directories are also writable, because there seems to be a requirement to add new files every once in a while
     echo "... chmod -R 0770 directories /var/www/MISP/app/Config" && find /var/www/MISP/app/Config -not -perm 770 -type d -exec chmod 0770 {} +
     # We make configuration files read only
-    echo "... chmod 600 /var/www/MISP/app/Config/{config,database,email}.php" && chmod 600 /var/www/MISP/app/Config/{config,database,email}.php
+    echo "... chmod 600 /var/www/MISP/app/Config/{config,database,email}.php" && chmod 600 /var/www/MISP/app/Config/{bootstrap,config,database,email}.php
 }
 
 flip_nginx() {
