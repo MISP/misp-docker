@@ -255,13 +255,19 @@ flip_nginx() {
     echo "... nginx docroot set to ${NGINX_DOC_ROOT}"
     sed -i "s|root.*var/www.*|root ${NGINX_DOC_ROOT};|" /etc/nginx/includes/misp
 
-    if [[ "$reload" = "true" ]]; then
+    if [[ "$reload" = "true" ]] && [[ -z "$KUBERNETES_SERVICE_HOST" ]]; then
         echo "... nginx reloaded"
         nginx -s reload
     fi
 }
 
 init_nginx() {
+    # Optional location of PHP-FPM sock file
+    if [[ -n "$PHP_FPM_SOCK_FILE" ]]; then
+        echo "... setting 'fastcgi_pass' to unix:${PHP_FPM_SOCK_FILE}"
+        sed -i "s@fastcgi_pass .*;@fastcgi_pass unix:${PHP_FPM_SOCK_FILE};@" /etc/nginx/includes/misp
+    fi
+
     # Adjust timeouts
     echo "... adjusting 'fastcgi_read_timeout' to ${FASTCGI_READ_TIMEOUT}"
     sed -i "s/fastcgi_read_timeout .*;/fastcgi_read_timeout ${FASTCGI_READ_TIMEOUT};/" /etc/nginx/includes/misp
@@ -401,6 +407,9 @@ init_nginx() {
     flip_nginx false false
 }
 
+if [ -n "${BASH_SOURCE[0]}" ]; then
+    return
+fi
 
 # Initialize MySQL
 echo "INIT | Initialize MySQL ..." && init_mysql
