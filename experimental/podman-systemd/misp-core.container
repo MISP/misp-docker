@@ -7,11 +7,11 @@ Requires=redis.service
 
 [Container]
 AutoUpdate=registry
-ContainerName=misp-core
-Image=ghcr.io/misp/misp-docker/misp-core:latest
+ContainerName=core
+Image=ghcr.io/misp/core:latest
 PublishPort=10443:443
 Network=misp-net
-PodmanArgs=--network-alias misp-core
+PodmanArgs=--network-alias core
 Volume=conf:/var/www/MISP/app/Config/
 Volume=logs:/var/www/MISP/app/tmp/logs/
 Volume=files:/var/www/MISP/app/files/

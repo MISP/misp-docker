@@ -31,13 +31,13 @@ EOF
 
     RUN <<-EOF
         if [ ! -z ${MODULES_COMMIT} ]; then
-            git clone https://github.com/MISP/misp-modules.git /srv/misp-modules && cd /srv/misp-modules && git checkout ${MODULES_COMMIT}
+            git clone https://github.com/MISP/modules.git /srv/modules && cd /srv/modules && git checkout ${MODULES_COMMIT}
         else
-            git clone --branch ${MODULES_TAG} --depth 1 https://github.com/MISP/misp-modules.git /srv/misp-modules
+            git clone --branch ${MODULES_TAG} --depth 1 https://github.com/MISP/modules.git /srv/modules
         fi
 EOF
 
-    WORKDIR /srv/misp-modules
+    WORKDIR /srv/modules
     RUN pip install poetry
     RUN sed -i "s/^requires-python = .*/requires-python = \"$(python -c 'import platform; print(platform.python_version())')\"/" pyproject.toml
     RUN poetry lock
@@ -53,7 +53,7 @@ EOF
     RUN poetry build --output /wheels/
 
     WORKDIR /srv/
-    RUN rm -rf /srv/misp-modules
+    RUN rm -rf /srv/modules
 
 
 FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm"
@@ -79,4 +79,4 @@ EOF
     RUN pip uninstall -y pip
     RUN mkdir -p /custom/{action_mod,expansion,export_mod,import_mod}
 
-    ENTRYPOINT [ "/usr/local/bin/misp-modules", "-l", "0.0.0.0", "-c", "/custom/"]
+    ENTRYPOINT [ "/usr/local/bin/modules", "-l", "0.0.0.0", "-c", "/custom/"]

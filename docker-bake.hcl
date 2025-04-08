@@ -72,17 +72,17 @@ variable "PHP_VER" {
 
 group "default" {
   targets = [
-    "misp-modules",
-    "misp-modules-slim",
-    "misp-core",
-    "misp-core-slim",
+    "modules",
+    "modules-slim",
+    "core",
+    "core-slim",
   ]
 }
 
-target "misp-modules" {
+target "modules" {
   context = "modules/."
   dockerfile = "Dockerfile"
-  tags = flatten(["${NAMESPACE}/misp-modules:latest", "${NAMESPACE}/misp-modules:${COMMIT_HASH}", MODULES_TAG != "" ? ["${NAMESPACE}/misp-modules:${MODULES_TAG}"] : []])
+  tags = flatten(["${NAMESPACE}/modules:latest", "${NAMESPACE}/modules:${COMMIT_HASH}", MODULES_TAG != "" ? ["${NAMESPACE}/modules:${MODULES_TAG}"] : []])
   args = {
     "MODULES_TAG": "${MODULES_TAG}",
     "MODULES_COMMIT": "${MODULES_COMMIT}",
@@ -91,10 +91,10 @@ target "misp-modules" {
   platforms = "${PLATFORMS}"
 }
 
-target "misp-modules-slim" {
+target "modules-slim" {
   context = "modules/."
   dockerfile = "Dockerfile"
-  tags = flatten(["${NAMESPACE}/misp-modules:latest-slim", "${NAMESPACE}/misp-modules:${COMMIT_HASH}-slim", MODULES_TAG != "" ? ["${NAMESPACE}/misp-modules:${MODULES_TAG}-slim"] : []])
+  tags = flatten(["${NAMESPACE}/modules:latest-slim", "${NAMESPACE}/modules:${COMMIT_HASH}-slim", MODULES_TAG != "" ? ["${NAMESPACE}/modules:${MODULES_TAG}-slim"] : []])
   args = {
     "MODULES_TAG": "${MODULES_TAG}",
     "MODULES_COMMIT": "${MODULES_COMMIT}",
@@ -103,10 +103,10 @@ target "misp-modules-slim" {
   platforms = "${PLATFORMS}"
 }
 
-target "misp-core" {
+target "core" {
   context = "core/."
   dockerfile = "Dockerfile"
-  tags = flatten(["${NAMESPACE}/misp-core:latest", "${NAMESPACE}/misp-core:${COMMIT_HASH}", CORE_TAG != "" ? ["${NAMESPACE}/misp-core:${CORE_TAG}"] : []])
+  tags = flatten(["${NAMESPACE}/core:latest", "${NAMESPACE}/core:${COMMIT_HASH}", CORE_TAG != "" ? ["${NAMESPACE}/core:${CORE_TAG}"] : []])
   args = {
     "CORE_TAG": "${CORE_TAG}",
     "CORE_COMMIT": "${CORE_COMMIT}",
@@ -125,10 +125,10 @@ target "misp-core" {
   platforms = "${PLATFORMS}"
 }
 
-target "misp-core-slim" {
+target "core-slim" {
   context = "core/."
   dockerfile = "Dockerfile"
-  tags = flatten(["${NAMESPACE}/misp-core:latest-slim", "${NAMESPACE}/misp-core:${COMMIT_HASH}-slim", CORE_TAG != "" ? ["${NAMESPACE}/misp-core:${CORE_TAG}-slim"] : []])
+  tags = flatten(["${NAMESPACE}/core:latest-slim", "${NAMESPACE}/core:${COMMIT_HASH}-slim", CORE_TAG != "" ? ["${NAMESPACE}/core:${CORE_TAG}-slim"] : []])
   args = {
     "CORE_TAG": "${CORE_TAG}",
     "CORE_COMMIT": "${CORE_COMMIT}",
