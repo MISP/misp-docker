@@ -30,6 +30,8 @@ change_php_vars() {
         sed -i "s|.*session.save_path = .*|session.save_path = '$(echo $REDIS_HOST | grep -E '^\w+://' || echo tcp://$REDIS_HOST):$REDIS_PORT?auth=${ESCAPED}'|" "$FILE"
         sed -i "s/session.sid_length = .*/session.sid_length = 64/" "$FILE"
         sed -i "s/session.use_strict_mode = .*/session.use_strict_mode = 1/" "$FILE"
+        echo "Configure PHP | Setting 'date.timezone = ${PHP_TIMEZONE}'"
+        sed -i "s/;?date.timezone = .*/date.timezone = ${PHP_TIMEZONE}/" "$FILE"
     done
 
     for FILE in /etc/php/*/fpm/pool.d/www.conf
