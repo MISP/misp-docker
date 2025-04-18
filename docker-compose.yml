@@ -1,3 +1,5 @@
+name: misp
+
 services:
   # This is capable to relay via gmail, Amazon SES, or generic relays
   # See: https://hub.docker.com/r/ixdotai/smtp
@@ -51,7 +53,7 @@ services:
       start_period: 30s
       start_interval: 5s
 
-  misp-core:
+  core:
     image: ghcr.io/misp/misp-docker/misp-core:${CORE_RUNNING_TAG:-latest}
     cap_add:
       - AUDIT_WRITE
@@ -77,7 +79,7 @@ services:
         condition: service_healthy
       db:
         condition: service_healthy
-      misp-modules:
+      modules:
         condition: service_healthy
     healthcheck:
       test: curl -ks ${BASE_URL:-https://localhost}/users/heartbeat > /dev/null || exit 1
@@ -246,7 +248,7 @@ services:
       - "X_FRAME_OPTIONS=${X_FRAME_OPTIONS}"
       - "CONTENT_SECURITY_POLICY=${CONTENT_SECURITY_POLICY}"
 
-  misp-modules:
+  modules:
     image: ghcr.io/misp/misp-docker/misp-modules:${MODULES_RUNNING_TAG:-latest}
     build:
       context: modules/.
