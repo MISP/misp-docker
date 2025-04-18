@@ -25,7 +25,7 @@ export SMTP_FQDN=${SMTP_FQDN:-mail}
 
 export ADMIN_EMAIL=${ADMIN_EMAIL:-admin@admin.test}
 export GPG_PASSPHRASE=${GPG_PASSPHRASE:-passphrase}
-export MISP_MODULES_FQDN=${MISP_MODULES_FQDN:-http://misp-modules}
+export MISP_MODULES_FQDN=${MISP_MODULES_FQDN:-http://modules}
 export ATTACHMENTS_DIR=${ATTACHMENTS_DIR:-/var/www/MISP/app/files}
 
 export AUTOCONF_GPG=${AUTOCONF_GPG:-true}
