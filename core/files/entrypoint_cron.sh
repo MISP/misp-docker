@@ -10,6 +10,10 @@ term_procs() {
 
 trap term_procs SIGTERM
 
+# Set default values if the variables are not defined
+: "${CRON_PULLALL:=0 1 * * *}"
+: "${CRON_PUSHALL:=0 0 * * *}"
+
 cat << EOF > /etc/cron.d/misp
 20 2 * * * www-data /var/www/MISP/app/Console/cake Server cacheFeed "$CRON_USER_ID" all > /tmp/cronlog 2>&1
 30 2 * * * www-data /var/www/MISP/app/Console/cake Server fetchFeed "$CRON_USER_ID" all > /tmp/cronlog 2>&1
