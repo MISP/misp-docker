@@ -71,5 +71,8 @@ export NGINX_X_FORWARDED_FOR=${NGINX_X_FORWARDED_FOR:-false}
 export NGINX_SET_REAL_IP_FROM=${NGINX_SET_REAL_IP_FROM}
 export NGINX_CLIENT_MAX_BODY_SIZE=${NGINX_CLIENT_MAX_BODY_SIZE:-50M}
 
+export CRON_PULLALL=${CRON_PULLALL:-0 1 * * *}
+export CRON_PUSHALL=${CRON_PUSHALL:-0 0 * * *}
+
 # start supervisord using the main configuration file so we have a socket interface
 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
