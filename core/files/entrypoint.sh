@@ -74,5 +74,22 @@ export NGINX_CLIENT_MAX_BODY_SIZE=${NGINX_CLIENT_MAX_BODY_SIZE:-50M}
 export CRON_PULLALL=${CRON_PULLALL:-0 1 * * *}
 export CRON_PUSHALL=${CRON_PUSHALL:-0 0 * * *}
 
-# start supervisord using the main configuration file so we have a socket interface
-/usr/bin/supervisord -c /etc/supervisor/supervisord.conf
+if [ -n "$KUBERNETES_SERVICE_HOST" ]; then
+  case "$CONTAINER_NAME" in
+    nginx*)
+      exec /entrypoint_k8s_nginx.sh
+    ;;
+    php*)
+      # Not ideal, but let supervisord manage the workers still
+      mv /etc/supervisor/conf.d/10-supervisor.conf{.k8s,}
+      /usr/bin/supervisord -c /etc/supervisor/supervisord.conf &
+      exec /entrypoint_k8s_fpm.sh
+    ;;
+    cron*)
+      exec /entrypoint_cron.sh
+    ;;
+  esac
+else
+  # start supervisord using the main configuration file so we have a socket interface
+  /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
+fi
