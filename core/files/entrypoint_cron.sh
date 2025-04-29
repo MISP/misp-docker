@@ -14,8 +14,8 @@ cat << EOF > /etc/cron.d/misp
 20 2 * * * www-data /var/www/MISP/app/Console/cake Server cacheFeed "$CRON_USER_ID" all > /tmp/cronlog 2>&1
 30 2 * * * www-data /var/www/MISP/app/Console/cake Server fetchFeed "$CRON_USER_ID" all > /tmp/cronlog 2>&1
 
-0 0 * * * www-data /var/www/MISP/app/Console/cake Server pullAll "$CRON_USER_ID" > /tmp/cronlog 2>&1
-0 1 * * * www-data /var/www/MISP/app/Console/cake Server pushAll "$CRON_USER_ID" > /tmp/cronlog 2>&1
+$CRON_PULLALL www-data /var/www/MISP/app/Console/cake Server pullAll "$CRON_USER_ID" > /tmp/cronlog 2>&1
+$CRON_PUSHALL www-data /var/www/MISP/app/Console/cake Server pushAll "$CRON_USER_ID" > /tmp/cronlog 2>&1
 
 00 3 * * * www-data /var/www/MISP/app/Console/cake Admin updateGalaxies > /tmp/cronlog 2>&1
 10 3 * * * www-data /var/www/MISP/app/Console/cake Admin updateTaxonomies > /tmp/cronlog 2>&1
