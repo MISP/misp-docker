@@ -16,12 +16,15 @@ export MYSQL_CMD="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD -P $MYSQL_PORT -h $MYSQ
 export REDIS_HOST=${REDIS_HOST:-redis}
 export REDIS_PORT=${REDIS_PORT:-6379}
 export REDIS_PASSWORD=${REDIS_PASSWORD:-redispassword}
-export CRON_USER_ID=${CRON_USER_ID:-1}
 export BASE_URL=${BASE_URL:-https://localhost}
 export DISABLE_IPV6=${DISABLE_IPV6:-false}
 export DISABLE_SSL_REDIRECT=${DISABLE_SSL_REDIRECT:-false}
 export DISABLE_CA_REFRESH=${DISABLE_CA_REFRESH:-false}
 export SMTP_FQDN=${SMTP_FQDN:-mail}
+
+export CRON_USER_ID=${CRON_USER_ID:-1}
+export CRON_PULLALL=${CRON_PULLALL:-0 1 * * *}
+export CRON_PUSHALL=${CRON_PUSHALL:-0 0 * * *}
 
 export ADMIN_EMAIL=${ADMIN_EMAIL:-admin@admin.test}
 export GPG_PASSPHRASE=${GPG_PASSPHRASE:-passphrase}
@@ -67,13 +70,11 @@ export PHP_SESSION_CHECK_AGENT=${PHP_SESSION_CHECK_AGENT:-false}
 export PHP_SESSION_COOKIE_SECURE=${PHP_SESSION_COOKIE_SECURE:-true}
 export PHP_SESSION_COOKIE_DOMAIN=${PHP_SESSION_COOKIE_DOMAIN}
 export PHP_SESSION_COOKIE_SAMESITE=${PHP_SESSION_COOKIE_SAMESITE:-Lax}
+export PHP_TIMEZONE=${PHP_TIMEZONE:-UTC}
 
 export NGINX_X_FORWARDED_FOR=${NGINX_X_FORWARDED_FOR:-false}
 export NGINX_SET_REAL_IP_FROM=${NGINX_SET_REAL_IP_FROM}
 export NGINX_CLIENT_MAX_BODY_SIZE=${NGINX_CLIENT_MAX_BODY_SIZE:-50M}
-
-export CRON_PULLALL=${CRON_PULLALL:-0 1 * * *}
-export CRON_PUSHALL=${CRON_PUSHALL:-0 0 * * *}
 
 # start supervisord using the main configuration file so we have a socket interface
 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
