@@ -97,7 +97,8 @@ set_up_oidc() {
                 \"client_secret\": \"${OIDC_CLIENT_SECRET}\",
                 \"roles_property\": \"${OIDC_ROLES_PROPERTY}\",
                 \"role_mapper\": ${OIDC_ROLES_MAPPING},
-                \"default_org\": \"${OIDC_DEFAULT_ORG}\"
+                \"default_org\": \"${OIDC_DEFAULT_ORG}\",
+                \"mixedAuth\": ${OIDC_MIXEDAUTH}
             }
         }" > /dev/null
 
