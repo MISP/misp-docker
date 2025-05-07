@@ -196,7 +196,7 @@ update_misp_data_files(){
         fi
     fi
     for DIR in $(ls /var/www/MISP/app/files.dist); do
-        if [ "$DIR" = "certs" ] || [ "$DIR" = "img" ] || [ "$DIR" == "taxonomies" ] || [ "$DIR" == "terms" ] ; then
+        if [ "$DIR" = "certs" ] || [ "$DIR" = "img" ] || [ "$DIR" == "taxonomies" ] || [ "$DIR" == "terms" ] || [ "$DIR" == "misp-objects" ] ; then
             echo "... rsync -azh \"/var/www/MISP/app/files.dist/$DIR\" \"/var/www/MISP/app/files/\""
             rsync -azh "/var/www/MISP/app/files.dist/$DIR" "/var/www/MISP/app/files/"
         else

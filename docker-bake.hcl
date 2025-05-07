@@ -42,6 +42,14 @@ variable "PYPI_MISP_STIX" {
   default = ""
 }
 
+variable "PYPI_SETUPTOOLS" {
+  default = ""
+}
+
+variable "PYPI_SUPERVISOR" {
+  default = ""
+}
+
 variable "NAMESPACE" {
   default = null
 }
