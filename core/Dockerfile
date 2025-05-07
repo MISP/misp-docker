@@ -164,13 +164,6 @@ FROM php-base AS python-build
         fi
         cd /var/www/MISP || exit; git submodule update --init --recursive .
 EOF
-    # Hot-patch v2.5.11
-    RUN <<-EOF
-        if grep -q '"hotfix"[[:space:]]*:[[:space:]]*11' /var/www/MISP/VERSION.json; then
-            sed -i '2445s/\"collation_name\": \"utf8mb3_bin\"/\"collation_name\": \"utf8mb4_unicode_ci\"/' /var/www/MISP/db_schema.json
-            sed -i '11031s/\"db_version\": \"137\"/\"db_version\": \"138\"/' /var/www/MISP/db_schema.json
-        fi
-EOF
 
     RUN <<-EOF
         mkdir /wheels
