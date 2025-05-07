@@ -8,7 +8,7 @@ A production ready Docker MISP image (formerly hosted at https://github.com/oste
 Notable features:
 -   MISP and MISP modules are split into two different Docker images, `misp-core` and `misp-modules`
 -   Docker images are pushed regularly, no build required
--   Lightweigth Docker images by using multiple build stages and a slim parent image
+-   Lightweight Docker images by using multiple build stages and a slim parent image
 -   Rely on off the shelf Docker images for Exim4, Redis, and MariaDB
 -   Cron jobs run updates, pushes, and pulls
 -   Fix supervisord process control (processes are correctly terminated upon reload)
