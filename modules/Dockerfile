@@ -76,7 +76,6 @@ EOF
 
     COPY --from=python-build /wheels /wheels
     RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
-    RUN pip uninstall -y pip
     RUN bash -c 'mkdir -p /custom/{action_mod,expansion,export_mod,import_mod}'
 
     ENTRYPOINT [ "/usr/local/bin/misp-modules", "-l", "0.0.0.0", "-c", "/custom/"]

@@ -308,9 +308,6 @@ EOF
     COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/Vendor /var/www/MISP/app/Vendor
     COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/Plugin /var/www/MISP/app/Plugin
 
-    # We need to leave 'setuptools' for 'supervisor' but we can remove 'pip'
-    RUN pip uninstall -y pip
-
     # Gather these in one layer, only act on actual directories under /etc/php/
     RUN <<-EOF
         if [ "${CORE_FLAVOR}" = "lite" ]; then
