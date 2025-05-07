@@ -72,6 +72,8 @@ services:
           - PYPI_CYBOX_VERSION=${PYPI_CYBOX_VERSION}
           - PYPI_PYMISP_VERSION=${PYPI_PYMISP_VERSION}
           - PYPI_MISP_STIX_VERSION=${PYPI_MISP_STIX_VERSION}
+          - PYPI_SETUPTOOLS=${PYPI_SETUPTOOLS}
+          - PYPI_SUPERVISOR=${PYPI_SUPERVISOR}
     depends_on:
       redis:
         condition: service_healthy
