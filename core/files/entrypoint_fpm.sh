@@ -31,7 +31,7 @@ change_php_vars() {
         sed -i "s/session.sid_length = .*/session.sid_length = 64/" "$FILE"
         sed -i "s/session.use_strict_mode = .*/session.use_strict_mode = 1/" "$FILE"
         echo "Configure PHP | Setting 'date.timezone = ${PHP_TIMEZONE}'"
-	    sed -i -E "s|;?date.timezone =.*|date.timezone = ${PHP_TIMEZONE}|" "$FILE"
+        sed -i -E "s|;?date.timezone =.*|date.timezone = ${PHP_TIMEZONE}|" "$FILE"
     done
 
     for FILE in /etc/php/*/fpm/pool.d/www.conf
