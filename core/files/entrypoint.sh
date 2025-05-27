@@ -25,6 +25,8 @@ export SMTP_FQDN=${SMTP_FQDN:-mail}
 export CRON_USER_ID=${CRON_USER_ID:-1}
 export CRON_PULLALL=${CRON_PULLALL:-0 1 * * *}
 export CRON_PUSHALL=${CRON_PUSHALL:-0 0 * * *}
+export CRON_CACHEFEED=${CRON_CACHEFEED:-20 2 * * *}
+export CRON_FETCHEFEED=${CRON_FETCHEFEED:-30 2 * * *}
 
 export ADMIN_EMAIL=${ADMIN_EMAIL:-admin@admin.test}
 export GPG_PASSPHRASE=${GPG_PASSPHRASE:-passphrase}
