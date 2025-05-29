@@ -3,6 +3,7 @@ services:
   # See: https://hub.docker.com/r/ixdotai/smtp
   mail:
     image: ixdotai/smtp
+    restart: always
     environment:
       - "SMARTHOST_ADDRESS=${SMARTHOST_ADDRESS}"
       - "SMARTHOST_PORT=${SMARTHOST_PORT}"
@@ -12,6 +13,7 @@ services:
 
   redis:
     image: valkey/valkey:7.2
+    restart: always
     command: "--requirepass '${REDIS_PASSWORD:-redispassword}'"
     healthcheck:
       test: "valkey-cli -a '${REDIS_PASSWORD:-redispassword}' -p ${REDIS_PORT:-6379} ping | grep -q PONG || exit 1"
@@ -53,6 +55,7 @@ services:
 
   misp-core:
     image: ghcr.io/misp/misp-docker/misp-core:${CORE_RUNNING_TAG:-latest}
+    restart: always
     cap_add:
       - AUDIT_WRITE
     build:
@@ -256,6 +259,7 @@ services:
 
   misp-modules:
     image: ghcr.io/misp/misp-docker/misp-modules:${MODULES_RUNNING_TAG:-latest}
+    restart: always
     build:
       context: modules/.
       args:
