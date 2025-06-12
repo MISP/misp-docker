@@ -5,10 +5,10 @@ Requires=redis.service
 
 [Container]
 AutoUpdate=registry
-ContainerName=misp-modules
-Image=ghcr.io/misp/misp-docker/misp-modules:latest
+ContainerName=modules
+Image=ghcr.io/misp/modules:latest
 Network=misp-net
-PodmanArgs=--network-alias misp-modules
+PodmanArgs=--network-alias modules
 EnvironmentFile=vars.env
 
 [Service]

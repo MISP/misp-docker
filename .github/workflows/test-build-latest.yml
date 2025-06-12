@@ -10,7 +10,7 @@ jobs:
 
     strategy:
       matrix:
-        target: [misp-core, misp-modules, misp-core-slim, misp-modules-slim]
+        target: [core, modules, core-slim, modules-slim]
 
     steps:
       - name: Checkout repository
