@@ -3,6 +3,7 @@
 /gnupg/
 /logs/
 /ssl/
+/custom/
 .env
 env.hcl
 rootca.crt
