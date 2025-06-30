@@ -101,7 +101,7 @@ Configure MISP to use Keycloak as an OIDC provider by setting the appropriate en
 - `OIDC_CLIENT_ID`: `"misp"` — The client ID configured in Keycloak.
 - `OIDC_DEFAULT_ORG`: `"[Org Name for default assignment]"` — The default organization name in MISP to associate with authenticated users.
 - `OIDC_PROVIDER_URL`: `"https://[key.cloak.host]/realms/[realm-name]/.well-known/openid-configuration"` — The discovery URL for the Keycloak realm.
-- `OIDC_ROLES_MAPPING`: `'{"admin":"0","user":"3"}'` — JSON mapping from Keycloak roles to MISP role IDs.
+- `OIDC_ROLES_MAPPING`: `'{"admin":"1","user":"3"}'` — JSON mapping from Keycloak roles to MISP role IDs.
 - `OIDC_ROLES_PROPERTY`: `"realm_access.roles"` — The claim path in the token where roles are listed.
 - `OIDC_CLIENT_SECRET`: `<secret>` — The client secret from Keycloak (`Manage -> Clients -> misp -> Credentials -> Client Secret`)
 Example:
