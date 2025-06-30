@@ -110,7 +110,7 @@ Example:
   OIDC_CLIENT_ID: "misp"
   OIDC_DEFAULT_ORG: "ADMIN"
   OIDC_PROVIDER_URL: "https://auth.domain.com/realms/REALMNAME/.well-known/openid-configuration"
-  OIDC_ROLES_MAPPING: '{"admin":"1","user":"2"}'
+  OIDC_ROLES_MAPPING: '{"admin":"1","user":"3"}'
   OIDC_ROLES_PROPERTY: "roles"
 ```
 
