@@ -113,3 +113,21 @@ Example:
   OIDC_ROLES_MAPPING: '{"admin":"1","user":"2"}'
   OIDC_ROLES_PROPERTY: "roles"
 ```
+
+---
+
+## Troubleshooting
+
+>Authentication errors are logged to the MISP error log `app/tmp/logs/error.log`
+
+**Warning: OIDC user 'user@example.com' - Role Property 'roles' is missing in claims, access prohibitied**
+
+This warning indicates an issue with the Client Scope Roles Mapper not correctly including the role in the token. Review the Client Scope configurations at `Manage -> Client Scopes -> misp-oidc -> Mappers` and `Manage -> Clients -> misp -> Client Scopes`
+
+**Warning: OIDC user 'user@example.com' - No role was assigned, access prohibited**
+
+The user authenticated in keycloak successfully, but they were not a member of any roles mapped to MISP. Ensure the user is a member of one of the client roles `Manage -> Clients -> misp -> Roles` and that the `OIDC_ROLES_MAPPING` variable correctly matches that role name (case sensitive) to a MISP role
+
+**Error: OIDC user 'user@example.com" - User sub doesn't match, could not login**
+
+The sub is a property mapping the username to the user's keycloak ID. This ID gets saved to the user in MISP. This most common causes of this error are the user was deleted and recreated in keycloak or if settings in keycloak were manually recreated. To resolve, delete the user from MISP and allow it to be recreated on next successful login.
