@@ -16,6 +16,7 @@ Notable features:
 -   Fix enforcement of permissions
 -   Fix MISP modules loading of faup library
 -   Fix MISP modules loading of gl library
+-   Authentication using LDAP or OIDC
 -   Add support for new background job [system](https://github.com/MISP/MISP/blob/2.4/docs/background-jobs-migration-guide.md)
 -   Add support for building specific MISP and MISP-modules commits
 -   Add automatic configuration of syncservers (see `configure_misp.sh`)
@@ -95,13 +96,21 @@ To override these behaviours edit the docker-compose.yml file's misp-core volume
 If it is just a default setting that is meant to be set if not already set by the user, add it in one of the `*.default.json` files.
 If it is a setting controlled by an environment variable which is meant to override whatever is set, add it in one of the `*.envars.json` files (note that you can still specify a default value).
 
+### Authentication
+
 #### LDAP Authentication
 
 You can configure LDAP authentication in MISP using 2 methods:
 -  native plugin: LdapAuth (https://github.com/MISP/MISP/tree/2.5/app/Plugin/LdapAuth) 
 -  previous approach with ApacheSecureAuth (https://gist.github.com/Kagee/f35ed25216369481437210753959d372). 
 
-LdapAuth is to be recommended, because it doesn't require rproxy apache with the ldap module.
+LdapAuth is recommended over ApacheSecureAuth because it doesn't require rproxy apache with the ldap module.
+
+#### OIDC Authentication
+
+OIDC Auth is implemented through the MISP OidcAuth plugin.
+
+For example configuration using KeyCloak, see [MISP Keycloak 26.1.x Basic Integration Guide](docs/keycloak-integration-guide.md)
 
 ### Production
 
