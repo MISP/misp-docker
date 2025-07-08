@@ -148,8 +148,8 @@ FROM php-base AS python-build
     ARG PYPI_CYBOX_VERSION
     ARG PYPI_PYMISP_VERSION
     ARG PYPI_MISP_STIX_VERSION
-    ARG PYPI_SETUPTOOLS
-    ARG PYPI_SUPERVISOR
+    ARG PYPI_SETUPTOOLS_VERSION
+    ARG PYPI_SUPERVISOR_VERSION
 
     RUN apt-get install -y --no-install-recommends \
         git \
