@@ -87,9 +87,6 @@ if [ -n "$KUBERNETES_SERVICE_HOST" ]; then
       /usr/local/bin/supervisord -c /etc/supervisor/supervisord.conf &
       exec /entrypoint_k8s_fpm.sh
     ;;
-    cron*)
-      exec /entrypoint_cron.sh
-    ;;
   esac
 else
   # start supervisord using the main configuration file so we have a socket interface
