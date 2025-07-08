@@ -49,6 +49,6 @@ jobs:
           provenance: false
           files: docker-bake.hcl, env.hcl
           targets: ${{ matrix.target }}
-          set: |
-            *.cache-from=type=gha
-            *.cache-to=type=gha,mode=max
+          # set: |
+          #   *.cache-from=type=gha
+          #   *.cache-to=type=gha,mode=max
