@@ -76,8 +76,8 @@ export NGINX_X_FORWARDED_FOR=${NGINX_X_FORWARDED_FOR:-false}
 export NGINX_SET_REAL_IP_FROM=${NGINX_SET_REAL_IP_FROM}
 export NGINX_CLIENT_MAX_BODY_SIZE=${NGINX_CLIENT_MAX_BODY_SIZE:-50M}
 
-if [ -n "$KUBERNETES_SERVICE_HOST" ] && [ -n "$CONTAINER_NAME" ]; then
-  case "$CONTAINER_NAME" in
+if [ -n "$KUBERNETES_SERVICE_HOST" ] && [ -n "$CONTAINER_SERVICE" ]; then
+  case "$CONTAINER_SERVICE" in
     nginx*)
       exec /entrypoint_k8s_nginx.sh
     ;;
