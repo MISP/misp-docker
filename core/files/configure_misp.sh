@@ -79,7 +79,7 @@ set_up_oidc() {
 
         # Check required variables
         # OIDC_ISSUER may be empty
-        check_env_vars OIDC_PROVIDER_URL OIDC_CLIENT_ID OIDC_CLIENT_SECRET OIDC_ROLES_PROPERTY OIDC_ROLES_MAPPING OIDC_DEFAULT_ORG
+        check_env_vars OIDC_PROVIDER_URL OIDC_CLIENT_ID OIDC_ROLES_PROPERTY OIDC_ROLES_MAPPING OIDC_DEFAULT_ORG
 
         # Configure OIDC in MISP
         sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
@@ -95,6 +95,7 @@ set_up_oidc() {
                 ${OIDC_ISSUER:+\"issuer\": \"${OIDC_ISSUER}\",}
                 \"client_id\": \"${OIDC_CLIENT_ID}\",
                 \"client_secret\": \"${OIDC_CLIENT_SECRET}\",
+                \"code_challenge_method\": \"${OIDC_CODE_CHALLENGE_METHOD}\",
                 \"roles_property\": \"${OIDC_ROLES_PROPERTY}\",
                 \"role_mapper\": ${OIDC_ROLES_MAPPING},
                 \"default_org\": \"${OIDC_DEFAULT_ORG}\",
@@ -138,6 +139,7 @@ set_up_oidc() {
                 \"issuer\": \"\",
                 \"client_id\": \"\",
                 \"client_secret\": \"\",
+                \"code_challenge_method\": \"\",
                 \"roles_property\": \"\",
                 \"role_mapper\": \"\",
                 \"default_org\": \"\"
