@@ -165,7 +165,7 @@ FROM php-base AS python-build
         cd /var/www/MISP || exit; git submodule update --init --recursive .
 EOF
 
-    RUN <<-EOF
+    RUN bash <<'EOF'
         mkdir /wheels
 
         # Add additional dependencies (container specific)
