@@ -3,6 +3,7 @@ name: Build the Docker images and push them to the container registry
 on:
   push:
     branches: [ "master" ]
+  workflow_dispatch: # manual trigger
 
 jobs:
   build:
