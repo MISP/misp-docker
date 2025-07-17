@@ -5,19 +5,16 @@ FROM nginxinc/nginx-unprivileged:stable-alpine
 WORKDIR /app
 
 # Copy necessary from the local 'files' directory into the container
-COPY files/etc/nginx/ /etc/nginx/
-COPY files/var/www/html/ /var/www/html/
-COPY files/entrypoint_nginx.sh /app/.
-COPY files/entrypoint_k8s_nginx.sh /app/.
+COPY --chown=101:0 files/etc/nginx/ /etc/nginx/
+COPY --chown=101:0 files/var/www/html/ /var/www/html/
+COPY --chown=101:0 files/entrypoint_nginx.sh /app/.
+COPY --chown=101:0 files/entrypoint_k8s_nginx.sh /app/.
 
 #DEBUG
 RUN echo "Listing /app:" && ls -la /app && \
     echo "Listing /etc/nginx:" && ls -la /etc/nginx && \
     echo "Listing /var/www/html:" && ls -la /var/www/html
 
-
-# Change ownership to the nginx user (UID 101)
-RUN chown -R 101:0 /etc/nginx /var/www/html /app
 # Ensure appropriate permissions
 RUN chmod -R 755 /etc/nginx /var/www/html /app
 # Ensure the entrypoint script is executable
