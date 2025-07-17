@@ -160,13 +160,12 @@ target "misp-core-slim" {
   }
   platforms = "${PLATFORMS}"
 
-  target "misp-web" {
-    context = "web/."
-    dockerfile = "Dockerfile"
-    tags = flatten(["${NAMESPACE}/misp-web:latest", "${NAMESPACE}/misp-web:${COMMIT_HASH}", WEB_TAG != "" ? ["${NAMESPACE}/misp-web:${WEB_TAG}"] : []])
-    args = {
-      "WEB_TAG": "${WEB_TAG}"
-    }
+target "misp-web" {
+  context = "web/."
+  dockerfile = "Dockerfile"
+  tags = flatten(["${NAMESPACE}/misp-web:latest", "${NAMESPACE}/misp-web:${COMMIT_HASH}", WEB_TAG != "" ? ["${NAMESPACE}/misp-web:${WEB_TAG}"] : []])
+  args = {
+    "WEB_TAG": "${WEB_TAG}"
   }
   platforms = "${PLATFORMS}"
 }
