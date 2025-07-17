@@ -5,8 +5,8 @@ FROM nginxinc/nginx-unprivileged:stable-alpine
 WORKDIR /app
 
 # Copy all files from the local 'files' directory into the container
-COPY files/etc/nginx /etc/nginx
-COPY files/var/www/html /var/www/html
+COPY files/etc/nginx/ /etc/nginx/
+COPY files/var/www/html/ /var/www/html/
 COPY files/entrypoint*nginx.sh /app/.
 
 # Change ownership to the nginx user (UID 101)
