@@ -35,7 +35,7 @@ jobs:
           echo "COMMIT_HASH=`echo '${{ github.sha }}' | cut -c 1-7`" >> "$GITHUB_ENV"
           OWNER=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
           echo "NAMESPACE=ghcr.io/${OWNER}/misp-docker" >> "$GITHUB_ENV"
-          cp -r core/files web/files
+          cp -r core/files/* web/files/
 
       - name: Log in to the container registry
         uses: docker/login-action@v3
