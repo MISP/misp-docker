@@ -32,7 +32,6 @@ change_php_vars() {
         sed -i "s/session.use_strict_mode = .*/session.use_strict_mode = 1/" "$FILE"
         echo "Configure PHP | Setting 'date.timezone = ${PHP_TIMEZONE}'"
         sed -i "s/;?date.timezone = .*/date.timezone = ${PHP_TIMEZONE}/" "$FILE"
-        sed -i "s|session.cookie_domain = .*|session.cookie_domain = ${BASE_URL}|" "$FILE"
     done
 
     for FILE in /etc/php/*/fpm/pool.d/www.conf
@@ -62,16 +61,8 @@ change_php_vars() {
             echo "Configure PHP | Disabling 'pm.status_listen'"
             sed -i -E "s/^pm.status_listen =/;pm.status_listen =/" "$FILE"
         fi
-        if [[ -n "$PHP_FPM_SOCK_FILE" ]]; then
-            echo "Configure PHP | Setting 'listen' to ${PHP_FPM_SOCK_FILE}"
-            sed -i "/^listen =/s@=.*@= ${PHP_FPM_SOCK_FILE}@" "$FILE"
-        fi
     done
 }
-
-if [ -n "${BASH_SOURCE[0]}" ]; then
-    return
-fi
 
 echo "Configure PHP | Change PHP values ..." && change_php_vars
 

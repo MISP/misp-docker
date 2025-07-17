@@ -1,9 +1,0 @@
-resources:
-  - overlays/cacheFeed
-  - overlays/fetchFeed
-  - overlays/pullAll
-  - overlays/pushAll
-  - overlays/updateGalaxies
-  - overlays/updateNoticeLists
-  - overlays/updateTaxonomies
-  - overlays/updateWarningLists
