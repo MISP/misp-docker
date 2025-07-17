@@ -76,19 +76,5 @@ export NGINX_X_FORWARDED_FOR=${NGINX_X_FORWARDED_FOR:-false}
 export NGINX_SET_REAL_IP_FROM=${NGINX_SET_REAL_IP_FROM}
 export NGINX_CLIENT_MAX_BODY_SIZE=${NGINX_CLIENT_MAX_BODY_SIZE:-50M}
 
-if [ -n "$KUBERNETES_SERVICE_HOST" ] && [ -n "$CONTAINER_SERVICE" ]; then
-  case "$CONTAINER_SERVICE" in
-    nginx*)
-      exec /entrypoint_k8s_nginx.sh
-    ;;
-    php*)
-      # Not ideal, but let supervisord manage the workers still
-      mv /etc/supervisor/conf.d/10-supervisor.conf{.k8s,}
-      /usr/local/bin/supervisord -c /etc/supervisor/supervisord.conf &
-      exec /entrypoint_k8s_fpm.sh
-    ;;
-  esac
-else
-  # start supervisord using the main configuration file so we have a socket interface
-  /usr/local/bin/supervisord -c /etc/supervisor/supervisord.conf
-fi
+# start supervisord using the main configuration file so we have a socket interface
+/usr/local/bin/supervisord -c /etc/supervisor/supervisord.conf
