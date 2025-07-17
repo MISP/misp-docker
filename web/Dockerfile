@@ -1,0 +1,23 @@
+# Use a minimal and secure official NGINX image
+FROM nginxinc/nginx-unprivileged:stable-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy all files from the local 'files' directory into the container
+COPY files/etc/nginx /etc/nginx
+COPY files/var/www/html /var/www/html
+COPY files/entrypoint*nginx.sh /app/.
+
+# Change ownership to the nginx user (UID 101)
+RUN chown -R 101:0 /etc/nginx /var/www/html /app
+# Ensure appropriate permissions
+RUN chmod -R 755 /etc/nginx /var/www/html /app
+# Ensure the entrypoint script is executable
+RUN chmod +x entrypoint_k8s_nginx.sh
+
+# Set the entrypoint
+ENTRYPOINT ["./entrypoint_k8s_nginx.sh"]
+
+# Use a non-root user (already set in nginx-unprivileged image)
+USER 101

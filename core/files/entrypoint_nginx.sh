@@ -407,6 +407,7 @@ init_nginx() {
     flip_nginx false false
 }
 
+# Return to skip running below commands if not sourced
 if [ -n "${BASH_SOURCE[0]}" ]; then
     return
 fi
