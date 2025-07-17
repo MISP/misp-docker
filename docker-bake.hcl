@@ -84,6 +84,7 @@ group "default" {
     "misp-modules-slim",
     "misp-core",
     "misp-core-slim",
+    "misp-web",
   ]
 }
 
