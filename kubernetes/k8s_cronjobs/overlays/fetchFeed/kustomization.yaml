@@ -1,0 +1,7 @@
+resources:
+  - ../../base/
+
+patches:
+  - path: patch.yaml
+
+nameSuffix: -feed-fetch

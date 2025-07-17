@@ -1,0 +1,25 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: misp-curljob
+spec:
+  schedule: "0 0 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: curl-job
+            args:
+              - >
+                curl -sS -X GET "$BASE_URL/servers"
+                -H "Accept: application/json"
+                -H "Content-Type: application/json"
+                -H "Authorization: $MISP_API_KEY"
+                | awk '/"Server":/,/}/'
+                | grep -o  '"id": "[0-9]*"' 
+                | grep -o '[0-9]\+'
+                | xargs -I {} curl -sS -X POST $BASE_URL/servers/push/{}
+                -H "Accept: application/json"
+                -H "Content-Type: application/json"
+                -H "Authorization: $MISP_API_KEY"
