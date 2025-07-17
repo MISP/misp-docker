@@ -18,10 +18,10 @@ RUN echo "Listing /app:" && ls -la /app && \
 # Ensure appropriate permissions
 RUN chmod -R 755 /etc/nginx /var/www/html /app
 # Ensure the entrypoint script is executable
-RUN chmod +x entrypoint_k8s_nginx.sh
+RUN chmod +x /app/entrypoint_k8s_nginx.sh
 
 # Set the entrypoint
-ENTRYPOINT ["./entrypoint_k8s_nginx.sh"]
+ENTRYPOINT ["/app/entrypoint_k8s_nginx.sh"]
 
 # Use a non-root user (already set in nginx-unprivileged image)
 USER 101
