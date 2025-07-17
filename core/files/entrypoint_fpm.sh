@@ -62,7 +62,7 @@ change_php_vars() {
             echo "Configure PHP | Disabling 'pm.status_listen'"
             sed -i -E "s/^pm.status_listen =/;pm.status_listen =/" "$FILE"
         fi
-        if [[ "$MISP_PHP_ONLY" ] && [ -n "$PHP_HOST" ]]; then
+        if [ "$MISP_PHP_ONLY" ] && [ -n "$PHP_HOST" ]; then
             echo "Configure PHP | Setting 'listen' to 0.0.0.0:${PHP_FPM_PORT:-9000}"
             sed -i "/^listen =/s@=.*@= 0.0.0.0:${PHP_FPM_PORT:-9000}@" "$FILE"
         elif [[ -n "$PHP_FPM_SOCK_FILE" ]]; then
