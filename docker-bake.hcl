@@ -159,6 +159,7 @@ target "misp-core-slim" {
     "PYPI_SUPERVISOR_VERSION": "${PYPI_SUPERVISOR_VERSION}",
   }
   platforms = "${PLATFORMS}"
+}
 
 target "misp-web" {
   context = "web/."
