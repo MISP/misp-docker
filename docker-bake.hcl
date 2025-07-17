@@ -163,8 +163,8 @@ target "misp-core-slim" {
 }
 
 target "misp-web" {
-  context = "web/."
-  dockerfile = "Dockerfile"
+  context = "core/."
+  dockerfile = "Dockerfile-web"
   tags = flatten(["${NAMESPACE}/misp-web:latest", "${NAMESPACE}/misp-web:${COMMIT_HASH}" ])
   platforms = "${PLATFORMS}"
 }
