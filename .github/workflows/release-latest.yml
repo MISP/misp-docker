@@ -10,7 +10,7 @@ jobs:
 
     strategy:
       matrix:
-        target: [misp-core, misp-modules, misp-core-slim, misp-modules-slim]
+        target: [core, modules, core-slim, modules-slim]
 
     permissions:
       contents: read
@@ -32,7 +32,7 @@ jobs:
         run: |
           sed -e '/^[[:space:]]*$/d' -e '/[#@]/d' -e 's/\"//g' -e 's/\(^[^=]*\)=\(.*\)/\1="\2"/' template.env > env.hcl
           echo "COMMIT_HASH=`echo '${{ github.sha }}' | cut -c 1-7`" >> "$GITHUB_ENV"
-          echo "NAMESPACE=ghcr.io/misp/misp-docker" >> "$GITHUB_ENV"
+          echo "NAMESPACE=ghcr.io/misp" >> "$GITHUB_ENV"
 
       - name: Log in to the container registry
         uses: docker/login-action@v3
