@@ -103,7 +103,7 @@ services:
       # - "./rootca.pem:/usr/local/share/ca-certificates/rootca.crt"
     environment:
       - "BASE_URL=${BASE_URL}"
-      - "CRON_USER_ID=${CRON_USER_ID}"
+      - "SYNC_USER_ID =${SYNC_USER_ID}"
       - "CRON_PULLALL=${CRON_PULLALL}"
       - "CRON_PUSHALL=${CRON_PUSHALL}"
       - "DISABLE_IPV6=${DISABLE_IPV6}"
