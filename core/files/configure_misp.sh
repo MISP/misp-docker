@@ -423,7 +423,7 @@ update_components() {
     ${UPDATE_SUDO_CMD} /var/www/MISP/app/Console/cake Admin updateTaxonomies
     ${UPDATE_SUDO_CMD} /var/www/MISP/app/Console/cake Admin updateWarningLists
     ${UPDATE_SUDO_CMD} /var/www/MISP/app/Console/cake Admin updateNoticeLists
-    ${UPDATE_SUDO_CMD} /var/www/MISP/app/Console/cake Admin updateObjectTemplates "$CRON_USER_ID"
+    ${UPDATE_SUDO_CMD} /var/www/MISP/app/Console/cake Admin updateObjectTemplates "$SYNC_USER_ID"
 }
 
 update_ca_certificates() {
