@@ -138,6 +138,13 @@ Using a slow disk as the mounted volume or a volume with high latency like NFS, 
     - `./attachments`: `/var/www/MISP/app/attachments`
 - Set the environment variable `ATTACHMENTS_DIR` to the above folder location (it is important that it doesn't replace the `/var/www/MISP/app/files/` folder). 
 
+### SELinux
+
+On systems using SELinux, volume binds are not given write permissions by default. Using the tag `:Z` or `:z` at the end of a volume bind files grants write permission through SELinux.
+
+- The `Z` option tells Docker to label the content with a private unshared label.
+- The `z` option tells Docker that two containers share the volume content.
+
 ## Installing custom root CA certificates
 
 Custom root CA certificates can be mounted under `/usr/local/share/ca-certificates` and will be installed during the `misp-core` container start.
