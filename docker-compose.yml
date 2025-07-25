@@ -98,9 +98,9 @@ services:
       - "./ssl/:/etc/nginx/certs/:Z"
       - "./gnupg/:/var/www/MISP/.gnupg/:Z"
     # customize by replacing ${CUSTOM_PATH} with a path containing 'files/customize_misp.sh'
-      # - "${CUSTOM_PATH}/:/custom/"
+      # - "${CUSTOM_PATH}/:/custom/:Z"
       # mount custom ca root certificates
-      # - "./rootca.pem:/usr/local/share/ca-certificates/rootca.crt"
+      # - "./rootca.pem:/usr/local/share/ca-certificates/rootca.crt:Z"
     environment:
       - "BASE_URL=${BASE_URL}"
       - "CRON_USER_ID=${CRON_USER_ID}"
