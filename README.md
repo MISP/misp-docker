@@ -398,7 +398,7 @@ EOF
 
 ### Variables not expanding
 
-Older versions of Podman may not expand variables correctly inside shell blocks. If you encounter this, ensure you are using the correct shell syntax. For Podman, replace:
+Older versions (pre version 5) of Podman may not expand variables correctly inside shell blocks. If you encounter this, ensure you are using the correct shell syntax. For Podman, replace:
 
 ```
 RUN <<-EOF
