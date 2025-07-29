@@ -16,7 +16,6 @@ Notable features:
 -   Fix enforcement of permissions
 -   Fix MISP modules loading of faup library
 -   Fix MISP modules loading of gl library
--   Authentication using LDAP or OIDC
 -   Add support for new background job [system](https://github.com/MISP/MISP/blob/2.4/docs/background-jobs-migration-guide.md)
 -   Add support for building specific MISP and MISP-modules commits
 -   Add automatic configuration of syncservers (see `configure_misp.sh`)
@@ -96,21 +95,13 @@ To override these behaviours edit the docker-compose.yml file's misp-core volume
 If it is just a default setting that is meant to be set if not already set by the user, add it in one of the `*.default.json` files.
 If it is a setting controlled by an environment variable which is meant to override whatever is set, add it in one of the `*.envars.json` files (note that you can still specify a default value).
 
-### Authentication
-
 #### LDAP Authentication
 
 You can configure LDAP authentication in MISP using 2 methods:
 -  native plugin: LdapAuth (https://github.com/MISP/MISP/tree/2.5/app/Plugin/LdapAuth) 
 -  previous approach with ApacheSecureAuth (https://gist.github.com/Kagee/f35ed25216369481437210753959d372). 
 
-LdapAuth is recommended over ApacheSecureAuth because it doesn't require rproxy apache with the ldap module.
-
-#### OIDC Authentication
-
-OIDC Auth is implemented through the MISP OidcAuth plugin.
-
-For example configuration using KeyCloak, see [MISP Keycloak 26.1.x Basic Integration Guide](docs/keycloak-integration-guide.md)
+LdapAuth is to be recommended, because it doesn't require rproxy apache with the ldap module.
 
 ### Production
 
@@ -203,6 +194,7 @@ The process is *NOT* battle-tested, so it is *NOT* to be followed uncritically.
 -   Make sure you run a fairly recent version of Docker and Docker Compose (if in doubt, update following the steps outlined in https://docs.docker.com/engine/install/ubuntu/)
 -   Make sure you are not running an old image or container; when in doubt run `docker system prune --volumes` and clone this repository into an empty directory
 -   If you receive an error that the 'start_interval' does not match any of the regexes, update Docker following the steps outlined in https://docs.docker.com/engine/install/ubuntu/)
+-   See below under **The image build fails or the image builds, but the container fails to start. Now what?**
 
 ## Versioning
 
@@ -272,3 +264,144 @@ You can even set podman to check for new container versions by activating the sp
 systemctl --user enable podman-auto-update.timer --now
 ```
 
+# The image build fails or the image builds, but the container fails to start. Now what?
+
+If your image build fails or the build completes successfully but the container fails to start, you can get help by creating a new [issue](https://github.com/MISP/misp-docker/issues). To receive the most effective support, please include the conditions under which you attempted to build the images, along with relevant debug output.
+
+## Provide your build environment details
+
+Be sure to include the versions of your build environment, such as Docker (or Podman), Docker Compose (or Podman Compose), Python, your operating system, and whether you are building as root or a non-root user.
+
+For **Docker**, run:
+
+```
+python3 -V
+docker -v
+docker compose version
+```
+
+For **Podman**, run:
+
+```
+python3 -V
+podman -v
+podman compose version
+```
+
+## Always start from a clean environment
+
+Build errors can occur if incomplete layers remain from previous builds. To ensure a clean environment, stop all running containers and remove old images and volumes.
+
+With **Docker**:
+
+```
+docker compose down
+docker system prune
+docker image rm ghcr.io/misp/misp-docker/misp-core
+docker image rm ghcr.io/misp/misp-docker/misp-modules
+```
+
+With **Podman**:
+
+```
+podman compose down
+podman system prune
+podman image rm ghcr.io/misp/misp-docker/misp-core
+podman image rm ghcr.io/misp/misp-docker/misp-modules
+```
+
+You can also use the `--no-cache` option during the build to ignore cached layers.
+
+## Log the build output
+
+After cleaning your environment, use verbose logging to capture detailed output from the build process. Logging to a file is recommended for troubleshooting and **when requesting support**.
+
+For **Docker**:
+
+```
+docker compose --verbose build --no-cache | tee build.log
+```
+
+For **Podman**:
+
+```
+PODMAN_COMPOSE_VERBOSE=1 podman compose build --no-cache | tee build.log
+```
+
+## Bringing it all together
+
+You can combine the above commands to fully reset and rebuild the images in one step.
+
+For **Docker**:
+
+```
+docker system prune ; docker image rm ghcr.io/misp/misp-docker/misp-core ; docker image rm ghcr.io/misp/misp-docker/misp-modules ; rm -f build.log ; docker compose --verbose build --no-cache | tee build.log
+```
+
+For **Podman**:
+
+```
+podman system prune ; podman image rm ghcr.io/misp/misp-docker/misp-core ; podman image rm ghcr.io/misp/misp-docker/misp-modules ; rm -f build.log ; PODMAN_COMPOSE_VERBOSE=1 podman compose build --no-cache | tee build.log
+```
+
+This ensures you are building from a clean state and not using remnants from previous builds.
+
+## Debugging the Dockerfile
+
+With your build log, you can identify where the build fails. To pinpoint the exact step, add debug lines to the Dockerfile. Use unique markers to make them easy to find in the log:
+
+```
+RUN echo "____MYDEBUG___1"
+RUN echo "____MYDEBUG___2"
+RUN echo "____MYDEBUG___3"
+```
+
+### Print variable values
+
+Many build errors are related to variables not being set or imported correctly. To debug, print their values:
+
+```
+RUN echo "____MYDEBUG___ CORE_TAG: ${CORE_TAG}"
+```
+
+Example output:
+
+```
+[4/5] STEP 19/20: RUN echo "____MYDEBUG___ CORE_TAG: ${CORE_TAG}"
+____MYDEBUG___ CORE_TAG: v2.5.16
+--> 798999451f75
+```
+
+### Print variables inside shell blocks
+
+For shell blocks in the Dockerfile, insert `echo` statements to print variable values:
+
+```
+RUN <<-EOF
+    for mod in "$@"; do
+        mod_version_var=$(echo "PYPI_${mod}_VERSION" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
+        mod_version=$(eval "echo \"\$$mod_version_var\"")
+        echo "____MYDEBUG___ mod mod_version: ${mod}${mod_version}"
+        # ... rest of the code ...
+    done
+EOF
+```
+
+### Variables not expanding
+
+Older versions of Podman may not expand variables correctly inside shell blocks. If you encounter this, ensure you are using the correct shell syntax. For Podman, replace:
+
+```
+RUN <<-EOF
+```
+
+with (also notice the **'** quotes)
+
+```
+RUN bash <<-'EOF'
+```
+
+to ensure variables are expanded as expected. For reference, this problem first occurred after successfully building an image but getting a `/usr/local/bin/supervisord: No such file or directory` error after starting the container. See [265](https://github.com/MISP/misp-docker/issues/265) and [273](https://github.com/MISP/misp-docker/pull/273) for more details.
+
+
+By following these steps, you can efficiently troubleshoot and resolve build issues. If problems persist, include your build log and environment details when opening an issue for assistance.
