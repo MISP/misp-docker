@@ -40,7 +40,7 @@ services:
       --innodb-stats-persistent=${INNODB_STATS_PERSISTENT:-ON} \
       --innodb-write-io-threads=${INNODB_WRITE_IO_THREADS:-4}"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mysql_data:/var/lib/mysql:Z
     cap_add:
       - SYS_NICE  # CAP_SYS_NICE Prevent runaway mysql log
     healthcheck:
@@ -92,15 +92,15 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - "./configs/:/var/www/MISP/app/Config/"
-      - "./logs/:/var/www/MISP/app/tmp/logs/"
-      - "./files/:/var/www/MISP/app/files/"
-      - "./ssl/:/etc/nginx/certs/"
-      - "./gnupg/:/var/www/MISP/.gnupg/"
-      # customize by replacing ${CUSTOM_PATH} with a path containing 'files/customize_misp.sh'
-      # - "${CUSTOM_PATH}/:/custom/"
+      - "./configs/:/var/www/MISP/app/Config/:Z"
+      - "./logs/:/var/www/MISP/app/tmp/logs/:Z"
+      - "./files/:/var/www/MISP/app/files/:Z"
+      - "./ssl/:/etc/nginx/certs/:Z"
+      - "./gnupg/:/var/www/MISP/.gnupg/:Z"
+    # customize by replacing ${CUSTOM_PATH} with a path containing 'files/customize_misp.sh'
+      # - "${CUSTOM_PATH}/:/custom/:Z"
       # mount custom ca root certificates
-      # - "./rootca.pem:/usr/local/share/ca-certificates/rootca.crt"
+      # - "./rootca.pem:/usr/local/share/ca-certificates/rootca.crt:Z"
     environment:
       - "BASE_URL=${BASE_URL}"
       - "CRON_USER_ID=${CRON_USER_ID}"
@@ -269,10 +269,11 @@ services:
       start_interval: 5s
     volumes:
       # custom MISP modules are loaded at startup time
-      - "./custom/action_mod/:/custom/action_mod/"
-      - "./custom/expansion/:/custom/expansion/"
-      - "./custom/export_mod/:/custom/export_mod/"
-      - "./custom/import_mod/:/custom/import_mod/"
+      - "./custom/action_mod/:/custom/action_mod/:Z"
+      - "./custom/expansion/:/custom/expansion/:Z"
+      - "./custom/export_mod/:/custom/export_mod/:Z"
+      - "./custom/import_mod/:/custom/import_mod/:Z"
 
 volumes:
     mysql_data:
+
