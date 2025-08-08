@@ -220,7 +220,7 @@ set_up_ldap() {
           \"ldapReaderPassword\": \"${LDAPAUTH_LDAPREADERPASSWORD}\",
           \"ldapSearchFilter\": \"${LDAPAUTH_LDAPSEARCHFILTER}\",
           \"ldapSearchAttribute\": \"${LDAPAUTH_LDAPSEARCHATTRIBUTE}\",
-          \"ldapEmailField\": ${LDAPAUTH_LDAPEMAILFIELD},
+          \"ldapEmailField\": [\"${LDAPAUTH_LDAPEMAILFIELD}\"],
           \"ldapNetworkTimeout\": ${LDAPAUTH_LDAPNETWORKTIMEOUT},
           \"ldapProtocol\": ${LDAPAUTH_LDAPPROTOCOL},
           \"ldapAllowReferrals\": ${LDAPAUTH_LDAPALLOWREFERRALS},
