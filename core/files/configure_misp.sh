@@ -350,7 +350,11 @@ init_user() {
     fi
 
     if [ -n "$ADMIN_KEY" ]; then
-        echo "... setting admin key from environment variable"
+        if [ -n "$DISABLE_PRINTING_PLAINTEXT_CREDENTIALS" ]; then
+            echo "... setting admin key from environment variable"
+        else
+            echo "... setting admin key to '${ADMIN_KEY}'"
+        fi
         CHANGE_CMD=(sudo -u www-data /var/www/MISP/app/Console/cake User change_authkey 1 "${ADMIN_KEY}")
     elif [ -z "$ADMIN_KEY" ] && [ "$AUTOGEN_ADMIN_KEY" == "true" ]; then
         echo "... regenerating admin key (set \$ADMIN_KEY if you want it to change)"
@@ -361,11 +365,19 @@ init_user() {
 
     if [[ -v CHANGE_CMD[@] ]]; then
         ADMIN_KEY=$("${CHANGE_CMD[@]}" | awk 'END {print $NF; exit}')
-        echo "... admin user key set"
+        if [ -n "$DISABLE_PRINTING_PLAINTEXT_CREDENTIALS" ]; then
+            echo "... admin user key set"
+        else
+            echo "... admin user key set to '${ADMIN_KEY}'"
+        fi
     fi
 
     if [ ! -z "$ADMIN_PASSWORD" ]; then
-        echo "... setting admin password from environment variable"
+        if [ -n "$DISABLE_PRINTING_PLAINTEXT_CREDENTIALS" ]; then
+            echo "... setting admin password from environment variable"
+        else
+            echo "... setting admin password to '${ADMIN_PASSWORD}'"
+        fi
         PASSWORD_POLICY=$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting "Security.password_policy_complexity" | jq ".value" -r)
         PASSWORD_LENGTH=$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting "Security.password_policy_length" | jq ".value" -r)
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_length" 1
