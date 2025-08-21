@@ -228,7 +228,6 @@ FROM php-base
                 procps \
                 sudo \
                 nginx \
-                cron \
                 openssl \
                 gpg \
                 gpg-agent \
@@ -255,7 +254,6 @@ FROM php-base
                 procps \
                 sudo \
                 nginx \
-                cron \
                 openssl \
                 gpg \
                 gpg-agent \
