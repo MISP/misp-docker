@@ -10,7 +10,7 @@ Notable features:
 -   Docker images are pushed regularly, no build required
 -   Lightweight Docker images by using multiple build stages and a slim parent image
 -   Rely on off the shelf Docker images for Exim4, Redis, and MariaDB
--   Cron jobs run updates, pushes, and pulls
+-   Scheduled tasks run updates, pushes, and pulls
 -   Fix supervisord process control (processes are correctly terminated upon reload)
 -   Fix schema update by making it completely offline (no user interaction required)
 -   Fix enforcement of permissions
