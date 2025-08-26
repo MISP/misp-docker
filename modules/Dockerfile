@@ -61,6 +61,8 @@ EOF
 FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm"
     ENV DEBIAN_FRONTEND=noninteractive
     ARG MODULES_FLAVOR
+    ARG MISP_UID
+    ARG MISP_GID
 
     RUN <<-EOF
         apt-get update
