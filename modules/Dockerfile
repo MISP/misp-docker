@@ -16,7 +16,7 @@ FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" AS python-build
             apt-get install -y --no-install-recommends \
                 ca-certificates \
                 git
-                
+
         else
             apt-get install -y --no-install-recommends \
                 ca-certificates \
