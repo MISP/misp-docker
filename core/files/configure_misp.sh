@@ -528,16 +528,33 @@ create_default_scheduled_tasks() {
         PUSHALL_INTERVAL="$(convert_cron_to_seconds "$CRON_PUSHALL")"
     fi
 
-    echo "INSERT INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, params, enabled, next_execution_time, message) VALUES (1, 'Feed', 86400, 'Daily fetch of all Feeds', 1, 'fetch', 'all', $CRON_USER_ID, 0, '');" | ${MYSQL_CMD}
-    echo "INSERT INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, params, enabled, next_execution_time, message) VALUES (2, 'Feed', 86400, 'Daily cache of all Feeds', 1, 'cache', 'all,all', $CRON_USER_ID, 0, '');" | ${MYSQL_CMD}
-    echo "INSERT INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, params, enabled, next_execution_time, message) VALUES (3, 'Server', $PULLALL_INTERVAL, 'Daily pull of all Servers', 1, 'pull', 'all,full', $CRON_USER_ID, 0, '');" | ${MYSQL_CMD}
-    echo "INSERT INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, params, enabled, next_execution_time, message) VALUES (4, 'Server', $PUSHALL_INTERVAL, 'Daily push of all Servers', 1, 'push', 'all,full', $CRON_USER_ID, 0, '');" | ${MYSQL_CMD}
-    echo "INSERT INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, enabled, next_execution_time, message) VALUES (5, 'Admin', 86400, 'Daily update of Galaxies', 1, 'updateGalaxies', $CRON_USER_ID, 0, '');" | ${MYSQL_CMD}
-    echo "INSERT INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, enabled, next_execution_time, message) VALUES (6, 'Admin', 86400, 'Daily update of Galaxies', 1, 'updateGalaxies', $CRON_USER_ID, 0, '');" | ${MYSQL_CMD}
-    echo "INSERT INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, enabled, next_execution_time, message) VALUES (7, 'Admin', 86400, 'Daily update of Taxonomies', 1, 'updateTaxonomies', $CRON_USER_ID, 0, '');" | ${MYSQL_CMD}
-    echo "INSERT INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, enabled, next_execution_time, message) VALUES (8, 'Admin', 86400, 'Daily update of Warninglists', 1, 'updateWarningLists', $CRON_USER_ID, 0, '');" | ${MYSQL_CMD}
-    echo "INSERT INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, enabled, next_execution_time, message) VALUES (9, 'Admin', 86400, 'Daily update of Noticelists', 1, 'updateNoticeLists', $CRON_USER_ID, 0, '');" | ${MYSQL_CMD}
-    echo "INSERT INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, enabled, next_execution_time, message) VALUES (10, 'Admin', 86400, 'Daily update of Object Templates', 1, 'updateObjectTemplates', $CRON_USER_ID, 0, '');" | ${MYSQL_CMD}
+    echo "INSERT INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, params, enabled, next_execution_time, message) \
+        VALUES (1, 'Feed', 86400, 'Daily fetch of all Feeds', $CRON_USER_ID, 'fetch', 'all', 1, 0, '') \
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID;" | ${MYSQL_CMD}
+    echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, params, enabled, next_execution_time, message) \
+        VALUES (2, 'Feed', 86400, 'Daily cache of all Feeds', $CRON_USER_ID, 'cache', 'all,all', 1, 0, '') \
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID;" | ${MYSQL_CMD}
+    echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, params, enabled, next_execution_time, message) \
+        VALUES (3, 'Server', $PULLALL_INTERVAL, 'Daily pull of all Servers', $CRON_USER_ID, 'pull', 'all,full', 1, 0, '') \
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID AND timer=$PULLALL_INTERVAL;" | ${MYSQL_CMD}
+    echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, params, enabled, next_execution_time, message) \
+        VALUES (4, 'Server', $PUSHALL_INTERVAL, 'Daily push of all Servers', $CRON_USER_ID, 'push', 'all,full', 1, 0, '') \
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID AND timer=$PUSHALL_INTERVAL;" | ${MYSQL_CMD}
+    echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, enabled, next_execution_time, message) \
+        VALUES (5, 'Admin', 86400, 'Daily update of Galaxies', $CRON_USER_ID, 'updateGalaxies', 1, 0, '') \
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID;" | ${MYSQL_CMD}
+    echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, enabled, next_execution_time, message) \
+        VALUES (6, 'Admin', 86400, 'Daily update of Taxonomies', $CRON_USER_ID, 'updateTaxonomies', 1, 0, '') \
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID;" | ${MYSQL_CMD}
+    echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, enabled, next_execution_time, message) \
+        VALUES (7, 'Admin', 86400, 'Daily update of Warninglists', $CRON_USER_ID, 'updateWarningLists', 1, 0, '') \
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID;" | ${MYSQL_CMD}
+    echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, enabled, next_execution_time, message) \
+        VALUES (8, 'Admin', 86400, 'Daily update of Noticelists', $CRON_USER_ID, 'updateNoticeLists', 1, 0, '') \
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID;" | ${MYSQL_CMD}
+    echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, enabled, next_execution_time, message) \
+        VALUES (9, 'Admin', 86400, 'Daily update of Object Templates', $CRON_USER_ID, 'updateObjectTemplates', 1, 0, '') \
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID;" | ${MYSQL_CMD}
 }
 
 echo "MISP | Update CA certificates ..." && update_ca_certificates
