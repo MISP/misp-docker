@@ -489,6 +489,74 @@ create_sync_servers() {
     done
 }
 
+convert_cron_to_seconds() {
+    local expr="$1"
+
+    # Match "*/N * * * *" -> every N minutes
+    if [[ "$expr" =~ ^\*/([0-9]+)\ \*\ \*\ \*\ \*$ ]]; then
+        echo "$(( ${BASH_REMATCH[1]} * 60 ))"
+        return
+    fi
+
+    # Match "* */N * * *" -> every N hours
+    if [[ "$expr" =~ ^\*\ \*/([0-9]+)\ \*\ \*\ \*$ ]]; then
+        echo "$(( ${BASH_REMATCH[1]} * 3600 ))"
+        return
+    fi
+
+    # Default fallback -> warn and use 86400 (daily)
+    echo "WARNING: Unrecognized cron pattern '$expr', using default 86400 seconds (daily)" >&2
+    echo "86400"
+}
+
+create_default_scheduled_tasks() {
+    # Create default scheduled tasks
+
+    if [[ "$CRON_PULLALL" =~ ^([0-9]+)$ ]]; then
+        # Already seconds
+        PULLALL_INTERVAL="$CRON_PULLALL"
+    else
+        # Convert old cron format
+        PULLALL_INTERVAL="$(convert_cron_to_seconds "$CRON_PULLALL")"
+    fi
+
+    if [[ "$CRON_PUSHALL" =~ ^([0-9]+)$ ]]; then
+        # Already seconds
+        PUSHALL_INTERVAL="$CRON_PUSHALL"
+    else
+        # Convert old cron format
+        PUSHALL_INTERVAL="$(convert_cron_to_seconds "$CRON_PUSHALL")"
+    fi
+
+    echo "INSERT INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, params, enabled, next_execution_time, message) \
+        VALUES (1, 'Feed', 86400, 'Daily fetch of all Feeds', $CRON_USER_ID, 'fetch', 'all', 1, 0, '') \
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID;" | ${MYSQL_CMD}
+    echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, params, enabled, next_execution_time, message) \
+        VALUES (2, 'Feed', 86400, 'Daily cache of all Feeds', $CRON_USER_ID, 'cache', 'all,all', 1, 0, '') \
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID;" | ${MYSQL_CMD}
+    echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, params, enabled, next_execution_time, message) \
+        VALUES (3, 'Server', $PULLALL_INTERVAL, 'Daily pull of all Servers', $CRON_USER_ID, 'pull', 'all,full', 1, 0, '') \
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID AND timer=$PULLALL_INTERVAL;" | ${MYSQL_CMD}
+    echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, params, enabled, next_execution_time, message) \
+        VALUES (4, 'Server', $PUSHALL_INTERVAL, 'Daily push of all Servers', $CRON_USER_ID, 'push', 'all,full', 1, 0, '') \
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID AND timer=$PUSHALL_INTERVAL;" | ${MYSQL_CMD}
+    echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, enabled, next_execution_time, message) \
+        VALUES (5, 'Admin', 86400, 'Daily update of Galaxies', $CRON_USER_ID, 'updateGalaxies', 1, 0, '') \
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID;" | ${MYSQL_CMD}
+    echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, enabled, next_execution_time, message) \
+        VALUES (6, 'Admin', 86400, 'Daily update of Taxonomies', $CRON_USER_ID, 'updateTaxonomies', 1, 0, '') \
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID;" | ${MYSQL_CMD}
+    echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, enabled, next_execution_time, message) \
+        VALUES (7, 'Admin', 86400, 'Daily update of Warninglists', $CRON_USER_ID, 'updateWarningLists', 1, 0, '') \
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID;" | ${MYSQL_CMD}
+    echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, enabled, next_execution_time, message) \
+        VALUES (8, 'Admin', 86400, 'Daily update of Noticelists', $CRON_USER_ID, 'updateNoticeLists', 1, 0, '') \
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID;" | ${MYSQL_CMD}
+    echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, enabled, next_execution_time, message) \
+        VALUES (9, 'Admin', 86400, 'Daily update of Object Templates', $CRON_USER_ID, 'updateObjectTemplates', 1, 0, '') \
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID;" | ${MYSQL_CMD}
+}
+
 echo "MISP | Update CA certificates ..." && update_ca_certificates
 
 echo "MISP | Apply minimum configuration directives ..." && init_minimum_config
@@ -522,6 +590,8 @@ echo "MISP | Set Up AAD ..." && set_up_aad
 echo "MISP | Set Up Session ..." && set_up_session
 
 echo "MISP | Set Up Proxy ..." && set_up_proxy
+
+echo "MISP | Create default Scheduled Tasks ..." && create_default_scheduled_tasks
 
 echo "MISP | Mark instance live"
 sudo -u www-data /var/www/MISP/app/Console/cake Admin live 1
