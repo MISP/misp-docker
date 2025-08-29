@@ -11,7 +11,8 @@ FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" AS php-base
     RUN apt-get update; apt-get install -y --no-install-recommends \
         lsb-release \
         ca-certificates \
-        curl
+        curl \
+        tini
 
 
 FROM php-base AS composer-build
