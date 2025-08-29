@@ -77,4 +77,4 @@ export NGINX_SET_REAL_IP_FROM=${NGINX_SET_REAL_IP_FROM}
 export NGINX_CLIENT_MAX_BODY_SIZE=${NGINX_CLIENT_MAX_BODY_SIZE:-50M}
 
 # start supervisord using the main configuration file so we have a socket interface
-exec /usr/local/bin/supervisord -c /etc/supervisor/supervisord.conf
+exec /usr/bin/tini -- /usr/local/bin/supervisord -c /etc/supervisor/supervisord.conf
