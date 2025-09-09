@@ -275,6 +275,19 @@ services:
       - "./custom/export_mod/:/custom/export_mod/:Z"
       - "./custom/import_mod/:/custom/import_mod/:Z"
 
+  misp-guard:
+    build:
+      context: ./guard
+    depends_on:
+      - misp-core
+    # ports:
+    #   - "8888:8888"
+    # volumes:
+    #   - ./guard/config.json:/srv/misp-guard/src/config.json:ro
+    deploy:
+      replicas: ${ENABLE_GUARD:-0}
+      
+
 volumes:
     mysql_data:
 

@@ -1,0 +1,224 @@
+{
+    "allowlist": {
+        "urls":  [
+                "http://www.dan.me.uk:443/torlist/?exit"
+        ],
+        "domains": [
+            "snort-org-site.s3.amazonaws.com"
+        ]
+    },
+    "compartments_rules": {
+        "can_reach": {
+            "compartment_1": [
+                "compartment_1",
+                "compartment_2",
+                "compartment_4"
+            ],
+            "compartment_2": [
+                "compartment_1",
+                "compartment_2"
+            ],
+            "compartment_3": [
+                "compartment_1",
+                "compartment_3"
+            ],
+            "compartment_4": [
+                "compartment_1",
+                "compartment_2",
+                "compartment_3",
+                "compartment_4"
+            ]
+        }
+    },
+    "instances": {
+        "instance_1_1": {
+            "ip": "10.0.0.1",
+            "host": "instance1-comp1.com",
+            "port": 443,
+            "compartment_id": "compartment_1",
+            "affiliation": "",
+            "taxonomies_rules": {
+                "required_taxonomies": [],
+                "allowed_tags": {},
+                "blocked_tags": [
+                    "tlp:red"
+                ]
+            },
+            "blocked_distribution_levels": [
+                "0"
+            ],
+            "blocked_sharing_groups_uuids": [
+                "b9e656ba-b9c0-4506-83ed-7b54b43a57cb"
+            ],
+            "blocked_attribute_types": [
+                "passport-number",
+                "email"
+            ],
+            "blocked_attribute_categories": [
+                "Person"
+            ],
+            "blocked_object_types": [
+                "person"
+            ]
+        },
+        "instance_1_2": {
+            "ip": "10.0.0.2",
+            "host": "instance2-comp1.com",
+            "port": 443,
+            "compartment_id": "compartment_1",
+            "affiliation": "",
+            "taxonomies_rules": {
+                "required_taxonomies": [],
+                "allowed_tags": {},
+                "blocked_tags": [
+                    "tlp:red"
+                ]
+            },
+            "blocked_distribution_levels": [
+                "0"
+            ],
+            "blocked_sharing_groups_uuids": [
+                "b9e656ba-b9c0-4506-83ed-7b54b43a57cb"
+            ],
+            "blocked_attribute_types": [
+                "passport-number",
+                "email"
+            ],
+            "blocked_attribute_categories": [
+                "Person"
+            ],
+            "blocked_object_types": [
+                "person"
+            ]
+        },
+        "instance_2_1": {
+            "ip": "20.0.0.1",
+            "host": "instance1-comp2.com",
+            "port": 443,
+            "compartment_id": "compartment_2",
+            "affiliation": "",
+            "taxonomies_rules": {
+                "required_taxonomies": [],
+                "allowed_tags": {},
+                "blocked_tags": [
+                    "tlp:red"
+                ]
+            },
+            "blocked_distribution_levels": [
+                "0"
+            ],
+            "blocked_sharing_groups_uuids": [
+                "b9e656ba-b9c0-4506-83ed-7b54b43a57cb"
+            ],
+            "blocked_attribute_types": [
+                "passport-number",
+                "email"
+            ],
+            "blocked_attribute_categories": [
+                "Person"
+            ],
+            "blocked_object_types": [
+                "person"
+            ]
+        },
+        "instance_2_2": {
+            "ip": "20.0.0.2",
+            "host": "instance2-comp2.com",
+            "port": 443,
+            "compartment_id": "compartment_2",
+            "affiliation": "",
+            "taxonomies_rules": {
+                "required_taxonomies": [],
+                "allowed_tags": {},
+                "blocked_tags": [
+                    "tlp:red"
+                ]
+            },
+            "blocked_distribution_levels": [
+                "0"
+            ],
+            "blocked_sharing_groups_uuids": [
+                "b9e656ba-b9c0-4506-83ed-7b54b43a57cb"
+            ],
+            "blocked_attribute_types": [
+                "passport-number",
+                "email"
+            ],
+            "blocked_attribute_categories": [
+                "Person"
+            ],
+            "blocked_object_types": [
+                "person"
+            ]
+        },
+        "instance_1_3": {
+            "ip": "30.0.0.1",
+            "host": "instance1-comp3.com",
+            "port": 443,
+            "compartment_id": "compartment_3",
+            "affiliation": "",
+            "taxonomies_rules": {
+                "required_taxonomies": [],
+                "allowed_tags": {},
+                "blocked_tags": [
+                    "tlp:red"
+                ]
+            },
+            "blocked_distribution_levels": [
+                "0"
+            ],
+            "blocked_sharing_groups_uuids": [
+                "b9e656ba-b9c0-4506-83ed-7b54b43a57cb"
+            ],
+            "blocked_attribute_types": [
+                "passport-number",
+                "email"
+            ],
+            "blocked_attribute_categories": [
+                "Person"
+            ],
+            "blocked_object_types": [
+                "person"
+            ]
+        },
+        "instance_1_4": {
+            "ip": "40.0.0.1",
+            "host": "instance1-comp4.com",
+            "port": 443,
+            "compartment_id": "compartment_4",
+            "affiliation": "",
+            "taxonomies_rules": {
+                "required_taxonomies": [
+                    "tlp"
+                ],
+                "allowed_tags": {
+                    "tlp": [
+                        "tlp:clear",
+                        "tlp:white",
+                        "tlp:green"
+                    ]
+                },
+                "blocked_tags": [
+                    "tlp:rainbow",
+                    "tlp:red"
+                ]
+            },
+            "blocked_distribution_levels": [
+                "0"
+            ],
+            "blocked_sharing_groups_uuids": [
+                "b9e656ba-b9c0-4506-83ed-7b54b43a57cb"
+            ],
+            "blocked_attribute_types": [
+                "passport-number",
+                "email"
+            ],
+            "blocked_attribute_categories": [
+                "Person"
+            ],
+            "blocked_object_types": [
+                "person"
+            ]
+        }
+    }
+}
