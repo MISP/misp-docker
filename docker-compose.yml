@@ -276,16 +276,22 @@ services:
       - "./custom/import_mod/:/custom/import_mod/:Z"
 
   misp-guard:
+    profiles:
+    - misp-guard
     build:
       context: ./guard
     depends_on:
-      - misp-core
-    # ports:
-    #   - "8888:8888"
-    # volumes:
-    #   - ./guard/config.json:/srv/misp-guard/src/config.json:ro
-    deploy:
-      replicas: ${ENABLE_GUARD:-0}
+      misp-core:
+        condition: service_healthy
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./guard/config.json:/srv/misp-guard/src/config.user.json:ro
+    # still not sure if needed, need to test MISP guard further..
+    entrypoint: ["/entrypoint.sh"]
+    command: [
+      "mitmdump","-s", "mispguard.py","-p", "8888", "-v", "--ssl-insecure","--set", "config=config.json"
+    ]
       
 
 volumes:
