@@ -11,23 +11,16 @@
         }
     },
     "instances": {
-        "japan": {
-            "ip": "10.32.0.69",
-            "host": "japan.misp",
+        "misp_container": {
+            "ip": "AUTO_REPLACED_AT_RUNTIME",
+            "host": "local-misp",
             "port": 443,
             "compartment_id": "compartment_1",
-            "affiliation": "",
+            "affiliation": "internal",
             "taxonomies_rules": {
                 "required_taxonomies": [],
-                "allowed_tags": {
-                    "tlp": [
-                        "tlp:clear",
-                        "tlp:white",
-                        "tlp:green"
-                    ]
-                },
+                "allowed_tags": {},
                 "blocked_tags": [
-                    "tlp:rainbow",
                     "tlp:red"
                 ]
             },
@@ -37,17 +30,19 @@
             "blocked_attribute_categories": [],
             "blocked_object_types": []
         },
-        "misp_container": {
-            "ip": "127.0.0.1",
-            "host": "misp-core",
+        "partner_example": {
+            "ip": "10.0.0.1",
+            "host": "partner.misp.org",
             "port": 443,
             "compartment_id": "compartment_1",
-            "affiliation": "",
+            "affiliation": "partner",
             "taxonomies_rules": {
                 "required_taxonomies": [],
                 "allowed_tags": {
-                    "default": [
-                        "*"
+                    "tlp": [
+                        "tlp:clear",
+                        "tlp:white",
+                        "tlp:green"
                     ]
                 },
                 "blocked_tags": [

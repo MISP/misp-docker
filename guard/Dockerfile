@@ -8,6 +8,6 @@ RUN git clone https://github.com/MISP/misp-guard.git /srv/misp-guard/
 WORKDIR /srv/misp-guard/src
 RUN pip install -r requirements.txt
 
-# resolve ip of misp-core, still testing misp guard not sure if this needed ideally not..
+# resolve ip of misp-core and inject into config.json inside container
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

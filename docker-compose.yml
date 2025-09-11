@@ -287,11 +287,9 @@ services:
       - "8888:8888"
     volumes:
       - ./guard/config.json:/srv/misp-guard/src/config.user.json:ro
-    # still not sure if needed, need to test MISP guard further..
     entrypoint: ["/entrypoint.sh"]
-    command: [
-      "mitmdump","-s", "mispguard.py","-p", "8888", "-v", "--ssl-insecure","--set", "config=config.json"
-    ]
+    command: >
+      sh -c 'exec mitmdump -s mispguard.py -p 8888 ${MISP_GUARD_VERBOSE} ${MISP_GUARD_SSL_INSECURE} --set config=config.json'
       
 
 volumes:
