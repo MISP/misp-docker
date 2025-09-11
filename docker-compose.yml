@@ -277,19 +277,25 @@ services:
 
   misp-guard:
     profiles:
-    - misp-guard
+      - misp-guard
     build:
       context: ./guard
     depends_on:
       misp-core:
         condition: service_healthy
     ports:
-      - "8888:8888"
+      - "${MISP_GUARD_PORT:-8888}:${MISP_GUARD_PORT:-8888}"
     volumes:
       - ./guard/config.json:/srv/misp-guard/src/config.user.json:ro
     entrypoint: ["/entrypoint.sh"]
     command: >
-      sh -c 'exec mitmdump -s mispguard.py -p 8888 ${MISP_GUARD_VERBOSE} ${MISP_GUARD_SSL_INSECURE} --set config=config.json'
+      sh -c 'exec mitmdump -s mispguard.py -p ${MISP_GUARD_PORT:-8888} ${MISP_GUARD_VERBOSE} ${MISP_GUARD_SSL_INSECURE} --set config=config.json'
+    healthcheck:
+      test: "/bin/bash -c '</dev/tcp/localhost/${MISP_GUARD_PORT:-8888}'"
+      interval: 1h
+      timeout: 5s
+      retries: 3
+      start_period: 10s
       
 
 volumes:
