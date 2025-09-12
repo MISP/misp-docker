@@ -281,8 +281,7 @@ services:
     build:
       context: ./guard
     depends_on:
-      misp-core:
-        condition: service_healthy
+      - misp-core
     ports:
       - "${MISP_GUARD_PORT:-8888}:${MISP_GUARD_PORT:-8888}"
     volumes:
