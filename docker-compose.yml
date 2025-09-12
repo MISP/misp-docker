@@ -278,8 +278,7 @@ services:
   misp-guard:
     profiles:
       - misp-guard
-    build:
-      context: ./guard
+    image: ghcr.io/misp/misp-docker/misp-guard:${GUARD_RUNNING_TAG:-latest}
     depends_on:
       - misp-core
     ports:
