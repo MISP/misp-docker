@@ -1,4 +1,7 @@
 ARG DOCKER_HUB_PROXY=""
+ARG MISP_UID=1001
+ARG MISP_GID=1001
+
 
 FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" AS python-build
     ENV DEBIAN_FRONTEND=noninteractive
@@ -16,7 +19,6 @@ FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" AS python-build
             apt-get install -y --no-install-recommends \
                 ca-certificates \
                 git
-                
         else
             apt-get install -y --no-install-recommends \
                 ca-certificates \
@@ -59,6 +61,8 @@ EOF
 FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm"
     ENV DEBIAN_FRONTEND=noninteractive
     ARG MODULES_FLAVOR
+    ARG MISP_UID
+    ARG MISP_GID
 
     RUN <<-EOF
         apt-get update
@@ -74,8 +78,13 @@ FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm"
         apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 EOF
 
+    RUN groupadd -g "${MISP_GID}" misp && \
+        useradd  -u "${MISP_UID}" -g "${MISP_GID}" -m -d /home/misp -s /usr/sbin/nologin misp
+
     COPY --from=python-build /wheels /wheels
     RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
-    RUN bash -c 'mkdir -p /custom/{action_mod,expansion,export_mod,import_mod}'
+    RUN bash -c 'mkdir -p /custom/{action_mod,expansion,export_mod,import_mod} && chown -R misp:misp /custom'
+
+    USER misp
 
     ENTRYPOINT [ "/usr/local/bin/misp-modules", "-l", "0.0.0.0", "-c", "/custom/"]
