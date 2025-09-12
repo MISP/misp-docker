@@ -124,7 +124,7 @@ The following format is required to target the misp-core, the IP is replaced wit
 {
     "instances": {
         "misp_container": {
-            "ip": "placeholder" // automatically replaced at runtime
+            "ip": "placeholder"
          }
     }
 }
