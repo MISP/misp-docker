@@ -291,7 +291,7 @@ services:
       sh -c 'exec mitmdump -s mispguard.py -p ${MISP_GUARD_PORT:-8888} ${MISP_GUARD_VERBOSE} ${MISP_GUARD_SSL_INSECURE} --set config=config.json'
     healthcheck:
       test: "/bin/bash -c '</dev/tcp/localhost/${MISP_GUARD_PORT:-8888}'"
-      interval: 1h
+      interval: 2m
       timeout: 5s
       retries: 3
       start_period: 10s
