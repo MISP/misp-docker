@@ -350,7 +350,7 @@ init_user() {
     fi
 
     if [ -n "$ADMIN_KEY" ]; then
-        if [ -n "$DISABLE_PRINTING_PLAINTEXT_CREDENTIALS" ]; then
+        if [ "$DISABLE_PRINTING_PLAINTEXT_CREDENTIALS" == "true" ]; then
             echo "... setting admin key from environment variable"
         else
             echo "... setting admin key to '${ADMIN_KEY}'"
@@ -365,7 +365,7 @@ init_user() {
 
     if [[ -v CHANGE_CMD[@] ]]; then
         ADMIN_KEY=$("${CHANGE_CMD[@]}" | awk 'END {print $NF; exit}')
-        if [ -n "$DISABLE_PRINTING_PLAINTEXT_CREDENTIALS" ]; then
+        if [ "$DISABLE_PRINTING_PLAINTEXT_CREDENTIALS" == "true" ]; then
             echo "... admin user key set"
         else
             echo "... admin user key set to '${ADMIN_KEY}'"
@@ -373,7 +373,7 @@ init_user() {
     fi
 
     if [ ! -z "$ADMIN_PASSWORD" ]; then
-        if [ -n "$DISABLE_PRINTING_PLAINTEXT_CREDENTIALS" ]; then
+        if [ "$DISABLE_PRINTING_PLAINTEXT_CREDENTIALS" == "true" ]; then
             echo "... setting admin password from environment variable"
         else
             echo "... setting admin password to '${ADMIN_PASSWORD}'"
