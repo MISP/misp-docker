@@ -1,17 +1,48 @@
-FROM python:3.12-slim-bookworm
+ARG DOCKER_HUB_PROXY=""
 
-ARG GUARD_COMMIT=main
+FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" AS python-build
+    ENV DEBIAN_FRONTEND=noninteractive
+    ARG GUARD_TAG
+    ARG GUARD_COMMIT
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends git jq && \
-    rm -rf /var/lib/apt/lists/*
+    RUN <<-EOF
+        apt-get update
+        apt-get install -y --no-install-recommends \
+            ca-certificates \
+            git
+        apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+EOF
 
-RUN git clone https://github.com/MISP/misp-guard.git /srv/misp-guard && \
-    cd /srv/misp-guard && git checkout ${GUARD_COMMIT}
+    RUN mkdir /wheels
 
-WORKDIR /srv/misp-guard/src
-RUN pip install -r requirements.txt
+    RUN <<-EOF
+        if [ ! -z ${GUARD_COMMIT} ]; then
+            git clone https://github.com/MISP/misp-guard.git /srv/misp-guard && cd /srv/misp-guard && git checkout ${GUARD_COMMIT}
+        else
+            git clone --branch ${GUARD_TAG} --depth 1 https://github.com/MISP/misp-guard.git /srv/misp-guard
+        fi
+EOF
 
-# resolve ip of misp-core and inject into config.json inside container
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+    WORKDIR /srv/misp-guard/src
+    RUN pip wheel -r requirements.txt --no-cache-dir -w /wheels/
+
+
+
+FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm"
+    ENV DEBIAN_FRONTEND=noninteractive
+
+    RUN <<-EOF
+        apt-get update
+        apt-get install -y --no-install-recommends \
+            jq
+        apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+EOF
+
+    COPY --from=python-build /wheels /wheels
+    RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
+
+    COPY --from=python-build /srv /srv
+    COPY files/ /
+
+    WORKDIR /srv/misp-guard/src
+    ENTRYPOINT [ "/entrypoint.sh" ]
