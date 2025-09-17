@@ -536,10 +536,10 @@ create_default_scheduled_tasks() {
         ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID;" | ${MYSQL_CMD}
     echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, params, enabled, next_execution_time, message) \
         VALUES (3, 'Server', $PULLALL_INTERVAL, 'Daily pull of all Servers', $CRON_USER_ID, 'pull', 'all,full', 1, 0, '') \
-        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID AND timer=$PULLALL_INTERVAL;" | ${MYSQL_CMD}
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID, timer=$PULLALL_INTERVAL;" | ${MYSQL_CMD}
     echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, params, enabled, next_execution_time, message) \
         VALUES (4, 'Server', $PUSHALL_INTERVAL, 'Daily push of all Servers', $CRON_USER_ID, 'push', 'all,full', 1, 0, '') \
-        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID AND timer=$PUSHALL_INTERVAL;" | ${MYSQL_CMD}
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID, timer=$PUSHALL_INTERVAL;" | ${MYSQL_CMD}
     echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, enabled, next_execution_time, message) \
         VALUES (5, 'Admin', 86400, 'Daily update of Galaxies', $CRON_USER_ID, 'updateGalaxies', 1, 0, '') \
         ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID;" | ${MYSQL_CMD}
