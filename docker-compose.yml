@@ -276,6 +276,31 @@ services:
       - "./custom/export_mod/:/custom/export_mod/:Z"
       - "./custom/import_mod/:/custom/import_mod/:Z"
 
+  misp-guard:
+    profiles:
+      - misp-guard
+    image: ghcr.io/misp/misp-docker/misp-guard:${GUARD_RUNNING_TAG:-latest}
+    build:
+      context: guard/.
+      args:
+        - GUARD_TAG=${GUARD_TAG:?Missing .env file, see README.md for instructions}
+        - GUARD_COMMIT=${GUARD_COMMIT}
+    depends_on:
+      - misp-core
+    ports:
+      - "${GUARD_PORT:-8888}:${GUARD_PORT:-8888}"
+    environment:
+      - "GUARD_PORT=${GUARD_PORT:-8888}"
+      - "GUARD_ARGS=${GUARD_ARGS}"
+    volumes:
+      - ./guard/config.json:/config.json:ro
+    healthcheck:
+      test: "/bin/bash -c '</dev/tcp/localhost/${GUARD_PORT:-8888}'"
+      interval: 2m
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+      
+
 volumes:
     mysql_data:
-

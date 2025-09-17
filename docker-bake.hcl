@@ -74,6 +74,14 @@ variable "CORE_COMMIT" {
   default = ""
 }
 
+variable "GUARD_TAG" {
+  default = ""
+}
+
+variable "GUARD_COMMIT" {
+  default = ""
+}
+
 variable "PHP_VER" {
   default = null
 }
@@ -84,6 +92,7 @@ group "default" {
     "misp-modules-slim",
     "misp-core",
     "misp-core-slim",
+    "misp-guard",
   ]
 }
 
@@ -157,6 +166,17 @@ target "misp-core-slim" {
     "PYPI_MISP_STIX_VERSION": "${PYPI_MISP_STIX_VERSION}",
     "PYPI_SETUPTOOLS_VERSION": "${PYPI_SETUPTOOLS_VERSION}",
     "PYPI_SUPERVISOR_VERSION": "${PYPI_SUPERVISOR_VERSION}",
+  }
+  platforms = "${PLATFORMS}"
+}
+
+target "misp-guard" {
+  context = "guard/."
+  dockerfile = "Dockerfile"
+  tags = flatten(["${NAMESPACE}/misp-guard:latest", "${NAMESPACE}/misp-guard:${COMMIT_HASH}", GUARD_TAG != "" ? ["${NAMESPACE}/misp-guard:${GUARD_TAG}"] : []])
+  args = {
+    "GUARD_TAG": "${GUARD_TAG}",
+    "GUARD_COMMIT": "${GUARD_COMMIT}"
   }
   platforms = "${PLATFORMS}"
 }
