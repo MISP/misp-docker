@@ -74,6 +74,14 @@ variable "CORE_COMMIT" {
   default = ""
 }
 
+variable "GUARD_TAG" {
+  default = ""
+}
+
+variable "GUARD_COMMIT" {
+  default = ""
+}
+
 variable "PHP_VER" {
   default = null
 }
@@ -165,9 +173,10 @@ target "misp-core-slim" {
 target "misp-guard" {
   context = "guard/."
   dockerfile = "Dockerfile"
-  tags = flatten([
-    "${NAMESPACE}/misp-guard:latest",
-    "${NAMESPACE}/misp-guard:${COMMIT_HASH}"
-  ])
+  tags = flatten(["${NAMESPACE}/misp-guard:latest", "${NAMESPACE}/misp-guard:${COMMIT_HASH}", GUARD_TAG != "" ? ["${NAMESPACE}/misp-guard:${GUARD_TAG}"] : []])
+  args = {
+    "GUARD_TAG": "${GUARD_TAG}",
+    "GUARD_COMMIT": "${GUARD_COMMIT}"
+  }
   platforms = "${PLATFORMS}"
 }
