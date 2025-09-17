@@ -279,17 +279,23 @@ services:
     profiles:
       - misp-guard
     image: ghcr.io/misp/misp-docker/misp-guard:${GUARD_RUNNING_TAG:-latest}
+    build:
+      context: guard/.
+      args:
+        - GUARD_TAG=${GUARD_TAG:?Missing .env file, see README.md for instructions}
+        - GUARD_COMMIT=${GUARD_COMMIT}
     depends_on:
       - misp-core
     ports:
-      - "${MISP_GUARD_PORT:-8888}:${MISP_GUARD_PORT:-8888}"
+      - "${GUARD_PORT:-8888}:${GUARD_PORT:-8888}"
+    environment:
+      - "GUARD_PORT=${GUARD_PORT:-8888}"
+      - "GUARD_VERBOSE=${GUARD_VERBOSE}"
+      - "GUARD_SSL_INSECURE=${GUARD_SSL_INSECURE}"
     volumes:
-      - ./guard/config.json:/srv/misp-guard/src/config.user.json:ro
-    entrypoint: ["/entrypoint.sh"]
-    command: >
-      sh -c 'exec mitmdump -s mispguard.py -p ${MISP_GUARD_PORT:-8888} ${MISP_GUARD_VERBOSE} ${MISP_GUARD_SSL_INSECURE} --set config=config.json'
+      - ./guard/config.json:/config.json:ro
     healthcheck:
-      test: "/bin/bash -c '</dev/tcp/localhost/${MISP_GUARD_PORT:-8888}'"
+      test: "/bin/bash -c '</dev/tcp/localhost/${GUARD_PORT:-8888}'"
       interval: 2m
       timeout: 5s
       retries: 3
@@ -298,4 +304,3 @@ services:
 
 volumes:
     mysql_data:
-
