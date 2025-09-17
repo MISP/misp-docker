@@ -20,6 +20,8 @@ services:
       retries: 3
       start_period: 5s
       start_interval: 5s
+    volumes:
+      - cache_data:/data:Z
 
   db:
     # We use MariaDB because it supports ARM and has the expected collations
@@ -277,4 +279,5 @@ services:
 
 volumes:
     mysql_data:
+    cache_data:
 
