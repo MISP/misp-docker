@@ -290,8 +290,7 @@ services:
       - "${GUARD_PORT:-8888}:${GUARD_PORT:-8888}"
     environment:
       - "GUARD_PORT=${GUARD_PORT:-8888}"
-      - "GUARD_VERBOSE=${GUARD_VERBOSE}"
-      - "GUARD_SSL_INSECURE=${GUARD_SSL_INSECURE}"
+      - "GUARD_ARGS=${GUARD_ARGS}"
     volumes:
       - ./guard/config.json:/config.json:ro
     healthcheck:

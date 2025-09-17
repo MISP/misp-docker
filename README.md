@@ -144,10 +144,8 @@ docker compose restart misp-guard
 # Default: 8888
 GUARD_PORT=8888
 
-# optional: increases logging for troubleshooting
-GUARD_VERBOSE=-v 
-# optional: disable SSL verification (testing only, must not be enabled in prod)
-GUARD_SSL_INSECURE=--ssl-insecure
+# optional: mitmdump misp-guard runtime arguments (space separated, no quotes)
+GUARD_ARGS=--ssl-insecure -v
 ```
 
 ### Authentication

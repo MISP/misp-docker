@@ -22,4 +22,4 @@ jq --arg ip "$MISP_IP" \
    '.instances.misp_container.ip = $ip' \
    /config.json > /srv/misp-guard/src/config.json
 
-exec mitmdump -s mispguard.py -p ${GUARD_PORT:-8888} ${GUARD_VERBOSE} ${GUARD_SSL_INSECURE} --set config=config.json
+exec mitmdump -s mispguard.py -p ${GUARD_PORT:-8888} ${GUARD_ARGS:+$GUARD_ARGS} --set config=config.json
