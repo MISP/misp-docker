@@ -96,13 +96,14 @@ To override these behaviours edit the docker-compose.yml file's misp-core volume
 If it is just a default setting that is meant to be set if not already set by the user, add it in one of the `*.default.json` files.
 If it is a setting controlled by an environment variable which is meant to override whatever is set, add it in one of the `*.envars.json` files (note that you can still specify a default value).
 
-### MISP Guard (optional)
+### MISP-Guard (optional)
 
-[MISP-Guard](https://github.com/MISP/misp-guard) is a mitmproxy addon designed to apply configurable filters that prevent the unintentional leakage of sensitive threat intelligence data while facilitating controlled information sharing.  
+[MISP-Guard](https://github.com/MISP/misp-guard) is a mitmproxy add-on designed to apply configurable filters that prevent the unintentional leakage of sensitive threat intelligence data while facilitating controlled information sharing.  
 
 It is disabled by default, but can be enabled using compose profiles.
 
 #### Enabling
+
 1. Enable the profile in your `.env` file:
 ```bash
 COMPOSE_PROFILES=misp-guard
@@ -111,11 +112,12 @@ COMPOSE_PROFILES=misp-guard
 ```bash
 PROXY_ENABLE=true
 PROXY_HOST=misp-guard
-# this must match MISP_GUARD_PORT (DEFAULT=8888)
+# this must match GUARD_PORT (DEFAULT=8888)
 PROXY_PORT=8888
 ```
 
 #### Configuration
+
 - Rules are defined in `guard/config.json`.
 - The container automatically replaces the `misp-core` IP at runtime using `entrypoint.sh`.
 
@@ -136,15 +138,16 @@ docker compose restart misp-guard
 ```
 
 #### Environment Variables
+
 ```bash
 # Port for misp-guard to listen on (must match PROXY_PORT)
 # Default: 8888
-MISP_GUARD_PORT=8888
+GUARD_PORT=8888
 
 # optional: increases logging for troubleshooting
-MISP_GUARD_VERBOSE=-v 
+GUARD_VERBOSE=-v 
 # optional: disable SSL verification (testing only, must not be enabled in prod)
-MISP_GUARD_SSL_INSECURE=--ssl-insecure
+GUARD_SSL_INSECURE=--ssl-insecure
 ```
 
 ### Authentication
