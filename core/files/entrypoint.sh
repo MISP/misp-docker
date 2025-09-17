@@ -15,7 +15,15 @@ export MYSQL_DATABASE=${MYSQL_DATABASE:-misp}
 export MYSQL_CMD="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD -P $MYSQL_PORT -h $MYSQL_HOST -r -N $MYSQL_DATABASE"
 export REDIS_HOST=${REDIS_HOST:-redis}
 export REDIS_PORT=${REDIS_PORT:-6379}
-export REDIS_PASSWORD=${REDIS_PASSWORD:-}
+export ENABLE_REDIS_EMPTY_PASSWORD=${ENABLE_REDIS_EMPTY_PASSWORD:-false}
+
+# Set Redis password based on ENABLE_REDIS_EMPTY_PASSWORD setting
+if [ "$ENABLE_REDIS_EMPTY_PASSWORD" = "true" ]; then
+    # This still need to be set to empty string to ensure all places where it's used got the correct value
+    export REDIS_PASSWORD=""
+else
+    export REDIS_PASSWORD=${REDIS_PASSWORD:-redispassword}
+fi
 export BASE_URL=${BASE_URL:-https://localhost}
 export DISABLE_IPV6=${DISABLE_IPV6:-false}
 export DISABLE_SSL_REDIRECT=${DISABLE_SSL_REDIRECT:-false}
