@@ -7,6 +7,7 @@ A production ready Docker MISP image (formerly hosted at https://github.com/oste
 
 Notable features:
 -   MISP and MISP modules are split into two different Docker images, `misp-core` and `misp-modules`
+-   Optional [MISP-Guard](https://github.com/MISP/misp-guard) container to filter traffic and enforce sharing policies via mitmproxy.
 -   Docker images are pushed regularly, no build required
 -   Lightweight Docker images by using multiple build stages and a slim parent image
 -   Rely on off the shelf Docker images for Exim4, Redis, and MariaDB
@@ -144,7 +145,7 @@ docker compose restart misp-guard
 # Default: 8888
 GUARD_PORT=8888
 
-# optional: mitmdump misp-guard runtime arguments (space separated, no quotes)
+# optional: mitmdump misp-guard runtime arguments (space separated)
 GUARD_ARGS=--ssl-insecure -v
 ```
 
@@ -266,10 +267,10 @@ The process is *NOT* battle-tested, so it is *NOT* to be followed uncritically.
 
 ## Versioning
 
-A GitHub Action builds both `misp-core` and `misp-modules` images automatically and pushes them to the [GitHub Package registry](https://github.com/orgs/MISP/packages). We do not use tags inside the repository; instead we tag images as they are pushed to the registry. For each build, `misp-core` and `misp-modules` images are tagged as follows:
--   `misp-core:${commit-sha1}[0:7]` and `misp-modules:${commit-sha1}[0:7]` where `${commit-sha1}` is the commit hash triggering the build
--   `misp-core:latest` and `misp-modules:latest` in order to track the latest builds available 
--   `misp-core:${CORE_TAG}` and `misp-modules:${MODULES_TAG}` reflecting the underlying version of MISP and MISP modules (as specified inside the `template.env` file at build time)
+A GitHub Action builds `misp-core`, `misp-modules`, and `misp-guard` images automatically and pushes them to the [GitHub Package registry](https://github.com/orgs/MISP/packages). We do not use tags inside the repository; instead we tag images as they are pushed to the registry. For each build, `misp-core`, `misp-modules`, `misp-guard` images are tagged as follows:
+-   `misp-core:${commit-sha1}[0:7]`, `misp-modules:${commit-sha1}[0:7]`, and `misp-guard:${commit-sha1}[0:7]` where `${commit-sha1}` is the commit hash triggering the build
+-   `misp-core:latest`, `misp-modules:latest`, and `misp-guard:latest` in order to track the latest builds available 
+-   `misp-core:${CORE_TAG}`, `misp-modules:${MODULES_TAG}`, and `misp-guard:${GUARD_TAG}` reflecting the underlying versions as specified inside the `template.env` file at build time.
 
 ## Podman (experimental)
 
@@ -367,6 +368,7 @@ docker compose down
 docker system prune
 docker image rm ghcr.io/misp/misp-docker/misp-core
 docker image rm ghcr.io/misp/misp-docker/misp-modules
+docker image rm ghcr.io/misp/misp-docker/misp-guard
 ```
 
 With **Podman**:
@@ -376,6 +378,7 @@ podman compose down
 podman system prune
 podman image rm ghcr.io/misp/misp-docker/misp-core
 podman image rm ghcr.io/misp/misp-docker/misp-modules
+podman image rm ghcr.io/misp/misp-docker/misp-guard
 ```
 
 You can also use the `--no-cache` option during the build to ignore cached layers.
@@ -403,13 +406,13 @@ You can combine the above commands to fully reset and rebuild the images in one 
 For **Docker**:
 
 ```
-docker system prune ; docker image rm ghcr.io/misp/misp-docker/misp-core ; docker image rm ghcr.io/misp/misp-docker/misp-modules ; rm -f build.log ; docker compose --verbose build --no-cache | tee build.log
+docker system prune ; docker image rm ghcr.io/misp/misp-docker/misp-core ; docker image rm ghcr.io/misp/misp-docker/misp-modules ;  docker image rm ghcr.io/misp/misp-docker/misp-guard ; rm -f build.log ; docker compose --verbose build --no-cache | tee build.log
 ```
 
 For **Podman**:
 
 ```
-podman system prune ; podman image rm ghcr.io/misp/misp-docker/misp-core ; podman image rm ghcr.io/misp/misp-docker/misp-modules ; rm -f build.log ; PODMAN_COMPOSE_VERBOSE=1 podman compose build --no-cache | tee build.log
+podman system prune ; podman image rm ghcr.io/misp/misp-docker/misp-core ; podman image rm ghcr.io/misp/misp-docker/misp-modules ; podman image rm ghcr.io/misp/misp-docker/misp-guard ; rm -f build.log ; PODMAN_COMPOSE_VERBOSE=1 podman compose build --no-cache | tee build.log
 ```
 
 This ensures you are building from a clean state and not using remnants from previous builds.
