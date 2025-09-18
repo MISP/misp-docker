@@ -60,10 +60,10 @@ services:
     build:
       context: core/.
       args:
-          - CORE_TAG=${CORE_TAG:?Missing .env file, see README.md for instructions}
+          - CORE_TAG=${CORE_TAG:?Missing or outdated .env file, see README.md for instructions}
           - CORE_COMMIT=${CORE_COMMIT}
           - CORE_FLAVOR=${CORE_FLAVOR:-full}
-          - PHP_VER=${PHP_VER:?Missing .env file, see README.md for instructions}
+          - PHP_VER=${PHP_VER:?Missing or outdated .env file, see README.md for instructions}
           - PYPI_REDIS_VERSION=${PYPI_REDIS_VERSION}
           - PYPI_LIEF_VERSION=${PYPI_LIEF_VERSION}
           - PYPI_PYDEEP2_VERSION=${PYPI_PYDEEP2_VERSION}
@@ -91,8 +91,8 @@ services:
       start_period: 30s
       start_interval: 30s
     ports:
-      - "80:80"
-      - "443:443"
+      - "${CORE_PORT_HTTP:-80}:80"
+      - "${CORE_PORT_HTTPS:-443}:443"
     volumes:
       - "./configs/:/var/www/MISP/app/Config/:Z"
       - "./logs/:/var/www/MISP/app/tmp/logs/:Z"
@@ -261,7 +261,7 @@ services:
     build:
       context: modules/.
       args:
-        - MODULES_TAG=${MODULES_TAG:?Missing .env file, see README.md for instructions}
+        - MODULES_TAG=${MODULES_TAG:?Missing or outdated .env file, see README.md for instructions}
         - MODULES_COMMIT=${MODULES_COMMIT}
         - MODULES_FLAVOR=${MODULES_FLAVOR:-full}
     healthcheck:
@@ -285,7 +285,7 @@ services:
     build:
       context: guard/.
       args:
-        - GUARD_TAG=${GUARD_TAG:?Missing .env file, see README.md for instructions}
+        - GUARD_TAG=${GUARD_TAG:?Missing or outdated .env file, see README.md for instructions}
         - GUARD_COMMIT=${GUARD_COMMIT}
     depends_on:
       - misp-core
