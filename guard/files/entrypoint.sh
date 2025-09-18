@@ -15,7 +15,9 @@
 set -e
 
 # resolve misp-core from docker dns
-MISP_IP=$(getent hosts misp-core | awk '{print $1}')
+if [ -z "$MISP_IP" ]; then
+  MISP_IP=$(getent hosts misp-core | awk '{print $1}')
+fi
 
 # replace runtime ip into config.json
 jq --arg ip "$MISP_IP" \
