@@ -350,7 +350,11 @@ init_user() {
     fi
 
     if [ -n "$ADMIN_KEY" ]; then
-        echo "... setting admin key to '${ADMIN_KEY}'"
+        if [ "$DISABLE_PRINTING_PLAINTEXT_CREDENTIALS" == "true" ]; then
+            echo "... setting admin key from environment variable"
+        else
+            echo "... setting admin key to '${ADMIN_KEY}'"
+        fi
         CHANGE_CMD=(sudo -u www-data /var/www/MISP/app/Console/cake User change_authkey 1 "${ADMIN_KEY}")
     elif [ -z "$ADMIN_KEY" ] && [ "$AUTOGEN_ADMIN_KEY" == "true" ]; then
         echo "... regenerating admin key (set \$ADMIN_KEY if you want it to change)"
@@ -361,11 +365,19 @@ init_user() {
 
     if [[ -v CHANGE_CMD[@] ]]; then
         ADMIN_KEY=$("${CHANGE_CMD[@]}" | awk 'END {print $NF; exit}')
-        echo "... admin user key set to '${ADMIN_KEY}'"
+        if [ "$DISABLE_PRINTING_PLAINTEXT_CREDENTIALS" == "true" ]; then
+            echo "... admin user key set"
+        else
+            echo "... admin user key set to '${ADMIN_KEY}'"
+        fi
     fi
 
     if [ ! -z "$ADMIN_PASSWORD" ]; then
-        echo "... setting admin password to '${ADMIN_PASSWORD}'"
+        if [ "$DISABLE_PRINTING_PLAINTEXT_CREDENTIALS" == "true" ]; then
+            echo "... setting admin password from environment variable"
+        else
+            echo "... setting admin password to '${ADMIN_PASSWORD}'"
+        fi
         PASSWORD_POLICY=$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting "Security.password_policy_complexity" | jq ".value" -r)
         PASSWORD_LENGTH=$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting "Security.password_policy_length" | jq ".value" -r)
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_length" 1
@@ -536,10 +548,10 @@ create_default_scheduled_tasks() {
         ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID;" | ${MYSQL_CMD}
     echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, params, enabled, next_execution_time, message) \
         VALUES (3, 'Server', $PULLALL_INTERVAL, 'Daily pull of all Servers', $CRON_USER_ID, 'pull', 'all,full', 1, 0, '') \
-        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID AND timer=$PULLALL_INTERVAL;" | ${MYSQL_CMD}
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID, timer=$PULLALL_INTERVAL;" | ${MYSQL_CMD}
     echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, params, enabled, next_execution_time, message) \
         VALUES (4, 'Server', $PUSHALL_INTERVAL, 'Daily push of all Servers', $CRON_USER_ID, 'push', 'all,full', 1, 0, '') \
-        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID AND timer=$PUSHALL_INTERVAL;" | ${MYSQL_CMD}
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID, timer=$PUSHALL_INTERVAL;" | ${MYSQL_CMD}
     echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, enabled, next_execution_time, message) \
         VALUES (5, 'Admin', 86400, 'Daily update of Galaxies', $CRON_USER_ID, 'updateGalaxies', 1, 0, '') \
         ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID;" | ${MYSQL_CMD}

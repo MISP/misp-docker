@@ -1,0 +1,59 @@
+{
+    "allowlist": {
+        "urls": [],
+        "domains": []
+    },
+    "compartments_rules": {
+        "can_reach": {
+            "compartment_1": [
+                "compartment_1"
+            ]
+        }
+    },
+    "instances": {
+        "misp_container": {
+            "ip": "AUTO_REPLACED_AT_RUNTIME",
+            "host": "local-misp",
+            "port": 443,
+            "compartment_id": "compartment_1",
+            "affiliation": "internal",
+            "taxonomies_rules": {
+                "required_taxonomies": [],
+                "allowed_tags": {},
+                "blocked_tags": [
+                    "tlp:red"
+                ]
+            },
+            "blocked_distribution_levels": [],
+            "blocked_sharing_groups_uuids": [],
+            "blocked_attribute_types": [],
+            "blocked_attribute_categories": [],
+            "blocked_object_types": []
+        },
+        "partner_example": {
+            "ip": "10.0.0.1",
+            "host": "partner.misp.org",
+            "port": 443,
+            "compartment_id": "compartment_1",
+            "affiliation": "partner",
+            "taxonomies_rules": {
+                "required_taxonomies": [],
+                "allowed_tags": {
+                    "tlp": [
+                        "tlp:clear",
+                        "tlp:white",
+                        "tlp:green"
+                    ]
+                },
+                "blocked_tags": [
+                    "tlp:red"
+                ]
+            },
+            "blocked_distribution_levels": [],
+            "blocked_sharing_groups_uuids": [],
+            "blocked_attribute_types": [],
+            "blocked_attribute_categories": [],
+            "blocked_object_types": []
+        }
+    }
+}
