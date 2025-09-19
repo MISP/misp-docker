@@ -12,9 +12,26 @@ services:
 
   redis:
     image: valkey/valkey:7.2
-    command: "--requirepass '${REDIS_PASSWORD:-redispassword}'"
+    command: |
+      sh -c '
+        if [ "$${ENABLE_REDIS_EMPTY_PASSWORD:-false}" = "true" ]; then
+          exec valkey-server
+        else
+          exec valkey-server --requirepass "$${REDIS_PASSWORD:-redispassword}"
+        fi
+      '
+    environment:
+      - "ENABLE_REDIS_EMPTY_PASSWORD=${ENABLE_REDIS_EMPTY_PASSWORD:-false}"
+      - "REDIS_PASSWORD=${REDIS_PASSWORD:-redispassword}"
     healthcheck:
-      test: "valkey-cli -a '${REDIS_PASSWORD:-redispassword}' -p ${REDIS_PORT:-6379} ping | grep -q PONG || exit 1"
+      test: |
+        sh -c '
+          if [ "$${ENABLE_REDIS_EMPTY_PASSWORD:-false}" = "true" ]; then
+            valkey-cli -p $${REDIS_PORT:-6379} ping | grep -q PONG || exit 1
+          else
+            valkey-cli -a "$${REDIS_PASSWORD:-redispassword}" -p $${REDIS_PORT:-6379} ping | grep -q PONG || exit 1
+          fi
+        '
       interval: 2s
       timeout: 1s
       retries: 3
@@ -220,6 +237,7 @@ services:
       - "REDIS_HOST=${REDIS_HOST:-redis}"
       - "REDIS_PORT=${REDIS_PORT:-6379}"
       - "REDIS_PASSWORD=${REDIS_PASSWORD:-redispassword}"
+      - "ENABLE_REDIS_EMPTY_PASSWORD=${ENABLE_REDIS_EMPTY_PASSWORD:-false}"
       # debug setting 
       - "DEBUG=${DEBUG}"
       # SMTP setting
