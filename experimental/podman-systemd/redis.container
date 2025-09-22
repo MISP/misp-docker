@@ -11,8 +11,8 @@ Image=docker.io/valkey/valkey:7.2
 Network=misp-net
 Volume=redis_data:/data
 PodmanArgs=--network-alias redis
-Exec=--requirepass ${REDIS_PASSWORD}
-HealthCmd=valkey-cli -a ${REDIS_PASSWORD} ping
+Exec=sh -c 'if [ "${ENABLE_REDIS_EMPTY_PASSWORD:-false}" = "true" ]; then exec valkey-server; else exec valkey-server --requirepass "${REDIS_PASSWORD}"; fi'
+HealthCmd=sh -c 'if [ "${ENABLE_REDIS_EMPTY_PASSWORD:-false}" = "true" ]; then valkey-cli ping; else valkey-cli -a "${REDIS_PASSWORD}" ping; fi'
 HealthInterval=2s
 HealthTimeout=1s
 HealthRetries=3

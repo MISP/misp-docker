@@ -301,6 +301,11 @@ Set the Redis password:
 REDIS_PASSWORD=
 ```
 
+Enable passwordless Redis connection (defaults to false for security):
+```bash
+ENABLE_REDIS_EMPTY_PASSWORD=false
+```
+
 Set the base URL:
 ```bash
 BASE_URL=https://<IP>:10443
