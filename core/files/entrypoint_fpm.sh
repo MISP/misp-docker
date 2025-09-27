@@ -30,7 +30,11 @@ change_php_vars() {
             echo "Configure PHP | Setting 'session.save_path = '$(echo $REDIS_HOST | grep -E '^\w+://' || echo tcp://$REDIS_HOST):$REDIS_PORT' (passwordless)"
             sed -i "s|.*session.save_path = .*|session.save_path = '$(echo $REDIS_HOST | grep -E '^\w+://' || echo tcp://$REDIS_HOST):$REDIS_PORT'|" "$FILE"
         elif [[ -n "$REDIS_PASSWORD" ]]; then
-            echo "Configure PHP | Setting 'session.save_path = '$(echo $REDIS_HOST | grep -E '^\w+://' || echo tcp://$REDIS_HOST):$REDIS_PORT?auth=${ESCAPED}'"
+            if [ "$DISABLE_PRINTING_PLAINTEXT_CREDENTIALS" == "true" ]; then
+                echo "Configure PHP | Setting 'session.save_path = '$(echo $REDIS_HOST | grep -E '^\w+://' || echo tcp://$REDIS_HOST):$REDIS_PORT?auth=<hidden>'"
+            else
+                echo "Configure PHP | Setting 'session.save_path = '$(echo $REDIS_HOST | grep -E '^\w+://' || echo tcp://$REDIS_HOST):$REDIS_PORT?auth=${ESCAPED}'"
+            fi
             sed -i "s|.*session.save_path = .*|session.save_path = '$(echo $REDIS_HOST | grep -E '^\w+://' || echo tcp://$REDIS_HOST):$REDIS_PORT?auth=${ESCAPED}'|" "$FILE"
         else
             echo "ERROR: REDIS_PASSWORD is not set but ENABLE_REDIS_EMPTY_PASSWORD is false. Please set REDIS_PASSWORD or enable ENABLE_REDIS_EMPTY_PASSWORD=true for passwordless Redis."
@@ -38,6 +42,7 @@ change_php_vars() {
         fi
         sed -i "s/session.sid_length = .*/session.sid_length = 64/" "$FILE"
         sed -i "s/session.use_strict_mode = .*/session.use_strict_mode = 1/" "$FILE"
+        sed -i "s|session.cookie_domain = .*|session.cookie_domain = ${BASE_URL}|" "$FILE"
         echo "Configure PHP | Setting 'date.timezone = ${PHP_TIMEZONE}'"
         sed -i "s/;?date.timezone = .*/date.timezone = ${PHP_TIMEZONE}/" "$FILE"
     done
@@ -62,6 +67,7 @@ change_php_vars() {
             echo "Configure PHP | Setting 'pm.status_path = /status'"
             sed -i -E "s/;?pm.status_path = .*/pm.status_path = \/status/" "$FILE"
             echo "Configure PHP | Setting 'pm.status_path = /run/php/php-fpm-status.sock'"
+            # TODO: Respect version number in path?
             sed -i -E "s/;?pm.status_listen = .*/pm.status_listen = \/run\/php\/php-fpm-status.sock/" "$FILE"
         else
             echo "Configure PHP | Disabling 'pm.status_path'"
@@ -69,8 +75,16 @@ change_php_vars() {
             echo "Configure PHP | Disabling 'pm.status_listen'"
             sed -i -E "s/^pm.status_listen =/;pm.status_listen =/" "$FILE"
         fi
+        if [[ -n "$PHP_FPM_SOCK_FILE" ]]; then
+            echo "Configure PHP | Setting 'listen' to ${PHP_FPM_SOCK_FILE}"
+            sed -i "/^listen =/s@=.*@= ${PHP_FPM_SOCK_FILE}@" "$FILE"
+        fi
     done
 }
+
+if [ -n "${BASH_SOURCE[0]}" ]; then
+    return
+fi
 
 echo "Configure PHP | Change PHP values ..." && change_php_vars
 
@@ -78,4 +92,4 @@ echo "Configure PHP | Starting PHP FPM"
 /usr/sbin/php-fpm8.2 -R -F & master_pid=$!
 
 # Wait for it
-wait "$master_pid"
+#wait "$master_pid"

@@ -84,5 +84,22 @@ export NGINX_X_FORWARDED_FOR=${NGINX_X_FORWARDED_FOR:-false}
 export NGINX_SET_REAL_IP_FROM=${NGINX_SET_REAL_IP_FROM}
 export NGINX_CLIENT_MAX_BODY_SIZE=${NGINX_CLIENT_MAX_BODY_SIZE:-50M}
 
-# start supervisord using the main configuration file so we have a socket interface
-exec /usr/bin/tini -- /usr/local/bin/supervisord -c /etc/supervisor/supervisord.conf
+if [[ -n "$KUBERNETES_SERVICE_HOST" && $# -gt 0 ]]; then
+    CONTAINER_MODE=$1
+    echo "Running Kubernetes-specific startup for ${CONTAINER_MODE}"
+    case "$CONTAINER_MODE" in
+        nginx*)
+            echo " - NGINX"
+            exec /kubernetes/entrypoint_nginx.sh
+        ;;
+        php*)
+            echo " - PHP (MISP)"            # Not ideal, but let supervisord manage the workers still
+            mv /etc/supervisor/conf.d/10-supervisor.conf{.kubernetes,}
+            /usr/local/bin/supervisord -c /etc/supervisor/supervisord.conf &
+            exec /kubernetes/entrypoint_fpm.sh
+        ;;
+    esac
+else
+    # start supervisord using the main configuration file so we have a socket interface
+    exec /usr/bin/tini -- /usr/local/bin/supervisord -c /etc/supervisor/supervisord.conf
+fi

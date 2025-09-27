@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: misp-modules
+  labels:
+    app.kubernetes.io/name: misp-modules
+spec:
+  type: ClusterIP
+  ports:
+    - port: 6666
+      targetPort: misp-modules
+      protocol: TCP
+      name: misp-modules
+  selector:
+    app.kubernetes.io/name: misp
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: misp-server
+  labels:
+    app.kubernetes.io/name: misp-server
+spec:
+  type: ClusterIP
+  ports:
+    - port: 443
+      targetPort: misp-https
+      protocol: TCP
+      name: misp-https
+  selector:
+    app.kubernetes.io/name: misp
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: misp-mysql
+  labels:
+    app.kubernetes.io/name: misp-mysql
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3306
+      targetPort: misp-mysql
+      protocol: TCP
+      name: misp-mysql
+  selector:
+    app.kubernetes.io/name: misp-mysql
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: misp-redis
+  labels:
+    app.kubernetes.io/name: misp-redis
+spec:
+  type: ClusterIP
+  ports:
+    - port: 6379
+      targetPort: redis
+      protocol: TCP
+      name: redis
+  selector:
+    app.kubernetes.io/name: misp-redis

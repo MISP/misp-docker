@@ -410,6 +410,12 @@ apply_optional_fixes() {
     init_settings "optional"
 }
 
+apply_storage_settings() {
+    if [[ -n "$S3_ACCESS_KEY" && -n "$S3_SECRET_KEY" && -n "$S3_BUCKET" && -n "$S3_ENDPOINT" ]]; then
+        init_settings "s3"
+    fi
+}
+
 # Some settings return a value from cake Admin getSetting even if not set in config.php and database.
 # This means we cannot rely on that tool which inspects both db and file.
 # Leaving this here though in case the serverSettings model for those odd settings is fixed one day.
@@ -589,6 +595,8 @@ echo "MISP | Start component updates ..." && update_components
 
 echo "MISP | Resolve non-critical issues ..." && apply_optional_fixes
 
+echo "MISP | Configure storage ..." && apply_storage_settings
+
 echo "MISP | Create sync servers ..." && create_sync_servers
 
 echo "MISP | Set Up OIDC ..." && set_up_oidc
@@ -603,7 +611,11 @@ echo "MISP | Set Up Session ..." && set_up_session
 
 echo "MISP | Set Up Proxy ..." && set_up_proxy
 
-echo "MISP | Create default Scheduled Tasks ..." && create_default_scheduled_tasks
+if [[ -n "$KUBERNETES_SERVICE_HOST" && $# -gt 0 ]]; then
+    echo "MISP | Skipping Scheduled Tasks creation in kubernetes"
+else
+    echo "MISP | Create default Scheduled Tasks ..." && create_default_scheduled_tasks
+fi
 
 echo "MISP | Mark instance live"
 sudo -u www-data /var/www/MISP/app/Console/cake Admin live 1
