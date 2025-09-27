@@ -1,0 +1,132 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: misp
+  labels:
+    app.kubernetes.io/name: misp
+spec:
+  strategy:
+    type: Recreate
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: misp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: misp
+    spec:
+      securityContext:
+        # We want imported files to be owned by www-data group
+        fsGroup: 33
+      containers:
+        - name: misp
+          args:
+            - php
+          image: "ghcr.io/misp/misp-docker/misp-core:v2.5.21"
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - 'test $(ls /run/php/php*-fpm*sock | wc -l) -eq 1'
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              memory: 2048Mi
+            requests:
+              memory: 512Mi
+              cpu: 50m
+          env:
+            # Don't print sensitive strings to log
+            - name: DISABLE_PRINTING_PLAINTEXT_CREDENTIALS
+              value: "true"
+            # Skip waiting for updates before proceeding with startup
+            - name: ENABLE_BACKGROUND_UPDATES
+              value: "true"
+            # Give us output NOW
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: REDIS_FQDN
+              value: misp-redis
+            - name: REDIS_HOST
+              value: misp-redis
+            - name: REDIS_PORT
+              value: "6379"
+            - name: MISP_MODULES_FQDN
+              value: http://localhost
+            - name: MYSQL_HOST
+              value: misp-mysql
+          envFrom:
+            - secretRef:
+                name: mysql-credentials
+            - secretRef:
+                name: instance-secrets
+          volumeMounts:
+            # For centralised collection (e.g. tailing to stdout)
+            - mountPath: /var/www/MISP/app/tmp/logs
+              name: shared-logs
+            # PHP socket for nginx
+            - mountPath: /var/run/php/
+              name: php-socket
+            # Non-S3 persistence for attachment data
+            #- mountPath: /var/www/MISP/app/files
+            #  name: misp-files
+        - name: nginx
+          args:
+            - nginx
+          image: "ghcr.io/misp/misp-docker/misp-core:v2.5.21"
+          imagePullPolicy: IfNotPresent
+          env:
+            # We only expose https anyway
+            - name: DISABLE_SSL_REDIRECT
+              value: "true"
+          ports:
+            - name: misp-https
+              containerPort: 443
+              protocol: TCP
+          resources:
+            limits:
+              memory: 2048Mi
+            requests:
+              memory: 512Mi
+              cpu: 50m
+          volumeMounts:
+            # For centralised collection (e.g. tailing to stdout)
+            - mountPath: /var/www/MISP/app/tmp/logs
+              name: shared-logs
+            - mountPath: /var/run/php/
+              name: php-socket
+        - name: misp-modules
+          resources:
+            limits:
+              memory: 2048Mi
+            requests:
+              memory: 128Mi
+              cpu: 20m
+          image: "ghcr.io/misp/misp-docker/misp-modules:v3.0.2"
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: REDIS_BACKEND
+              value: misp-redis
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: instance-secrets
+                  key: REDIS_PASSWORD
+          ports:
+            - name: misp-modules
+              containerPort: 6666
+              protocol: TCP
+      volumes:
+      - emptyDir:
+          sizeLimit: 300Mi
+        name: shared-logs
+      - emptyDir: {}
+        name: php-socket
+      #- name: misp-files
+      #  persistentVolumeClaim:
+      #    claimName: misp-files
+

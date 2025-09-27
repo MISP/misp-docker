@@ -1,0 +1,18 @@
+{
+    "Plugin.S3_bucket_name": {
+        "default_value": "${S3_BUCKET}"
+    },
+    "Plugin.S3_aws_endpoint": {
+        "default_value": "${S3_ENDPOINT}"
+    },
+    "Plugin.S3_aws_access_key": {
+        "default_value": "${S3_ACCESS_KEY}"
+    },
+    "Plugin.S3_aws_secret_key": {
+        "default_value": "${S3_SECRET_KEY}"
+    },
+    "MISP.attachments_dir": {
+        "default_value": "s3://",
+        "command_args": "-f"
+    }
+}
