@@ -84,5 +84,14 @@ export NGINX_X_FORWARDED_FOR=${NGINX_X_FORWARDED_FOR:-false}
 export NGINX_SET_REAL_IP_FROM=${NGINX_SET_REAL_IP_FROM}
 export NGINX_CLIENT_MAX_BODY_SIZE=${NGINX_CLIENT_MAX_BODY_SIZE:-50M}
 
+export SUPERVISOR_HOST=${SUPERVISOR_HOST:-127.0.0.1}
+export SUPERVISOR_USERNAME=${SUPERVISOR_USERNAME:-supervisor}
+export SUPERVISOR_PASSWORD=${SUPERVISOR_PASSWORD:-supervisor}
+
+# Hinders further execution when sourced from other scripts
+if [ -n "${BASH_SOURCE[0]}" ]; then
+    return
+fi
+
 # start supervisord using the main configuration file so we have a socket interface
 exec /usr/bin/tini -- /usr/local/bin/supervisord -c /etc/supervisor/supervisord.conf

@@ -1,5 +1,14 @@
 #!/bin/bash
 
+sensitive_settings=(
+    "MISP.redis_password"
+    "Plugin.ZeroMQ_redis_password"
+    "SimpleBackgroundJobs.redis_password"
+    "Plugin.S3_aws_secret_key"
+    "Security.encryption_key"
+    "GnuPG.password"
+)
+
 # Check whether passed env variables are defined
 check_env_vars() {
     local required_vars=("$@")
@@ -52,7 +61,11 @@ enforce_env_settings() {
     for setting in $(jq -r 'keys[]' <<< $settings_json); do
         local default_value="$(jq -r '."'"$setting"'"["default_value"]' <<< $settings_json)"
         local command_args="$(jq -r '."'"$setting"'"["command_args"] // ""' <<< $settings_json)"
-        echo "Enforcing $description setting '$setting' to env var or default value '$default_value'..."
+        local print_value="$default_value"
+        if [[ "$DISABLE_PRINTING_PLAINTEXT_CREDENTIALS" == "true" ]] && [[ " ${sensitive_settings[@]} " =~ " ${setting} " ]]; then
+            print_value='<hidden>'
+        fi
+        echo "Enforcing $description setting '$setting' to env var or default value '$print_value'..."
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q $command_args "$setting" "$default_value"
     done
 }
@@ -64,7 +77,11 @@ set_safe_default() {
     local command_args="$4"
 
     if ! setting_is_set_alt "$setting"; then
-        echo "Updating unset $description setting '$setting' to '$default_value'..."
+        local print_value="$default_value"
+        if [[ "$DISABLE_PRINTING_PLAINTEXT_CREDENTIALS" == "true" ]] && [[ " ${sensitive_settings[@]} " =~ " ${setting} " ]]; then
+            print_value='<hidden>'
+        fi
+        echo "Updating unset $description setting '$setting' to '$print_value'..."
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q $command_args "$setting" "$default_value"
     fi
 }

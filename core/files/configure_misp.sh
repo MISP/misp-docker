@@ -410,6 +410,12 @@ apply_optional_fixes() {
     init_settings "optional"
 }
 
+apply_storage_settings() {
+    if [[ -n "$S3_ACCESS_KEY" && -n "$S3_SECRET_KEY" && -n "$S3_BUCKET" && -n "$S3_ENDPOINT" ]]; then
+        init_settings "s3"
+    fi
+}
+
 # Some settings return a value from cake Admin getSetting even if not set in config.php and database.
 # This means we cannot rely on that tool which inspects both db and file.
 # Leaving this here though in case the serverSettings model for those odd settings is fixed one day.
@@ -588,6 +594,8 @@ echo "MISP | Resolve critical issues ..." && apply_critical_fixes
 echo "MISP | Start component updates ..." && update_components
 
 echo "MISP | Resolve non-critical issues ..." && apply_optional_fixes
+
+echo "MISP | Configure storage ..." && apply_storage_settings
 
 echo "MISP | Create sync servers ..." && create_sync_servers
 

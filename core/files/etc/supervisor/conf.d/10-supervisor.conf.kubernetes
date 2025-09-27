@@ -1,0 +1,8 @@
+[supervisord]
+nodaemon=true
+user=root
+
+[inet_http_server]
+port=127.0.0.1:9001
+username=%(ENV_SUPERVISOR_USERNAME)s
+password=%(ENV_SUPERVISOR_PASSWORD)s

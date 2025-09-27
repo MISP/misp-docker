@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: misp
+  labels:
+    app.kubernetes.io/name: misp
+spec:
+  strategy:
+    type: Recreate
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: misp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: misp
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        # We want imported files to be owned by www-data group
+        fsGroup: 33
+      containers:
+        - name: misp
+          command: 
+            - /kubernetes/entrypoint_fpm.sh
+          image: "ghcr.io/misp/misp-docker/misp-core:v2.5.21"
+          imagePullPolicy: IfNotPresent
+          readinessProbe:
+            tcpSocket:
+              port: 9002
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 2
+            successThreshold: 1
+          resources:
+            limits:
+              memory: 2048Mi
+            requests:
+              memory: 512Mi
+              cpu: 50m
+          ports:
+            - name: misp-php
+              containerPort: 9002
+              protocol: TCP
+          env:
+            # Don't print sensitive strings to log
+            - name: DISABLE_PRINTING_PLAINTEXT_CREDENTIALS
+              value: "true"
+            # Skip waiting for updates before proceeding with startup
+            - name: ENABLE_BACKGROUND_UPDATES
+              value: "true"
+            # Give us output NOW
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: MISP_MODULES_FQDN
+              value: http://localhost
+            - name: MYSQL_HOST
+              value: misp-mysql
+          envFrom:
+            - secretRef:
+                name: mysql-credentials
+            - secretRef:
+                name: instance-secrets
+          volumeMounts:
+            # For centralised collection (e.g. tailing to stdout)
+            - mountPath: /var/www/MISP/app/tmp/logs
+              name: shared-logs
+            # Non-S3 persistence for attachment data
+            #- mountPath: /var/www/MISP/app/files
+            #  name: misp-files
+        - name: misp-modules
+          resources:
+            limits:
+              memory: 2048Mi
+            requests:
+              memory: 128Mi
+              cpu: 20m
+          image: "ghcr.io/misp/misp-docker/misp-modules:v3.0.2"
+          imagePullPolicy: IfNotPresent
+          readinessProbe:
+            tcpSocket:
+              port: 6666
+            initialDelaySeconds: 1
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 2
+            successThreshold: 1
+          ports:
+            - name: misp-modules
+              containerPort: 6666
+              protocol: TCP
+      volumes:
+      - emptyDir:
+          sizeLimit: 300Mi
+        name: shared-logs
+      #- name: misp-files
+      #  persistentVolumeClaim:
+      #    claimName: misp-files
+

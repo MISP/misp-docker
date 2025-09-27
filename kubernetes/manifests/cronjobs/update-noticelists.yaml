@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: misp-cron-update-noticelists
+  labels:
+    app.kubernetes.io/name: misp-cron
+spec:
+  schedule: "30 3 * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: misp-cron
+        spec:
+          containers:
+          - name: curl
+            image: registry.gitlab.com/gitlab-ci-utils/curl-jq:3.2.1
+            imagePullPolicy: IfNotPresent
+            command: ["/bin/sh", "-c"]
+            args:
+              - 'curl -s -X POST -k -H "Authorization: ${ADMIN_KEY}" -H "Accept: application/json" -H "Content-Type: application/json" https://nginx/noticelists/update'
+            envFrom:
+              - secretRef:
+                  name: instance-secrets
+          restartPolicy: Never
+      backoffLimit: 2
+      activeDeadlineSeconds: 1200
+  concurrencyPolicy: Forbid
