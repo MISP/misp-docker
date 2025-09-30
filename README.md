@@ -3,44 +3,45 @@
 [![Build Status](https://img.shields.io/github/actions/workflow/status/MISP/misp-docker/release-latest.yml)](https://github.com/orgs/MISP/packages)
 [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/MISP/Docker)
 
-A production ready Docker MISP image (formerly hosted at https://github.com/ostefano/docker-misp, now deprecated) loosely based on CoolAcid and DSCO builds, with nearly all logic rewritten and verified for correctness and portability.
+A production ready Docker MISP image (formerly hosted at <https://github.com/ostefano/docker-misp>, now deprecated) loosely based on CoolAcid and DSCO builds, with nearly all logic rewritten and verified for correctness and portability.
 
 Notable features:
--   MISP and MISP modules are split into two different Docker images, `misp-core` and `misp-modules`
--   Optional [MISP-Guard](https://github.com/MISP/misp-guard) container to filter traffic and enforce sharing policies via mitmproxy.
--   Docker images are pushed regularly, no build required
--   Lightweight Docker images by using multiple build stages and a slim parent image
--   Rely on off the shelf Docker images for Exim4, Redis, and MariaDB
--   Scheduled tasks run updates, pushes, and pulls
--   Fix supervisord process control (processes are correctly terminated upon reload)
--   Fix schema update by making it completely offline (no user interaction required)
--   Fix enforcement of permissions
--   Fix MISP modules loading of faup library
--   Fix MISP modules loading of gl library
--   Authentication using LDAP or OIDC
--   Add support for new background job [system](https://github.com/MISP/MISP/blob/2.4/docs/background-jobs-migration-guide.md)
--   Add support for building specific MISP and MISP-modules commits
--   Add automatic configuration of syncservers (see `configure_misp.sh`)
--   Add automatic configuration of authentication keys (see `configure_misp.sh`)
--   Add direct push of docker images to GitHub Packages
--   Consolidated `docker-compose.yml` file
--   Workardound VirtioFS bug when running Docker Desktop for Mac
--   ... and many others
+
+- MISP and MISP modules are split into two different Docker images, `misp-core` and `misp-modules`
+- Optional [MISP-Guard](https://github.com/MISP/misp-guard) container to filter traffic and enforce sharing policies via mitmproxy.
+- Docker images are pushed regularly, no build required
+- Lightweight Docker images by using multiple build stages and a slim parent image
+- Rely on off the shelf Docker images for Exim4, Redis, and MariaDB
+- Scheduled tasks run updates, pushes, and pulls
+- Fix supervisord process control (processes are correctly terminated upon reload)
+- Fix schema update by making it completely offline (no user interaction required)
+- Fix enforcement of permissions
+- Fix MISP modules loading of faup library
+- Fix MISP modules loading of gl library
+- Authentication using LDAP or OIDC
+- Add support for new background job [system](https://github.com/MISP/MISP/blob/2.4/docs/background-jobs-migration-guide.md)
+- Add support for building specific MISP and MISP-modules commits
+- Add automatic configuration of syncservers (see `configure_misp.sh`)
+- Add automatic configuration of authentication keys (see `configure_misp.sh`)
+- Add direct push of docker images to GitHub Packages
+- Consolidated `docker-compose.yml` file
+- Workardound VirtioFS bug when running Docker Desktop for Mac
+- ... and many others
 
 The underlying spirit of this project is to allow "repeatable deployments", and all pull requests in this direction will be merged post-haste.
 
 ## Getting Started
 
--   Copy the `template.env` to `.env` 
--   Customize `.env` based on your needs (optional step)
+- Copy the `template.env` to `.env`
+- Customize `.env` based on your needs (optional step)
 
 ### Run
 
--   `docker compose pull` if you want to use pre-built images or `docker compose build` if you want to build your own (see the `Troubleshooting` section in case of errors)
--   `docker compose up`
--   Login to `https://localhost`
-    -   User: `admin@admin.test`
-    -   Password: `admin`
+- `docker compose pull` if you want to use pre-built images or `docker compose build` if you want to build your own (see the `Troubleshooting` section in case of errors)
+- `docker compose up`
+- Login to `https://localhost`
+  - User: `admin@admin.test`
+  - Password: `admin`
 
 Keeping the image up-to-date with upstream should be as simple as running `docker compose pull`.
 
@@ -106,10 +107,13 @@ It is disabled by default, but can be enabled using compose profiles.
 #### Enabling
 
 1. Enable the profile in your `.env` file:
+
 ```bash
 COMPOSE_PROFILES=misp-guard
 ```
+
 2. Ensure `misp-core` is configured to use a proxy:
+
 ```bash
 PROXY_ENABLE=true
 PROXY_HOST=misp-guard
@@ -123,6 +127,7 @@ PROXY_PORT=8888
 - The container automatically replaces the `misp-core` IP at runtime using `entrypoint.sh`.
 
 The following format is required to target the misp-core, the IP is replaced with the misp-core container's IP at runtime.
+
 ```json
 {
     "instances": {
@@ -134,6 +139,7 @@ The following format is required to target the misp-core, the IP is replaced wit
 ```
 
 - After making changes to `guard/config.json` restart the container to apply the changes:
+
 ```bash
 docker compose restart misp-guard
 ```
@@ -154,8 +160,9 @@ GUARD_ARGS=--ssl-insecure -v
 #### LDAP Authentication
 
 You can configure LDAP authentication in MISP using 2 methods:
--  native plugin: LdapAuth (https://github.com/MISP/MISP/tree/2.5/app/Plugin/LdapAuth) 
--  previous approach with ApacheSecureAuth (https://gist.github.com/Kagee/f35ed25216369481437210753959d372). 
+
+- native plugin: LdapAuth (<https://github.com/MISP/MISP/tree/2.5/app/Plugin/LdapAuth>)
+- previous approach with ApacheSecureAuth (<https://gist.github.com/Kagee/f35ed25216369481437210753959d372>).
 
 LdapAuth is recommended over ApacheSecureAuth because it doesn't require rproxy apache with the ldap module.
 
@@ -167,18 +174,18 @@ For example configuration using KeyCloak, see [MISP Keycloak 26.1.x Basic Integr
 
 ### Production
 
--   It is recommended to specify the build you want run by editing `docker-compose.yml` (see here for the list of available tags https://github.com/orgs/MISP/packages)
--   Directory volume mount SSL Certs `./ssl`: `/etc/ssl/certs`
-    -   Certificate File: `cert.pem`
-    -   Certificate Key File: `key.pem`
-    -   CA File for Cert Authentication (optional) `ca.pem`
--   Additional directory volume mounts:
-    -   `./configs`: `/var/www/MISP/app/Config/`
-    -   `./logs`: `/var/www/MISP/app/tmp/logs/`
-    -   `./files`: `/var/www/MISP/app/files/`
-    -   `./gnupg`: `/var/www/MISP/.gnupg/`
--   If you need to automatically run additional steps each time the container starts, create a new file `files/customize_misp.sh`, and replace the variable `${CUSTOM_PATH}` inside `docker-compose.yml` with its parent path.
--   If you are interested in running streamlined versions of the images (fewer dependencies, easier approval from compliance), you might want to use the `latest-slim` tag. Just adjust the `docker-compose.yml` file, and run again `docker compose pull` and `docker compose up`.
+- It is recommended to specify the build you want run by editing `docker-compose.yml` (see here for the list of available tags <https://github.com/orgs/MISP/packages>)
+- Directory volume mount SSL Certs `./ssl`: `/etc/ssl/certs`
+  - Certificate File: `cert.pem`
+  - Certificate Key File: `key.pem`
+  - CA File for Cert Authentication (optional) `ca.pem`
+- Additional directory volume mounts:
+  - `./configs`: `/var/www/MISP/app/Config/`
+  - `./logs`: `/var/www/MISP/app/tmp/logs/`
+  - `./files`: `/var/www/MISP/app/files/`
+  - `./gnupg`: `/var/www/MISP/.gnupg/`
+- If you need to automatically run additional steps each time the container starts, create a new file `files/customize_misp.sh`, and replace the variable `${CUSTOM_PATH}` inside `docker-compose.yml` with its parent path.
+- If you are interested in running streamlined versions of the images (fewer dependencies, easier approval from compliance), you might want to use the `latest-slim` tag. Just adjust the `docker-compose.yml` file, and run again `docker compose pull` and `docker compose up`.
 
 #### Using slow disks as volume mounts
 
@@ -186,10 +193,10 @@ Using a slow disk as the mounted volume or a volume with high latency like NFS, 
 
 - Remove the `/var/www/MISP/app/files/` volume mount.
 - Add the following volume mounts instead:
-    - `./img/`: `/var/www/MISP/app/files/img`
-    - `./terms`: `/var/www/MISP/app/files/terms`
-    - `./attachments`: `/var/www/MISP/app/attachments`
-- Set the environment variable `ATTACHMENTS_DIR` to the above folder location (it is important that it doesn't replace the `/var/www/MISP/app/files/` folder). 
+  - `./img/`: `/var/www/MISP/app/files/img`
+  - `./terms`: `/var/www/MISP/app/files/terms`
+  - `./attachments`: `/var/www/MISP/app/attachments`
+- Set the environment variable `ATTACHMENTS_DIR` to the above folder location (it is important that it doesn't replace the `/var/www/MISP/app/files/` folder).
 
 ### SELinux
 
@@ -227,16 +234,19 @@ The process is *NOT* battle-tested, so it is *NOT* to be followed uncritically.
 ### Backup
 
 1. Stop the MISP containers:
+
    ```bash
    docker compose down
    ```
 
 2. Create an archive of the `misp-docker_mysql_data` volume using `tar`:
+
    ```bash
    tar -cvzf /root/misp_mysql_backup.tar.gz /var/lib/docker/volumes/misp-docker_mysql_data/
    ```
 
 3. Start the MISP containers:
+
    ```bash
    docker compose up
    ```
@@ -244,37 +254,42 @@ The process is *NOT* battle-tested, so it is *NOT* to be followed uncritically.
 ### Restore
 
 1. Stop the MISP containers:
+
    ```bash
    docker compose down
    ```
 
 2. Unpack the backup and overwrite existing data by using the `--overwrite` option to replace existing files:
+
    ```bash
    tar -xvzf /path_to_backup/misp_mysql_backup.tar.gz -C /var/lib/docker/volumes/misp-docker_mysql_data/ --overwrite
    ```
 
 3. Start the MISP containers:
+
    ```bash
    docker compose up
    ```
 
 ## Troubleshooting
 
--   Make sure you run a fairly recent version of Docker and Docker Compose (if in doubt, update following the steps outlined in https://docs.docker.com/engine/install/ubuntu/)
--   Make sure you are not running an old image or container; when in doubt run `docker system prune --volumes` and clone this repository into an empty directory
--   If you receive an error that the 'start_interval' does not match any of the regexes, update Docker following the steps outlined in https://docs.docker.com/engine/install/ubuntu/)
--   See below under **The image build fails or the image builds, but the container fails to start. Now what?**
+- Make sure you run a fairly recent version of Docker and Docker Compose (if in doubt, update following the steps outlined in <https://docs.docker.com/engine/install/ubuntu/>)
+- Make sure you are not running an old image or container; when in doubt run `docker system prune --volumes` and clone this repository into an empty directory
+- If you receive an error that the 'start_interval' does not match any of the regexes, update Docker following the steps outlined in <https://docs.docker.com/engine/install/ubuntu/>)
+- See below under **The image build fails or the image builds, but the container fails to start. Now what?**
 
 ## Versioning
 
 A GitHub Action builds `misp-core`, `misp-modules`, and `misp-guard` images automatically and pushes them to the [GitHub Package registry](https://github.com/orgs/MISP/packages). We do not use tags inside the repository; instead we tag images as they are pushed to the registry. For each build, `misp-core`, `misp-modules`, `misp-guard` images are tagged as follows:
--   `misp-core:${commit-sha1}[0:7]`, `misp-modules:${commit-sha1}[0:7]`, and `misp-guard:${commit-sha1}[0:7]` where `${commit-sha1}` is the commit hash triggering the build
--   `misp-core:latest`, `misp-modules:latest`, and `misp-guard:latest` in order to track the latest builds available 
--   `misp-core:${CORE_TAG}`, `misp-modules:${MODULES_TAG}`, and `misp-guard:${GUARD_TAG}` reflecting the underlying versions as specified inside the `template.env` file at build time.
+
+- `misp-core:${commit-sha1}[0:7]`, `misp-modules:${commit-sha1}[0:7]`, and `misp-guard:${commit-sha1}[0:7]` where `${commit-sha1}` is the commit hash triggering the build
+- `misp-core:latest`, `misp-modules:latest`, and `misp-guard:latest` in order to track the latest builds available
+- `misp-core:${CORE_TAG}`, `misp-modules:${MODULES_TAG}`, and `misp-guard:${GUARD_TAG}` reflecting the underlying versions as specified inside the `template.env` file at build time.
 
 ## Podman (experimental)
 
 It is possible to run the image using `podman-systemd` rather than `docker` to:
+
 - Run containers in **rootless** mode
 - Manage containers with **systemd**
 - Write container descriptions in an **ignition** file and deploy them (not covered in this documentation)
@@ -284,10 +299,17 @@ Note that this is **experimental** and it is **NOT SUPPORTED** (issues will be a
 ### Configuration
 
 Copy the following directories and files:
-- Content of `experimental/podman-systemd` to `$USER/.config/containers/systemd/`
-- `template.vars` to `$USER/.config/containers/systemd/vars.env`
 
-Edit `vars.env`, and initialize the following MySQL settings: 
+- Content of `experimental/podman-systemd` to `$USER/.config/containers/systemd/`
+- `template.vars` to `$USER/.config/containers/systemd/misp.env`
+- Create `misp-modules` folders
+
+```bash
+mkdir -p $HOME/.config/misp_conf/custom/{action_mod,expansion,export_mod,import_mod}
+```
+
+Edit `misp.env`, and initialize the following MySQL settings:
+
 ```bash
 MYSQL_HOST=
 MYSQL_USER=
@@ -297,16 +319,19 @@ MYSQL_DATABASE=
 ```
 
 Set the Redis password:
+
 ```bash
 REDIS_PASSWORD=
 ```
 
 Enable passwordless Redis connection (defaults to false for security):
+
 ```bash
 ENABLE_REDIS_EMPTY_PASSWORD=false
 ```
 
 Set the base URL:
+
 ```bash
 BASE_URL=https://<IP>:10443
 ```
@@ -314,26 +339,30 @@ BASE_URL=https://<IP>:10443
 ### Run
 
 Reload systemd user daemon:
+
 ```bash
 systemctl --user daemon-reload
 ```
 
 Start services:
+
 ```bash
-systemctl --user start mail.service
-systemctl --user start db.service
-systemctl --user start redis.service
+systemctl --user start misp-mail.service
+systemctl --user start misp-db.service
+systemctl --user start misp-redis.service
 systemctl --user start misp-core.service
 systemctl --user start misp-modules.service
 ```
 
 Wait a bit and check your service at `https://<IP>:10443`.
 If everything checks out, you can make services persistent across reboots and logouts:
+
 ```bash
 sudo loginctl enable-linger $USER
 ```
 
 You can even set podman to check for new container versions by activating the specific timer `podman-auto-update.timer`:
+
 ```bash
 systemctl --user enable podman-auto-update.timer --now
 ```
@@ -478,6 +507,5 @@ RUN bash <<-'EOF'
 ```
 
 to ensure variables are expanded as expected. For reference, this problem first occurred after successfully building an image but getting a `/usr/local/bin/supervisord: No such file or directory` error after starting the container. See [265](https://github.com/MISP/misp-docker/issues/265) and [273](https://github.com/MISP/misp-docker/pull/273) for more details.
-
 
 By following these steps, you can efficiently troubleshoot and resolve build issues. If problems persist, include your build log and environment details when opening an issue for assistance.
