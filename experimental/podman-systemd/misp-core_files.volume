@@ -1,2 +1,5 @@
+[Unit]
+Description=misp-core files volume
+
 [Volume]
-VolumeName=files
+VolumeName=misp-core_files

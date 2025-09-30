@@ -1,2 +1,5 @@
+[Unit]
+Description=misp-core gpg volume
+
 [Volume]
-VolumeName=gpg
+VolumeName=misp-core_gpg

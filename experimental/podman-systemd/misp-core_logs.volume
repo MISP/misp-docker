@@ -1,2 +1,5 @@
+[Unit]
+Description=misp-core logs volume
+
 [Volume]
-VolumeName=logs
+VolumeName=misp-core_logs

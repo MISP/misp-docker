@@ -1,2 +1,5 @@
+[Unit]
+Description=misp-core certificate volume
+
 [Volume]
-VolumeName=certs
+VolumeName=misp-core_certs

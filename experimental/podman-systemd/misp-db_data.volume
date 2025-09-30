@@ -1,2 +1,5 @@
+[Unit]
+Description=misp database volume
+
 [Volume]
-VolumeName=mysql_data
+VolumeName=misp-db_data

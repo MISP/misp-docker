@@ -1,2 +1,5 @@
+[Unit]
+Description=misp-core cofig volume
+
 [Volume]
-VolumeName=conf
+VolumeName=misp-core_conf
