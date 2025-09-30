@@ -1,17 +1,16 @@
 [Unit]
-Description=MISP Redis system
-Requires=misp-net-network.service
-After=misp-net-network.service
+After=local-fs.target
+Description=misp redis
 
 [Container]
-EnvironmentFile=vars.env
 AutoUpdate=registry
-ContainerName=redis
+HostName=redis
+ContainerName=misp-redis
 Image=docker.io/valkey/valkey:7.2
-Network=misp-net
-Volume=redis_data:/data
-PodmanArgs=--network-alias redis
+Network=misp.network
+EnvironmentFile=misp.env
 Exec=sh -c 'if [ "${ENABLE_REDIS_EMPTY_PASSWORD:-false}" = "true" ]; then exec valkey-server; else exec valkey-server --requirepass "${REDIS_PASSWORD}"; fi'
+Volume=misp-redis_cache.volume:/data
 HealthCmd=sh -c 'if [ "${ENABLE_REDIS_EMPTY_PASSWORD:-false}" = "true" ]; then valkey-cli ping; else valkey-cli -a "${REDIS_PASSWORD}" ping; fi'
 HealthInterval=2s
 HealthTimeout=1s
@@ -19,7 +18,7 @@ HealthRetries=3
 HealthStartPeriod=30s
 
 [Service]
-EnvironmentFile=%h/.config/containers/systemd/vars.env
+EnvironmentFile=%h/.config/containers/systemd/misp.env
 Restart=always
 
 [Install]
