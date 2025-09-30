@@ -1,15 +1,14 @@
 [Unit]
-Description=MISP Mail system
-Requires=misp-net-network.service
-After=misp-net-network.service
+Description=misp mail system
+After=local-fs.target
 
 [Container]
 AutoUpdate=registry
-ContainerName=mail
+HostName=mail
+ContainerName=misp-mail
 Image=docker.io/ixdotai/smtp
-Network=misp-net
-PodmanArgs=--network-alias mail
-EnvironmentFile=vars.env
+Network=misp.network
+EnvironmentFile=misp.env
 
 [Install]
 WantedBy=default.target
