@@ -25,7 +25,7 @@ Notable features:
 - Add automatic configuration of authentication keys (see `configure_misp.sh`)
 - Add direct push of docker images to GitHub Packages
 - Consolidated `docker-compose.yml` file
-- Workardound VirtioFS bug when running Docker Desktop for Mac
+- Workaround VirtioFS bug when running Docker Desktop for Mac
 - ... and many others
 
 The underlying spirit of this project is to allow "repeatable deployments", and all pull requests in this direction will be merged post-haste.
