@@ -1,0 +1,5 @@
+[Unit]
+Description=misp redis cache volume
+
+[Volume]
+VolumeName=misp-redis_cache
