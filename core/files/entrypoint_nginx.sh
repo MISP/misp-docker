@@ -382,13 +382,6 @@ init_nginx() {
         echo "... TLS certificates found"
     fi
     
-    if [[ ! -f /etc/nginx/certs/dhparams.pem ]]; then
-        echo "... generating new DH parameters"
-        openssl dhparam -out /etc/nginx/certs/dhparams.pem 2048
-    else
-        echo "... DH parameters found"
-    fi
-
     if [[ "$FASTCGI_STATUS_LISTEN" != "" ]]; then
         echo "... enabling php-fpm status page"
         ln -s /etc/nginx/sites-available/php-fpm-status /etc/nginx/sites-enabled/php-fpm-status
@@ -401,6 +394,10 @@ init_nginx() {
     flip_nginx false false
 }
 
+# Hinders further execution when sourced from other scripts
+if [ -n "${BASH_SOURCE[0]}" ]; then
+    return
+fi
 
 # Initialize MySQL
 echo "INIT | Initialize MySQL ..." && init_mysql

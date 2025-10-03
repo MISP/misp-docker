@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  labels:
+    app.kubernetes.io/name: nginx
+spec:
+  strategy:
+    type: Recreate
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nginx
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nginx
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        # We want imported files to be owned by www-data group
+        fsGroup: 33
+      containers:
+        - name: nginx
+          command:
+            - /kubernetes/entrypoint_nginx.sh
+          image: "ghcr.io/misp/misp-docker/misp-core:v2.5.21"
+          imagePullPolicy: IfNotPresent
+          readinessProbe:
+            tcpSocket:
+              port: 443
+            initialDelaySeconds: 1
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 2
+            successThreshold: 1
+          env:
+            # We only expose https anyway
+            - name: DISABLE_SSL_REDIRECT
+              value: "true"
+          ports:
+            - name: misp-https
+              containerPort: 443
+              protocol: TCP
+          resources:
+            limits:
+              memory: 2048Mi
+            requests:
+              memory: 512Mi
+              cpu: 50m
+          volumeMounts:
+            - mountPath: /etc/nginx/certs/dhparams.pem
+              name: dhparams
+              subPath: dhparams.pem
+      volumes:
+        - configMap:
+            name: dhparams
+          name: dhparams
+
+

@@ -2,6 +2,15 @@
   "MISP.python_bin": {
     "default_value": "${PYTHON_BIN}"
   },
+  "SimpleBackgroundJobs.supervisor_host": {
+    "default_value": "${SUPERVISOR_HOST}"
+  },
+  "SimpleBackgroundJobs.supervisor_user": {
+    "default_value": "${SUPERVISOR_USERNAME}"
+  },
+  "SimpleBackgroundJobs.supervisor_password": {
+    "default_value": "${SUPERVISOR_PASSWORD}"
+  },
   "MISP.redis_host": {
     "default_value": "${REDIS_HOST}"
   },

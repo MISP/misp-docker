@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: misp-cron-pull-all-servers
+  labels:
+    app.kubernetes.io/name: misp-cron
+spec:
+  schedule: "0/5 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: misp-cron
+        spec:
+          containers:
+          - name: curl
+            image: registry.gitlab.com/gitlab-ci-utils/curl-jq:3.2.1
+            imagePullPolicy: IfNotPresent
+            command: ["/bin/sh", "-c"]
+            args:
+              - |
+                echo "Fetching server list"
+                json_data=$(curl -s -k -H "Authorization: ${ADMIN_KEY}" -H "Accept: application/json" -H "Content-Type: application/json" https://nginx/servers)
+                echo "Fetched server list"
+                id_list=$(echo "$json_data" | jq -r '.[]? | select(.Server.pull == true) | .Server.id')
+                echo "Pulling all servers with pull enabled"
+                for id in $id_list
+                do
+                    echo "Creating job to pull from server with id $id"
+                    result=$(curl -s -k -H "Authorization: ${ADMIN_KEY}" -H "Accept: application/json" -H "Content-Type: application/json" https://nginx/servers/pull/$id)
+                    echo " - $(echo $result | jq -r '.message')"
+                done
+            envFrom:
+              - secretRef:
+                  name: instance-secrets
+          restartPolicy: Never
+      backoffLimit: 2
+      activeDeadlineSeconds: 1200
+  concurrencyPolicy: Forbid

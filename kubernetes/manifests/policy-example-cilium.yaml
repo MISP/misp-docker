@@ -1,0 +1,100 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: nw-mysql
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: misp-mysql
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: misp
+      toPorts:
+        - ports:
+            - port: "3306"
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: misp
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+          rules:
+            dns:
+              - matchPattern: "*"
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: nw-redis
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: misp
+      toPorts:
+        - ports:
+            - port: "6379"
+  egress:
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: misp
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+          rules:
+            dns:
+              - matchPattern: "*"
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: nw-nginx
+spec:
+  endpointSelector:
+    matchLabels:
+       app.kubernetes.io/name: nginx
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: misp-cron
+      toPorts:
+        - ports:
+            - port: "443"
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/component: controller
+            io.kubernetes.pod.namespace: ingress-nginx
+      toPorts:
+        - ports:
+            - port: "443"
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: nw-misp
+spec:
+  endpointSelector:
+    matchLabels:
+       app.kubernetes.io/name: misp
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: nginx
+      toPorts:
+        - ports:
+            - port: "9002"
