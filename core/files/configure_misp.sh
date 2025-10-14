@@ -99,7 +99,9 @@ set_up_oidc() {
                 \"roles_property\": \"${OIDC_ROLES_PROPERTY}\",
                 \"role_mapper\": ${OIDC_ROLES_MAPPING},
                 \"default_org\": \"${OIDC_DEFAULT_ORG}\",
-                \"mixedAuth\": ${OIDC_MIXEDAUTH}
+                \"mixedAuth\": ${OIDC_MIXEDAUTH},
+                \"authentication_method\": \"${OIDC_AUTH_METHOD}\",
+                \"redirect_uri\": \"${OIDC_REDIRECT_URI}\"                
             }
         }" > /dev/null
 
