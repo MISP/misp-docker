@@ -172,6 +172,36 @@ OIDC Auth is implemented through the MISP OidcAuth plugin.
 
 For example configuration using KeyCloak, see [MISP Keycloak 26.1.x Basic Integration Guide](docs/keycloak-integration-guide.md)
 
+For Okta, create a new application integration:
+  - Applications -> Applications -> Create App Integration
+  - Select Sign-in methd "OID - OpenID Connect" and Application type "Web Application"
+  - In Clinet Authentication, select "Client secret"
+  - Set Sign-in redirect URI to: "https://<MISP_URL>/users/login"
+  - Under Sig-in tab, add a group claim called "roles" and an appropriate filter
+  - In MISP docker `.env` file, set the following variables:
+      ```
+      OIDC_ENABLE=true
+      OIDC_PROVIDER_URL=https://<OKTA_ORG_URL>/.well-known/openid-configuration
+      OIDC_ISSUER=https://<OKTA_ORG_URL>
+      OIDC_CLIENT_ID=[client_id]
+      OIDC_CLIENT_SECRET=[client_secret]
+      OIDC_ROLES_PROPERTY="roles" 
+      OIDC_ROLES_MAPPING="{\"Okta group - MISP Admin\": 1}"  # 
+      OIDC_DEFAULT_ORG="[Your default org in MISP]"
+      #OIDC_LOGOUT_URL= 
+      OIDC_SCOPES="[\"profile\", \"email\", \"groups\"]"
+      OIDC_MIXEDAUTH=true  # (Set this to false if you want to disable password login, make sure OIDC is working first)
+      OIDC_CODE_CHALLENGE_METHOD=S256
+      OIDC_AUTH_METHOD="client_secret_post"  
+      OIDC_REDIRECT_URI="https://<MISP_URL>/users/login" # (same value set in Okta)
+      ``` 
+ Valid options for OIDC_AUTH_METHOD are:
+   - client_secret_post: tested
+   - client_secret_basic: the default if variable is not set, but seems broken with Okta. It will return the following error: _"Error 'invalid_request' received from IdP: Cannot supply multiple client credentials"_.
+   - client_secret_jwt: *not tested* 
+   - private_key_jwt: *not tested* 
+
+
 ### Production
 
 - It is recommended to specify the build you want run by editing `docker-compose.yml` (see here for the list of available tags <https://github.com/orgs/MISP/packages>)
