@@ -174,10 +174,10 @@ For example configuration using KeyCloak, see [MISP Keycloak 26.1.x Basic Integr
 
 For Okta, create a new application integration:
   - Applications -> Applications -> Create App Integration
-  - Select Sign-in methd "OID - OpenID Connect" and Application type "Web Application"
-  - In Clinet Authentication, select "Client secret"
-  - Set Sign-in redirect URI to: "https://<MISP_URL>/users/login"
-  - Under Sig-in tab, add a group claim called "roles" and an appropriate filter
+  - Select Sign-in method "OIDC - OpenID Connect" and Application type "Web Application"
+  - In Client Authentication, select "Client secret"
+  - Set the Sign-in redirect URI to: "https://<MISP_URL>/users/login"
+  - Under the Sign-in tab, add a group claim called "roles" and an appropriate filter
   - In MISP docker `.env` file, set the following variables:
       ```
       OIDC_ENABLE=true
