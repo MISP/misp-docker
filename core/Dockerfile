@@ -5,7 +5,10 @@ FROM "${DOCKER_HUB_PROXY}python:3.14-slim-trixie" AS php-base
 ENV DEBIAN_FRONTEND=noninteractive
 ARG CORE_TAG
 ARG CORE_COMMIT
-ARG PHP_VER
+ARG PHP_API_VERSION
+RUN : "${PHP_API_VERSION:?Build argument PHP_API_VERSION is required and cannot be empty.}"
+ARG PHP_PACKAGE_VERSION
+RUN : "${PHP_PACKAGE_VERSION:?Build argument PHP_PACKAGE_VERSION is required and cannot be empty.}"
 ARG CORE_FLAVOR
 
 # Uncomment when building in corporate environments
@@ -29,15 +32,15 @@ RUN <<-EOF
                 mariadb-client \
                 rsync \
                 rsyslog \
-                php8.4 \
-                php8.4-curl \
-                php8.4-xml \
-                php8.4-mbstring \
-                php8.4-mysql \
-                php8.4-redis \
-                php8.4-gd \
-                php8.4-fpm \
-                php8.4-zip \
+                php${PHP_PACKAGE_VERSION} \
+                php${PHP_PACKAGE_VERSION}-curl \
+                php${PHP_PACKAGE_VERSION}-xml \
+                php${PHP_PACKAGE_VERSION}-mbstring \
+                php${PHP_PACKAGE_VERSION}-mysql \
+                php${PHP_PACKAGE_VERSION}-redis \
+                php${PHP_PACKAGE_VERSION}-gd \
+                php${PHP_PACKAGE_VERSION}-fpm \
+                php${PHP_PACKAGE_VERSION}-zip \
                 unzip \
                 zip \
                 curl \
@@ -58,19 +61,19 @@ RUN <<-EOF
                 mariadb-client \
                 rsync \
                 rsyslog \
-                php8.4 \
-                php8.4-apcu \
-                php8.4-curl \
-                php8.4-xml \
-                php8.4-intl \
-                php8.4-bcmath \
-                php8.4-mbstring \
-                php8.4-mysql \
-                php8.4-redis \
-                php8.4-gd \
-                php8.4-fpm \
-                php8.4-zip \
-                php8.4-ldap \
+                php${PHP_PACKAGE_VERSION} \
+                php${PHP_PACKAGE_VERSION}-apcu \
+                php${PHP_PACKAGE_VERSION}-curl \
+                php${PHP_PACKAGE_VERSION}-xml \
+                php${PHP_PACKAGE_VERSION}-intl \
+                php${PHP_PACKAGE_VERSION}-bcmath \
+                php${PHP_PACKAGE_VERSION}-mbstring \
+                php${PHP_PACKAGE_VERSION}-mysql \
+                php${PHP_PACKAGE_VERSION}-redis \
+                php${PHP_PACKAGE_VERSION}-gd \
+                php${PHP_PACKAGE_VERSION}-fpm \
+                php${PHP_PACKAGE_VERSION}-zip \
+                php${PHP_PACKAGE_VERSION}-ldap \
                 libmagic1 \
                 libldap-common \
                 librdkafka1 \
@@ -122,7 +125,7 @@ RUN <<-EOF
                 g++ \
                 git \
                 make \
-                php8.4-dev \
+                php${PHP_PACKAGE_VERSION}-dev \
                 php-pear
         else
             apt-get install -y --no-install-recommends \
@@ -130,7 +133,7 @@ RUN <<-EOF
                 g++ \
                 git \
                 make \
-                php8.4-dev \
+                php${PHP_PACKAGE_VERSION}-dev \
                 php-pear \
                 libbrotli-dev \
                 libfuzzy-dev \
@@ -141,9 +144,9 @@ RUN <<-EOF
         apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 EOF
 
-RUN update-alternatives --set php /usr/bin/php8.4
-RUN update-alternatives --set php-config /usr/bin/php-config8.4
-RUN update-alternatives --set phpize /usr/bin/phpize8.4
+RUN update-alternatives --set php /usr/bin/php${PHP_PACKAGE_VERSION}
+RUN update-alternatives --set php-config /usr/bin/php-config${PHP_PACKAGE_VERSION}
+RUN update-alternatives --set phpize /usr/bin/phpize${PHP_PACKAGE_VERSION}
 
 RUN <<-EOF
         pecl channel-update pecl.php.net
@@ -158,28 +161,16 @@ RUN <<-EOF
             git clone --recursive --depth=1 https://github.com/JakubOnderka/pecl-text-ssdeep.git /tmp/pecl-text-ssdeep
             cd /tmp/pecl-text-ssdeep && phpize && ./configure && make && make install
             tar -czf /pecl_libs.tar.gz \
-                /usr/lib/php/${PHP_VER}/ssdeep.so \
-                /usr/lib/php/${PHP_VER}/rdkafka.so \
-                /usr/lib/php/${PHP_VER}/brotli.so \
-                /usr/lib/php/${PHP_VER}/simdjson.so \
-                /usr/lib/php/${PHP_VER}/zstd.so
+                /usr/lib/php/${PHP_API_VERSION}/ssdeep.so \
+                /usr/lib/php/${PHP_API_VERSION}/rdkafka.so \
+                /usr/lib/php/${PHP_API_VERSION}/brotli.so \
+                /usr/lib/php/${PHP_API_VERSION}/simdjson.so \
+                /usr/lib/php/${PHP_API_VERSION}/zstd.so
         fi
 EOF
 
 
 FROM php-base AS python-build
-ARG PYPI_JSONSCHEMA_VERSION
-ARG PYPI_LIEF_VERSION
-ARG PYPI_MISP_STIX_VERSION
-ARG PYPI_PLYARA_VERSION
-ARG PYPI_PYDEEP2_VERSION
-ARG PYPI_PYMISP_VERSION
-ARG PYPI_PYTHON_MAGIC_VERSION
-ARG PYPI_PYZMQ_VERSION
-ARG PYPI_REDIS_VERSION
-ARG PYPI_TAXII2_CLIENT_VERSION
-ARG PYPI_SETUPTOOLS_VERSION
-ARG PYPI_SUPERVISOR_VERSION
 
 RUN apt-get install -y --no-install-recommends \
     gcc \
@@ -199,6 +190,20 @@ RUN <<-EOF
         cd /var/www/MISP || exit; git submodule update --init --recursive .
 EOF
 
+ARG PYPI_SETUPTOOLS_VERSION
+RUN : "${PYPI_SETUPTOOLS_VERSION:?Build argument PYPI_SETUPTOOLS_VERSION is required and cannot be empty.}"
+ARG PYPI_SUPERVISOR_VERSION
+RUN : "${PYPI_SUPERVISOR_VERSION:?Build argument PYPI_SUPERVISOR_VERSION is required and cannot be empty.}"
+ARG PYPI_JSONSCHEMA_VERSION
+ARG PYPI_LIEF_VERSION
+ARG PYPI_MISP_STIX_VERSION
+ARG PYPI_PLYARA_VERSION
+ARG PYPI_PYDEEP2_VERSION
+ARG PYPI_PYMISP_VERSION
+ARG PYPI_PYTHON_MAGIC_VERSION
+ARG PYPI_PYZMQ_VERSION
+ARG PYPI_REDIS_VERSION
+ARG PYPI_TAXII2_CLIENT_VERSION
 RUN <<-EOF
         mkdir /wheels
 
@@ -254,7 +259,8 @@ ENV PATH="/var/www/MISP/app/Console:${PATH}"
 
 # Remove some defaults (kernel logging) and fix alternatives
 RUN sed -i '/imklog/s/^/#/' /etc/rsyslog.conf
-RUN update-alternatives --set php /usr/bin/php8.4
+RUN update-alternatives --set php /usr/bin/php${PHP_PACKAGE_VERSION}
+RUN ln -sf /usr/sbin/php-fpm${PHP_PACKAGE_VERSION} /usr/local/sbin/php-fpm
 RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Install python modules
@@ -309,6 +315,8 @@ EOF
 
 # Copy all our image specific files to appropriate locations
 COPY files/ /
+# Template PHP version into nginx config
+RUN sed -i "s/@PHP_PACKAGE_VERSION@/${PHP_PACKAGE_VERSION}/g" /etc/nginx/includes/misp
 ENTRYPOINT [ "/entrypoint.sh" ]
 
 # Change Workdirectory
