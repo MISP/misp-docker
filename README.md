@@ -32,8 +32,26 @@ The underlying spirit of this project is to allow "repeatable deployments", and 
 
 ## Getting Started
 
-- Copy the `template.env` to `.env`
-- Customize `.env` based on your needs (optional step)
+### Prerequisites
+
+Make sure the following tools are installed and up to date before you begin. Older
+releases are a common source of build and runtime issues.
+
+- Docker Engine **20.10+** or Podman **4.0+**
+- Docker Compose plugin **2.17+** (or Podman Compose when using Podman)
+- Access to pull container images from `ghcr.io`
+
+You can confirm the installed versions with:
+
+```bash
+docker -v
+docker compose version
+```
+
+### Prepare the environment
+
+1. Copy the `template.env` file to `.env` in the project root.
+2. Customize `.env` according to your requirements (optional but recommended).
 
 ### Run
 
