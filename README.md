@@ -32,8 +32,27 @@ The underlying spirit of this project is to allow "repeatable deployments", and 
 
 ## Getting Started
 
-- Copy the `template.env` to `.env`
-- Customize `.env` based on your needs (optional step)
+### Prerequisites
+
+Make sure the following tools are installed and up to date before you begin. Older
+releases are a common source of build and runtime issues.
+
+- Docker Engine **20.10+** or Podman **4.0+**
+- Docker Compose plugin **2.17+** (or Podman Compose when using Podman)
+- Access to pull container images from `ghcr.io`
+- Access to [Docker Hub](https://hub.docker.com)** for pulling dependencies and base images
+
+You can confirm the installed versions with:
+
+```bash
+docker -v
+docker compose version
+```
+
+### Prepare the environment
+
+1. Copy the `template.env` file to `.env` in the project root.
+2. Customize `.env` according to your requirements (optional but recommended).
 
 ### Run
 
@@ -174,10 +193,10 @@ For example configuration using KeyCloak, see [MISP Keycloak 26.1.x Basic Integr
 
 For Okta, create a new application integration:
   - Applications -> Applications -> Create App Integration
-  - Select Sign-in methd "OID - OpenID Connect" and Application type "Web Application"
-  - In Clinet Authentication, select "Client secret"
-  - Set Sign-in redirect URI to: "https://<MISP_URL>/users/login"
-  - Under Sig-in tab, add a group claim called "roles" and an appropriate filter
+  - Select Sign-in method "OIDC - OpenID Connect" and Application type "Web Application"
+  - In Client Authentication, select "Client secret"
+  - Set the Sign-in redirect URI to: "https://<MISP_URL>/users/login"
+  - Under the Sign-in tab, add a group claim called "roles" and an appropriate filter
   - In MISP docker `.env` file, set the following variables:
       ```
       OIDC_ENABLE=true
