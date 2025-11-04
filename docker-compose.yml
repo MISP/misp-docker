@@ -253,6 +253,7 @@ services:
       - "DEBUG=${DEBUG}"
       # SMTP setting
       - "SMTP_FQDN=${SMTP_FQDN}"
+      - "SMTP_PORT=${SMTP_PORT:-25}"
       # NGINX settings
       - "FASTCGI_READ_TIMEOUT=${FASTCGI_READ_TIMEOUT:-300s}"
       - "FASTCGI_SEND_TIMEOUT=${FASTCGI_SEND_TIMEOUT:-300s}"

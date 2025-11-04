@@ -74,6 +74,7 @@ The `docker-compose.yml` file allows further configuration settings:
 "MYSQL_PASSWORD=example"    # NOTE: This should be AlphaNum with no Special Chars. Otherwise, edit config files after first run.
 "MYSQL_DATABASE=misp"
 "MISP_MODULES_FQDN=http://misp-modules" # Set the MISP Modules FQDN, used for Enrichment_services_url/Import_services_url/Export_services_url
+"SMTP_PORT=25"               # Override the outbound SMTP port if your mail relay does not listen on 25
 "WORKERS=1"                 # Legacy variable controlling the number of parallel workers (use variables below instead)
 "NUM_WORKERS_DEFAULT=5"     # To set the number of default workers
 "NUM_WORKERS_PRIO=5"        # To set the number of prio workers
