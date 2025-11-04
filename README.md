@@ -40,7 +40,7 @@ releases are a common source of build and runtime issues.
 - Docker Engine **20.10+** or Podman **4.0+**
 - Docker Compose plugin **2.17+** (or Podman Compose when using Podman)
 - Access to pull container images from `ghcr.io`
-- Access to [Docker Hub](https://hub.docker.com)** for pulling dependencies and base images
+- Access to [Docker Hub](https://hub.docker.com) for pulling dependencies and base images
 
 You can confirm the installed versions with:
 
@@ -58,6 +58,7 @@ docker compose version
 
 - `docker compose pull` if you want to use pre-built images or `docker compose build` if you want to build your own (see the `Troubleshooting` section in case of errors)
 - `docker compose up`
+  - Add `-d` to run the services in the background
 - Login to `https://localhost`
   - User: `admin@admin.test`
   - Password: `admin`
