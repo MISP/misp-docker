@@ -2,7 +2,7 @@ name: Build the Docker images
 
 on:
   pull_request:
-    branches: [ "master" ]
+    branches: ["master"]
 
 jobs:
   build:
@@ -29,6 +29,12 @@ jobs:
           sed -e '/^[[:space:]]*$/d' -e '/[#@]/d' -e 's/\"//g' -e 's/\(^[^=]*\)=\(.*\)/\1="\2"/' template.env > env.hcl
           echo "COMMIT_HASH=`echo '${{ github.sha }}' | cut -c 1-7`" >> "$GITHUB_ENV"
           echo "NAMESPACE=local" >> "$GITHUB_ENV"
+
+      - name: Prepare .env for compose validation
+        run: cp template.env .env
+
+      - name: Validate Docker Compose configuration
+        run: docker compose -f docker-compose.yml config -q
 
       - name: Build
         uses: docker/bake-action@v6
