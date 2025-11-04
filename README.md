@@ -40,7 +40,7 @@ releases are a common source of build and runtime issues.
 - Docker Engine **20.10+** or Podman **4.0+**
 - Docker Compose plugin **2.17+** (or Podman Compose when using Podman)
 - Access to pull container images from `ghcr.io`
-- Access to [Docker Hub](https://hub.docker.com)** for pulling dependencies and base images
+- Access to [Docker Hub](https://hub.docker.com) for pulling dependencies and base images
 
 You can confirm the installed versions with:
 
@@ -58,6 +58,7 @@ docker compose version
 
 - `docker compose pull` if you want to use pre-built images or `docker compose build` if you want to build your own (see the `Troubleshooting` section in case of errors)
 - `docker compose up`
+  - Add `-d` to run the services in the background
 - Login to `https://localhost`
   - User: `admin@admin.test`
   - Password: `admin`
@@ -74,6 +75,7 @@ The `docker-compose.yml` file allows further configuration settings:
 "MYSQL_PASSWORD=example"    # NOTE: This should be AlphaNum with no Special Chars. Otherwise, edit config files after first run.
 "MYSQL_DATABASE=misp"
 "MISP_MODULES_FQDN=http://misp-modules" # Set the MISP Modules FQDN, used for Enrichment_services_url/Import_services_url/Export_services_url
+"SMTP_PORT=25"               # Override the outbound SMTP port if your mail relay does not listen on 25
 "WORKERS=1"                 # Legacy variable controlling the number of parallel workers (use variables below instead)
 "NUM_WORKERS_DEFAULT=5"     # To set the number of default workers
 "NUM_WORKERS_PRIO=5"        # To set the number of prio workers
