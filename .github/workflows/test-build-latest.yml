@@ -30,6 +30,9 @@ jobs:
           echo "COMMIT_HASH=`echo '${{ github.sha }}' | cut -c 1-7`" >> "$GITHUB_ENV"
           echo "NAMESPACE=local" >> "$GITHUB_ENV"
 
+      - name: Prepare .env for compose validation
+        run: cp template.env .env
+
       - name: Validate Docker Compose configuration
         run: docker compose -f docker-compose.yml config -q
 
