@@ -1,0 +1,14 @@
+[Unit]
+Description=misp mail system
+After=local-fs.target
+
+[Container]
+AutoUpdate=registry
+HostName=mail
+ContainerName=misp-mail
+Image=docker.io/ixdotai/smtp
+Network=misp.network
+EnvironmentFile=misp.env
+
+[Install]
+WantedBy=default.target

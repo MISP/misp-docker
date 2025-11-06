@@ -1,0 +1,24 @@
+[Unit]
+Description=misp modules
+After=local-fs.target
+
+[Container]
+AutoUpdate=registry
+HostName=misp-modules
+ContainerName=misp-modules
+Image=ghcr.io/misp/misp-docker/misp-modules:latest
+Network=misp.network
+EnvironmentFile=misp.env
+Volume=%h/.config/misp_conf/custom/action_mod/:/custom/action_mod/:Z
+Volume=%h/.config/misp_conf/custom/expansion/:/custom/expansion/:Z
+Volume=%h/.config/misp_conf/custom/export_mod/:/custom/export_mod/:Z
+Volume=%h/.config/misp_conf/custom/import_mod/:/custom/import_mod/:Z
+HealthCmd=/bin/bash -c '</dev/tcp/localhost/6666'
+HealthInterval=2s
+HealthTimeout=1s
+HealthRetries=3
+HealthStartPeriod=5s
+HealthStartupInterval=5s
+
+[Install]
+WantedBy=default.target

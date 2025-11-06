@@ -12,19 +12,11 @@
   "MISP.contact": {
     "default_value": "${SETTING_CONTACT}"
   },
-  "Plugin.ZeroMQ_redis_host": {
-    "default_value": "${REDIS_FQDN}"
+  "MISP.attachments_dir": {
+    "default_value": "${ATTACHMENTS_DIR}"
   },
-  "Plugin.Enrichment_services_url": {
-    "default_value": "${MISP_MODULES_FQDN}"
-  },
-  "Plugin.Import_services_url": {
-    "default_value": "${MISP_MODULES_FQDN}"
-  },
-  "Plugin.Action_services_url": {
-    "default_value": "${MISP_MODULES_FQDN}"
-  },
-  "Plugin.Export_services_url": {
-    "default_value": "${MISP_MODULES_FQDN}"
+  "Security.encryption_key": {
+    "default_value": "${ENCRYPTION_KEY}",
+    "command_args": "-f"
   }
 }

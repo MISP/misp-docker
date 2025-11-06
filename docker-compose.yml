@@ -1,9 +1,9 @@
-version: '3'
 services:
   # This is capable to relay via gmail, Amazon SES, or generic relays
   # See: https://hub.docker.com/r/ixdotai/smtp
   mail:
     image: ixdotai/smtp
+    restart: always
     environment:
       - "SMARTHOST_ADDRESS=${SMARTHOST_ADDRESS}"
       - "SMARTHOST_PORT=${SMARTHOST_PORT}"
@@ -13,12 +13,34 @@ services:
 
   redis:
     image: valkey/valkey:7.2
+    restart: always
+    command: |
+      sh -c '
+        if [ "$${ENABLE_REDIS_EMPTY_PASSWORD:-false}" = "true" ]; then
+          exec valkey-server
+        else
+          exec valkey-server --requirepass "$${REDIS_PASSWORD:-redispassword}"
+        fi
+      '
+    environment:
+      - "ENABLE_REDIS_EMPTY_PASSWORD=${ENABLE_REDIS_EMPTY_PASSWORD:-false}"
+      - "REDIS_PASSWORD=${REDIS_PASSWORD:-redispassword}"
     healthcheck:
-      test: valkey-cli ping || exit 1
+      test: |
+        sh -c '
+          if [ "$${ENABLE_REDIS_EMPTY_PASSWORD:-false}" = "true" ]; then
+            valkey-cli -p $${REDIS_PORT:-6379} ping | grep -q PONG || exit 1
+          else
+            valkey-cli -a "$${REDIS_PASSWORD:-redispassword}" -p $${REDIS_PORT:-6379} ping | grep -q PONG || exit 1
+          fi
+        '
       interval: 2s
       timeout: 1s
       retries: 3
-      start_period: 30s
+      start_period: 5s
+      start_interval: 5s
+    volumes:
+      - cache_data:/data:Z
 
   db:
     # We use MariaDB because it supports ARM and has the expected collations
@@ -29,8 +51,17 @@ services:
       - "MYSQL_PASSWORD=${MYSQL_PASSWORD:-example}"
       - "MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-password}"
       - "MYSQL_DATABASE=${MYSQL_DATABASE:-misp}"
+    command: "\
+      --innodb-buffer-pool-size=${INNODB_BUFFER_POOL_SIZE:-2048M} \
+      --innodb-change-buffering=${INNODB_CHANGE_BUFFERING:-none} \
+      --innodb-io-capacity=${INNODB_IO_CAPACITY:-1000} \
+      --innodb-io-capacity-max=${INNODB_IO_CAPACITY_MAX:-2000} \
+      --innodb-log-file-size=${INNODB_LOG_FILE_SIZE:-600M} \
+      --innodb-read-io-threads=${INNODB_READ_IO_THREADS:-16} \
+      --innodb-stats-persistent=${INNODB_STATS_PERSISTENT:-ON} \
+      --innodb-write-io-threads=${INNODB_WRITE_IO_THREADS:-4}"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mysql_data:/var/lib/mysql:Z
     cap_add:
       - SYS_NICE  # CAP_SYS_NICE Prevent runaway mysql log
     healthcheck:
@@ -39,15 +70,20 @@ services:
       timeout: 1s
       retries: 3
       start_period: 30s
+      start_interval: 5s
 
   misp-core:
-    image: ghcr.io/misp/misp-docker/misp-core:latest
+    image: ghcr.io/misp/misp-docker/misp-core:${CORE_RUNNING_TAG:-latest}
+    restart: always
+    cap_add:
+      - AUDIT_WRITE
     build:
       context: core/.
       args:
-          - CORE_TAG=${CORE_TAG:?Missing .env file, see README.md for instructions}
+          - CORE_TAG=${CORE_TAG:?Missing or outdated .env file, see README.md for instructions}
           - CORE_COMMIT=${CORE_COMMIT}
-          - PHP_VER=${PHP_VER:?Missing .env file, see README.md for instructions}
+          - CORE_FLAVOR=${CORE_FLAVOR:-full}
+          - PHP_VER=${PHP_VER:?Missing or outdated .env file, see README.md for instructions}
           - PYPI_REDIS_VERSION=${PYPI_REDIS_VERSION}
           - PYPI_LIEF_VERSION=${PYPI_LIEF_VERSION}
           - PYPI_PYDEEP2_VERSION=${PYPI_PYDEEP2_VERSION}
@@ -57,68 +93,110 @@ services:
           - PYPI_MIXBOX_VERSION=${PYPI_MIXBOX_VERSION}
           - PYPI_CYBOX_VERSION=${PYPI_CYBOX_VERSION}
           - PYPI_PYMISP_VERSION=${PYPI_PYMISP_VERSION}
+          - PYPI_MISP_STIX_VERSION=${PYPI_MISP_STIX_VERSION}
+          - PYPI_SETUPTOOLS_VERSION=${PYPI_SETUPTOOLS_VERSION}
+          - PYPI_SUPERVISOR_VERSION=${PYPI_SUPERVISOR_VERSION}
     depends_on:
       redis:
         condition: service_healthy
       db:
         condition: service_healthy
+      misp-modules:
+        condition: service_healthy
     healthcheck:
-      test: curl -ks https://localhost/users/heartbeat > /dev/null || exit 1
+      test: curl -ks ${BASE_URL:-https://localhost}/users/heartbeat > /dev/null || exit 1
       interval: 2s
       timeout: 1s
       retries: 3
       start_period: 30s
       start_interval: 30s
     ports:
-      - "80:80"
-      - "443:443"
+      - "${CORE_HTTP_PORT:-80}:80"
+      - "${CORE_HTTPS_PORT:-443}:443"
     volumes:
-      - "./configs/:/var/www/MISP/app/Config/"
-      - "./logs/:/var/www/MISP/app/tmp/logs/"
-      - "./files/:/var/www/MISP/app/files/"
-      - "./ssl/:/etc/nginx/certs/"
-      - "./gnupg/:/var/www/MISP/.gnupg/"
-      # customize by replacing ${CUSTOM_PATH} with a path containing 'files/customize_misp.sh'
-      # - "${CUSTOM_PATH}/:/custom/"
+      - "./configs/:/var/www/MISP/app/Config/:Z"
+      - "./logs/:/var/www/MISP/app/tmp/logs/:Z"
+      - "./files/:/var/www/MISP/app/files/:Z"
+      - "./ssl/:/etc/nginx/certs/:Z"
+      - "./gnupg/:/var/www/MISP/.gnupg/:Z"
+    # customize by replacing ${CUSTOM_PATH} with a path containing 'files/customize_misp.sh'
+      # - "${CUSTOM_PATH}/:/custom/:Z"
       # mount custom ca root certificates
-      # - "./rootca.pem:/usr/local/share/ca-certificates/rootca.crt"
+      # - "./rootca.pem:/usr/local/share/ca-certificates/rootca.crt:Z"
     environment:
       - "BASE_URL=${BASE_URL}"
       - "CRON_USER_ID=${CRON_USER_ID}"
+      - "CRON_PULLALL=${CRON_PULLALL}"
+      - "CRON_PUSHALL=${CRON_PUSHALL}"
       - "DISABLE_IPV6=${DISABLE_IPV6}"
       - "DISABLE_SSL_REDIRECT=${DISABLE_SSL_REDIRECT}"
       - "ENABLE_DB_SETTINGS=${ENABLE_DB_SETTINGS}"
+      - "ENABLE_BACKGROUND_UPDATES=${ENABLE_BACKGROUND_UPDATES}"
+      - "ENCRYPTION_KEY=${ENCRYPTION_KEY}"
+      - "DISABLE_CA_REFRESH=${DISABLE_CA_REFRESH}"
+      - "DISABLE_PRINTING_PLAINTEXT_CREDENTIALS=${DISABLE_PRINTING_PLAINTEXT_CREDENTIALS}"
       # standard settings
       - "ADMIN_EMAIL=${ADMIN_EMAIL}"
       - "ADMIN_PASSWORD=${ADMIN_PASSWORD}"
       - "ADMIN_KEY=${ADMIN_KEY}"
       - "ADMIN_ORG=${ADMIN_ORG}"
+      - "ADMIN_ORG_UUID=${ADMIN_ORG_UUID}"
       - "GPG_PASSPHRASE=${GPG_PASSPHRASE}"
+      - "ATTACHMENTS_DIR=${ATTACHMENTS_DIR}"
       # OIDC authentication settings
       - "OIDC_ENABLE=${OIDC_ENABLE}"
       - "OIDC_PROVIDER_URL=${OIDC_PROVIDER_URL}"
       - "OIDC_CLIENT_ID=${OIDC_CLIENT_ID}"
       - "OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET}"
+      - "OIDC_CODE_CHALLENGE_METHOD=${OIDC_CODE_CHALLENGE_METHOD}"
       - "OIDC_ROLES_PROPERTY=${OIDC_ROLES_PROPERTY}"
       - "OIDC_ROLES_MAPPING=${OIDC_ROLES_MAPPING}"
       - "OIDC_DEFAULT_ORG=${OIDC_DEFAULT_ORG}"
-      # LDAP authentication settings
-      - "LDAP_ENABLE=${LDAP_ENABLE}"
-      - "LDAP_APACHE_ENV=${LDAP_APACHE_ENV}"
-      - "LDAP_SERVER=${LDAP_SERVER}"
-      - "LDAP_STARTTLS=${LDAP_STARTTLS}"
-      - "LDAP_READER_USER=${LDAP_READER_USER}"
-      - "LDAP_READER_PASSWORD=${LDAP_READER_PASSWORD}"
-      - "LDAP_DN=${LDAP_DN}"
-      - "LDAP_SEARCH_FILTER=${LDAP_SEARCH_FILTER}"
-      - "LDAP_SEARCH_ATTRIBUTE=${LDAP_SEARCH_ATTRIBUTE}"
-      - "LDAP_FILTER=${LDAP_FILTER}"
-      - "LDAP_DEFAULT_ROLE_ID=${LDAP_DEFAULT_ROLE_ID}"
-      - "LDAP_DEFAULT_ORG=${LDAP_DEFAULT_ORG}"
-      - "LDAP_EMAIL_FIELD=${LDAP_EMAIL_FIELD}"
-      - "LDAP_OPT_PROTOCOL_VERSION=${LDAP_OPT_PROTOCOL_VERSION}"
-      - "LDAP_OPT_NETWORK_TIMEOUT=${LDAP_OPT_NETWORK_TIMEOUT}"
-      - "LDAP_OPT_REFERRALS=${LDAP_OPT_REFERRALS}"
+      - "OIDC_LOGOUT_URL=${OIDC_LOGOUT_URL}"
+      - "OIDC_SCOPES=${OIDC_SCOPES}"
+      - "OIDC_MIXEDAUTH=${OIDC_MIXEDAUTH}"
+      - "OIDC_AUTH_METHOD=${OIDC_AUTH_METHOD}"
+      - "OIDC_REDIRECT_URI=${OIDC_REDIRECT_URI}"
+      # APACHESECUREAUTH authentication settings
+      - "APACHESECUREAUTH_LDAP_OLD_VAR_DETECT=${LDAP_ENABLE}"
+      - "APACHESECUREAUTH_LDAP_ENABLE=${APACHESECUREAUTH_LDAP_ENABLE:-${LDAP_ENABLE}}"
+      - "APACHESECUREAUTH_LDAP_APACHE_ENV=${APACHESECUREAUTH_LDAP_APACHE_ENV:-${LDAP_APACHE_ENV}}"
+      - "APACHESECUREAUTH_LDAP_SERVER=${APACHESECUREAUTH_LDAP_SERVER:-${LDAP_SERVER}}"
+      - "APACHESECUREAUTH_LDAP_STARTTLS=${APACHESECUREAUTH_LDAP_STARTTLS:-${LDAP_STARTTLS}}"
+      - "APACHESECUREAUTH_LDAP_READER_USER=${APACHESECUREAUTH_LDAP_READER_USER:-${LDAP_READER_USER}}"
+      - "APACHESECUREAUTH_LDAP_READER_PASSWORD=${APACHESECUREAUTH_LDAP_READER_PASSWORD:-${LDAP_READER_PASSWORD}}"
+      - "APACHESECUREAUTH_LDAP_DN=${APACHESECUREAUTH_LDAP_DN:-${LDAP_DN}}"
+      - "APACHESECUREAUTH_LDAP_SEARCH_FILTER=${APACHESECUREAUTH_LDAP_SEARCH_FILTER:-${LDAP_SEARCH_FILTER}}"
+      - "APACHESECUREAUTH_LDAP_SEARCH_ATTRIBUTE=${APACHESECUREAUTH_LDAP_SEARCH_ATTRIBUTE:-${LDAP_SEARCH_ATTRIBUTE}}"
+      - "APACHESECUREAUTH_LDAP_FILTER=${APACHESECUREAUTH_LDAP_FILTER:-${LDAP_FILTER}}"
+      - "APACHESECUREAUTH_LDAP_DEFAULT_ROLE_ID=${APACHESECUREAUTH_LDAP_DEFAULT_ROLE_ID:-${LDAP_DEFAULT_ROLE_ID}}"
+      - "APACHESECUREAUTH_LDAP_DEFAULT_ORG=${APACHESECUREAUTH_LDAP_DEFAULT_ORG:-${LDAP_DEFAULT_ORG}}"
+      - "APACHESECUREAUTH_LDAP_EMAIL_FIELD=${APACHESECUREAUTH_LDAP_EMAIL_FIELD:-${LDAP_EMAIL_FIELD}}"
+      - "APACHESECUREAUTH_LDAP_OPT_PROTOCOL_VERSION=${APACHESECUREAUTH_LDAP_OPT_PROTOCOL_VERSION:-${LDAP_OPT_PROTOCOL_VERSION}}"
+      - "APACHESECUREAUTH_LDAP_OPT_NETWORK_TIMEOUT=${APACHESECUREAUTH_LDAP_OPT_NETWORK_TIMEOUT:-${LDAP_OPT_NETWORK_TIMEOUT}}"
+      - "APACHESECUREAUTH_LDAP_OPT_REFERRALS=${APACHESECUREAUTH_LDAP_OPT_REFERRALS:-${LDAP_OPT_REFERRALS}}"
+      # LdapAuth MISP authentication settings
+      - "LDAPAUTH_ENABLE=${LDAPAUTH_ENABLE}"
+      - "LDAPAUTH_LDAPSERVER=${LDAPAUTH_LDAPSERVER}"
+      - "LDAPAUTH_LDAPDN=${LDAPAUTH_LDAPDN}"
+      - "LDAPAUTH_LDAPREADERUSER=${LDAPAUTH_LDAPREADERUSER}"
+      - "LDAPAUTH_LDAPREADERPASSWORD=${LDAPAUTH_LDAPREADERPASSWORD}"
+      - "LDAPAUTH_LDAPSEARCHFILTER=${LDAPAUTH_LDAPSEARCHFILTER}"
+      - "LDAPAUTH_LDAPSEARCHATTRIBUTE=${LDAPAUTH_LDAPSEARCHATTRIBUTE}"
+      - "LDAPAUTH_LDAPEMAILFIELD=${LDAPAUTH_LDAPEMAILFIELD}"
+      - "LDAPAUTH_LDAPNETWORKTIMEOUT=${LDAPAUTH_LDAPNETWORKTIMEOUT}"
+      - "LDAPAUTH_LDAPPROTOCOL=${LDAPAUTH_LDAPPROTOCOL}"
+      - "LDAPAUTH_LDAPALLOWREFERRALS=${LDAPAUTH_LDAPALLOWREFERRALS}"
+      - "LDAPAUTH_STARTTLS=${LDAPAUTH_STARTTLS}"
+      - "LDAPAUTH_MIXEDAUTH=${LDAPAUTH_MIXEDAUTH}"
+      - "LDAPAUTH_LDAPDEFAULTORGID=${LDAPAUTH_LDAPDEFAULTORGID}"
+      - "LDAPAUTH_LDAPDEFAULTROLEID=${LDAPAUTH_LDAPDEFAULTROLEID}"
+      - "LDAPAUTH_UPDATEUSER=${LDAPAUTH_UPDATEUSER}"
+      - "LDAPAUTH_DEBUG=${LDAPAUTH_DEBUG}"
+      - "LDAPAUTH_LDAPTLSREQUIRECERT=${LDAPAUTH_LDAPTLSREQUIRECERT}"
+      - "LDAPAUTH_LDAPTLSCUSTOMCACERT=${LDAPAUTH_LDAPTLSCUSTOMCACERT}"
+      - "LDAPAUTH_LDAPTLSCRLCHECK=${LDAPAUTH_LDAPTLSCRLCHECK}"
+      - "LDAPAUTH_LDAPTLSPROTOCOLMIN=${LDAPAUTH_LDAPTLSPROTOCOLMIN}"
       # AAD authentication settings
       - "AAD_ENABLE=${AAD_ENABLE}"
       - "AAD_CLIENT_ID=${AAD_CLIENT_ID}"
@@ -131,13 +209,26 @@ services:
       - "AAD_MISP_ORGADMIN=${AAD_MISP_ORGADMIN}"
       - "AAD_MISP_SITEADMIN=${AAD_MISP_SITEADMIN}"
       - "AAD_CHECK_GROUPS=${AAD_CHECK_GROUPS}"
-      # Proxy settings
+      # nginx settings
+      - "NGINX_X_FORWARDED_FOR=${NGINX_X_FORWARDED_FOR}"
+      - "NGINX_SET_REAL_IP_FROM=${NGINX_SET_REAL_IP_FROM}"
+      - "NGINX_CLIENT_MAX_BODY_SIZE=${NGINX_CLIENT_MAX_BODY_SIZE:-50M}"
+      # proxy settings
       - "PROXY_ENABLE=${PROXY_ENABLE}"
       - "PROXY_HOST=${PROXY_HOST}"
       - "PROXY_PORT=${PROXY_PORT}"
       - "PROXY_METHOD=${PROXY_METHOD}"
       - "PROXY_USER=${PROXY_USER}"
       - "PROXY_PASSWORD=${PROXY_PASSWORD}"
+      # s3 settings
+      - "S3_BUCKET=${S3_BUCKET}"
+      - "S3_ENDPOINT=${S3_ENDPOINT}"
+      - "S3_ACCESS_KEY=${S3_ACCESS_KEY}"
+      - "S3_SECRET_KEY=${S3_SECRET_KEY}"
+      # supervisor settings
+      - "SUPERVISOR_HOST=${SUPERVISOR_HOST}"
+      - "SUPERVISOR_USERNAME=${SUPERVISOR_USERNAME}"
+      - "SUPERVISOR_PASSWORD=${SUPERVISOR_PASSWORD}"
       # sync server settings (see https://www.misp-project.org/openapi/#tag/Servers for more options)
       - "SYNCSERVERS=${SYNCSERVERS}"
       - |
@@ -147,6 +238,7 @@ services:
           "name": "${SYNCSERVERS_1_NAME}",
           "authkey": "${SYNCSERVERS_1_KEY}",
           "url": "${SYNCSERVERS_1_URL}",
+          "pull_rules": "${SYNCSERVERS_1_PULL_RULES}",
           "pull": true
         }
       # mysql settings
@@ -155,24 +247,98 @@ services:
       - "MYSQL_USER=${MYSQL_USER:-misp}"
       - "MYSQL_PASSWORD=${MYSQL_PASSWORD:-example}"
       - "MYSQL_DATABASE=${MYSQL_DATABASE:-misp}"
-      # Debug setting 
+      # redis settings
+      - "REDIS_HOST=${REDIS_HOST:-redis}"
+      - "REDIS_PORT=${REDIS_PORT:-6379}"
+      - "REDIS_PASSWORD=${REDIS_PASSWORD:-redispassword}"
+      - "ENABLE_REDIS_EMPTY_PASSWORD=${ENABLE_REDIS_EMPTY_PASSWORD:-false}"
+      # debug setting 
       - "DEBUG=${DEBUG}"
       # SMTP setting
       - "SMTP_FQDN=${SMTP_FQDN}"
-  
+      - "SMTP_PORT=${SMTP_PORT:-25}"
+      # NGINX settings
+      - "FASTCGI_READ_TIMEOUT=${FASTCGI_READ_TIMEOUT:-300s}"
+      - "FASTCGI_SEND_TIMEOUT=${FASTCGI_SEND_TIMEOUT:-300s}"
+      - "FASTCGI_CONNECT_TIMEOUT=${FASTCGI_CONNECT_TIMEOUT:-300s}"
+      - "FASTCGI_STATUS_LISTEN=${FASTCGI_STATUS_LISTEN}"
+      # PHP settings
+      - "PHP_MEMORY_LIMIT=${PHP_MEMORY_LIMIT:-2048M}"
+      - "PHP_MAX_EXECUTION_TIME=${PHP_MAX_EXECUTION_TIME:-300}"
+      - "PHP_UPLOAD_MAX_FILESIZE=${PHP_UPLOAD_MAX_FILESIZE:-50M}"
+      - "PHP_POST_MAX_SIZE=${PHP_POST_MAX_SIZE:-50M}"
+      - "PHP_MAX_INPUT_TIME=${PHP_MAX_INPUT_TIME:-300}"
+      - "PHP_MAX_FILE_UPLOADS=${PHP_MAX_FILE_UPLOADS:-50}"
+      # PHP FPM pool setup
+      - "PHP_FCGI_CHILDREN=${PHP_FCGI_CHILDREN:-5}"
+      - "PHP_FCGI_START_SERVERS=${PHP_FCGI_START_SERVERS:-2}"
+      - "PHP_FCGI_SPARE_SERVERS=${PHP_FCGI_SPARE_SERVERS:-1}"
+      - "PHP_FCGI_MAX_REQUESTS=${PHP_FCGI_MAX_REQUESTS:-0}"
+      # additional PHP settings
+      - "PHP_SESSION_TIMEOUT=${PHP_SESSION_TIMEOUT:-60}"
+      - "PHP_SESSION_COOKIE_TIMEOUT=${PHP_SESSION_COOKIE_TIMEOUT:-10080}"
+      - "PHP_SESSION_DEFAULTS=${PHP_SESSION_DEFAULTS:-php}"
+      - "PHP_SESSION_AUTO_REGENERATE=${PHP_SESSION_AUTO_REGENERATE:-false}"
+      - "PHP_SESSION_CHECK_AGENT=${PHP_SESSION_CHECK_AGENT:-false}"
+      - "PHP_SESSION_COOKIE_SECURE=${PHP_SESSION_COOKIE_SECURE:-true}"
+      - "PHP_SESSION_COOKIE_DOMAIN=${PHP_SESSION_COOKIE_DOMAIN}"
+      - "PHP_SESSION_COOKIE_SAMESITE=${PHP_SESSION_COOKIE_SAMESITE:-Lax}"
+      - "PHP_TIMEZONE=${PHP_TIMEZONE:-UTC}"
+      # security settings
+      - "HSTS_MAX_AGE=${HSTS_MAX_AGE}"
+      - "X_FRAME_OPTIONS=${X_FRAME_OPTIONS}"
+      - "CONTENT_SECURITY_POLICY=${CONTENT_SECURITY_POLICY}"
+
   misp-modules:
-    image: ghcr.io/misp/misp-docker/misp-modules:latest
+    image: ghcr.io/misp/misp-docker/misp-modules:${MODULES_RUNNING_TAG:-latest}
+    restart: always
     build:
       context: modules/.
       args:
-        - MODULES_TAG=${MODULES_TAG:?Missing .env file, see README.md for instructions}
+        - MODULES_TAG=${MODULES_TAG:?Missing or outdated .env file, see README.md for instructions}
         - MODULES_COMMIT=${MODULES_COMMIT}
-        - LIBFAUP_COMMIT=${LIBFAUP_COMMIT:?Missing .env file, see README.md for instructions}
-    environment:
-      - "REDIS_BACKEND=redis"
+        - MODULES_FLAVOR=${MODULES_FLAVOR:-full}
+    healthcheck:
+      test: "/bin/bash -c '</dev/tcp/localhost/6666'"
+      interval: 2s
+      timeout: 1s
+      retries: 3
+      start_period: 5s
+      start_interval: 5s
+    volumes:
+      # custom MISP modules are loaded at startup time
+      - "./custom/action_mod/:/custom/action_mod/:Z"
+      - "./custom/expansion/:/custom/expansion/:Z"
+      - "./custom/export_mod/:/custom/export_mod/:Z"
+      - "./custom/import_mod/:/custom/import_mod/:Z"
+
+  misp-guard:
+    profiles:
+      - misp-guard
+    restart: always
+    image: ghcr.io/misp/misp-docker/misp-guard:${GUARD_RUNNING_TAG:-latest}
+    build:
+      context: guard/.
+      args:
+        - GUARD_TAG=${GUARD_TAG:?Missing or outdated .env file, see README.md for instructions}
+        - GUARD_COMMIT=${GUARD_COMMIT}
     depends_on:
-      redis:
-        condition: service_healthy
+      - misp-core
+    ports:
+      - "${GUARD_PORT:-8888}:${GUARD_PORT:-8888}"
+    environment:
+      - "GUARD_PORT=${GUARD_PORT:-8888}"
+      - "GUARD_ARGS=${GUARD_ARGS}"
+    volumes:
+      - ./guard/config.json:/config.json:ro
+    healthcheck:
+      test: "/bin/bash -c '</dev/tcp/localhost/${GUARD_PORT:-8888}'"
+      interval: 2m
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+      
 
 volumes:
     mysql_data:
+    cache_data:

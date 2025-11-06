@@ -38,6 +38,18 @@ variable "PYPI_PYMISP_VERSION" {
   default = ""
 }
 
+variable "PYPI_MISP_STIX_VERSION" {
+  default = ""
+}
+
+variable "PYPI_SETUPTOOLS_VERSION" {
+  default = ""
+}
+
+variable "PYPI_SUPERVISOR_VERSION" {
+  default = ""
+}
+
 variable "NAMESPACE" {
   default = null
 }
@@ -54,15 +66,19 @@ variable "MODULES_COMMIT" {
   default = ""
 }
 
-variable "LIBFAUP_COMMIT" {
-  default = ""
-}
-
 variable "CORE_TAG" {
   default = ""
 }
 
 variable "CORE_COMMIT" {
+  default = ""
+}
+
+variable "GUARD_TAG" {
+  default = ""
+}
+
+variable "GUARD_COMMIT" {
   default = ""
 }
 
@@ -73,7 +89,10 @@ variable "PHP_VER" {
 group "default" {
   targets = [
     "misp-modules",
+    "misp-modules-slim",
     "misp-core",
+    "misp-core-slim",
+    "misp-guard",
   ]
 }
 
@@ -84,7 +103,19 @@ target "misp-modules" {
   args = {
     "MODULES_TAG": "${MODULES_TAG}",
     "MODULES_COMMIT": "${MODULES_COMMIT}",
-    "LIBFAUP_COMMIT": "${LIBFAUP_COMMIT}",
+    "MODULES_FLAVOR": "full",
+  }
+  platforms = "${PLATFORMS}"
+}
+
+target "misp-modules-slim" {
+  context = "modules/."
+  dockerfile = "Dockerfile"
+  tags = flatten(["${NAMESPACE}/misp-modules:latest-slim", "${NAMESPACE}/misp-modules:${COMMIT_HASH}-slim", MODULES_TAG != "" ? ["${NAMESPACE}/misp-modules:${MODULES_TAG}-slim"] : []])
+  args = {
+    "MODULES_TAG": "${MODULES_TAG}",
+    "MODULES_COMMIT": "${MODULES_COMMIT}",
+    "MODULES_FLAVOR": "lite",
   }
   platforms = "${PLATFORMS}"
 }
@@ -96,6 +127,7 @@ target "misp-core" {
   args = {
     "CORE_TAG": "${CORE_TAG}",
     "CORE_COMMIT": "${CORE_COMMIT}",
+    "CORE_FLAVOR": "full",
     "PHP_VER": "${PHP_VER}",
     "PYPI_REDIS_VERSION": "${PYPI_REDIS_VERSION}",
     "PYPI_LIEF_VERSION": "${PYPI_LIEF_VERSION}",
@@ -106,6 +138,45 @@ target "misp-core" {
     "PYPI_MIXBOX_VERSION": "${PYPI_MIXBOX_VERSION}",
     "PYPI_CYBOX_VERSION": "${PYPI_CYBOX_VERSION}",
     "PYPI_PYMISP_VERSION": "${PYPI_PYMISP_VERSION}",
+    "PYPI_MISP_STIX_VERSION": "${PYPI_MISP_STIX_VERSION}",
+    "PYPI_SETUPTOOLS_VERSION": "${PYPI_SETUPTOOLS_VERSION}",
+    "PYPI_SUPERVISOR_VERSION": "${PYPI_SUPERVISOR_VERSION}",
+  }
+  platforms = "${PLATFORMS}"
+}
+
+target "misp-core-slim" {
+  context = "core/."
+  dockerfile = "Dockerfile"
+  tags = flatten(["${NAMESPACE}/misp-core:latest-slim", "${NAMESPACE}/misp-core:${COMMIT_HASH}-slim", CORE_TAG != "" ? ["${NAMESPACE}/misp-core:${CORE_TAG}-slim"] : []])
+  args = {
+    "CORE_TAG": "${CORE_TAG}",
+    "CORE_COMMIT": "${CORE_COMMIT}",
+    "CORE_FLAVOR": "lite",
+    "PHP_VER": "${PHP_VER}",
+    "PYPI_REDIS_VERSION": "${PYPI_REDIS_VERSION}",
+    "PYPI_LIEF_VERSION": "${PYPI_LIEF_VERSION}",
+    "PYPI_PYDEEP2_VERSION": "${PYPI_PYDEEP2_VERSION}",
+    "PYPI_PYTHON_MAGIC_VERSION": "${PYPI_PYTHON_MAGIC_VERSION}",
+    "PYPI_MISP_LIB_STIX2_VERSION": "${PYPI_MISP_LIB_STIX2_VERSION}",
+    "PYPI_MAEC_VERSION": "${PYPI_MAEC_VERSION}",
+    "PYPI_MIXBOX_VERSION": "${PYPI_MIXBOX_VERSION}",
+    "PYPI_CYBOX_VERSION": "${PYPI_CYBOX_VERSION}",
+    "PYPI_PYMISP_VERSION": "${PYPI_PYMISP_VERSION}",
+    "PYPI_MISP_STIX_VERSION": "${PYPI_MISP_STIX_VERSION}",
+    "PYPI_SETUPTOOLS_VERSION": "${PYPI_SETUPTOOLS_VERSION}",
+    "PYPI_SUPERVISOR_VERSION": "${PYPI_SUPERVISOR_VERSION}",
+  }
+  platforms = "${PLATFORMS}"
+}
+
+target "misp-guard" {
+  context = "guard/."
+  dockerfile = "Dockerfile"
+  tags = flatten(["${NAMESPACE}/misp-guard:latest", "${NAMESPACE}/misp-guard:${COMMIT_HASH}", GUARD_TAG != "" ? ["${NAMESPACE}/misp-guard:${GUARD_TAG}"] : []])
+  args = {
+    "GUARD_TAG": "${GUARD_TAG}",
+    "GUARD_COMMIT": "${GUARD_COMMIT}"
   }
   platforms = "${PLATFORMS}"
 }

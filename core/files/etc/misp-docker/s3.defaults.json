@@ -1,0 +1,11 @@
+    {
+        "Plugin.S3_enable": {
+          "default_value": true
+        },
+        "Plugin.S3_aws_compatible": {
+          "default_value": true
+        },
+        "MISP.attachments_dir": {
+          "default_value": "s3://"
+        }
+    }

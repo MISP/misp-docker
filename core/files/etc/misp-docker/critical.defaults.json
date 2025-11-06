@@ -2,9 +2,6 @@
   "MISP.host_org_id": {
     "default_value": 1
   },
-  "Plugin.Action_services_enable": {
-    "default_value": false
-  },
   "Plugin.Enrichment_hover_enable": {
     "default_value": false
   },

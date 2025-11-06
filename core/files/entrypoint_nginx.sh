@@ -8,29 +8,17 @@ term_proc() {
 
 trap term_proc SIGTERM
 
-[ -z "$MYSQL_HOST" ] && MYSQL_HOST=db
-[ -z "$MYSQL_PORT" ] && MYSQL_PORT=3306
-[ -z "$MYSQL_USER" ] && MYSQL_USER=misp
-[ -z "$MYSQL_PASSWORD" ] && MYSQL_PASSWORD=example
-[ -z "$MYSQL_DATABASE" ] && MYSQL_DATABASE=misp
-[ -z "$MYSQLCMD" ] && export MYSQLCMD="mysql -u $MYSQL_USER -p$MYSQL_PASSWORD -P $MYSQL_PORT -h $MYSQL_HOST -r -N $MYSQL_DATABASE"
-[ -z "$CRON_USER_ID" ] && export CRON_USER_ID="1"
-[ -z "$BASE_URL" ] && export BASE_URL="https://localhost"
-[ -z "$DISABLE_IPV6" ] && export DISABLE_IPV6=false
-[ -z "$DISABLE_SSL_REDIRECT" ] && export DISABLE_SSL_REDIRECT=false
-[ -z "$SMTP_FQDN" ] && export SMTP_FQDN=mail
-
 init_mysql(){
     # Test when MySQL is ready....
     # wait for Database come ready
     isDBup () {
-        echo "SHOW STATUS" | $MYSQLCMD 1>/dev/null
+        echo "SHOW STATUS" | $MYSQL_CMD 1>/dev/null
         echo $?
     }
 
     isDBinitDone () {
         # Table attributes has existed since at least v2.1
-        echo "DESCRIBE attributes" | $MYSQLCMD 1>/dev/null
+        echo "DESCRIBE attributes" | $MYSQL_CMD 1>/dev/null
         echo $?
     }
 
@@ -47,9 +35,10 @@ init_mysql(){
 
     if [ $(isDBinitDone) -eq 0 ]; then
         echo "... database has already been initialized"
+        export DB_ALREADY_INITIALISED=true
     else
         echo "... database has not been initialized, importing MySQL scheme..."
-        $MYSQLCMD < /var/www/MISP/INSTALL/MYSQL.sql
+        $MYSQL_CMD < /var/www/MISP/INSTALL/MYSQL.sql
     fi
 }
 
@@ -71,6 +60,52 @@ init_misp_data_files(){
     [ -f $MISP_APP_CONFIG_PATH/config.php ] || echo -e "<?php\n\$config=array();\n?>" > $MISP_APP_CONFIG_PATH/config.php
     [ -f $MISP_APP_CONFIG_PATH/email.php ] || dd if=$MISP_APP_CONFIG_PATH.dist/email.php of=$MISP_APP_CONFIG_PATH/email.php
     [ -f $MISP_APP_CONFIG_PATH/routes.php ] || dd if=$MISP_APP_CONFIG_PATH.dist/routes.php of=$MISP_APP_CONFIG_PATH/routes.php
+
+    if ! grep -q "Detect what auth modules" "$MISP_APP_CONFIG_PATH/bootstrap.php"; then
+        echo "... patch bootstrap.php settings"
+        chmod +w $MISP_APP_CONFIG_PATH/bootstrap.php
+        # workaround for https://forums.docker.com/t/sed-couldnt-open-temporary-file-xyz-permission-denied-when-using-virtiofs/125473
+        sed -z "s|CakePlugin::loadAll(array(.*CakeResque.*));||g" $MISP_APP_CONFIG_PATH/bootstrap.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/bootstrap.php; rm tmp
+        sed "s|CakePlugin::load('AadAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/bootstrap.php; rm tmp
+        sed "s|CakePlugin::load('CertAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/bootstrap.php; rm tmp
+        sed "s|CakePlugin::load('LdapAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/bootstrap.php; rm tmp
+        sed "s|CakePlugin::load('LinOTPAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/bootstrap.php; rm tmp
+        sed "s|CakePlugin::load('OidcAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/bootstrap.php; rm tmp
+        sed "s|CakePlugin::load('ShibbAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/bootstrap.php; rm tmp
+        cat <<EOT >> $MISP_APP_CONFIG_PATH/bootstrap.php
+
+/**
+ * Detect what auth modules need to be loaded based on the loaded config
+ */
+
+if (Configure::read('AadAuth')) {
+    CakePlugin::load('AadAuth');
+}
+
+if (Configure::read('CertAuth')) {
+    CakePlugin::load('CertAuth');
+}
+
+if (Configure::read('LdapAuth')) {
+    CakePlugin::load('LdapAuth');
+}
+
+if (Configure::read('LinOTPAuth')) {
+    CakePlugin::load('LinOTPAuth');
+}
+
+if (Configure::read('OidcAuth')) {
+    CakePlugin::load('OidcAuth');
+}
+
+if (Configure::read('ShibbAuth')) {
+    CakePlugin::load('ShibbAuth');
+}
+
+EOT
+    else
+        echo "... patch bootstrap.php settings not required"
+    fi
 
     echo "... initialize database.php settings"
     # workaround for https://forums.docker.com/t/sed-couldnt-open-temporary-file-xyz-permission-denied-when-using-virtiofs/125473
@@ -95,7 +130,7 @@ class EmailConfig {
         'transport'     => 'Smtp',
         'from'          => array('misp-dev@admin.test' => 'Misp DEV'),
         'host'          => '$SMTP_FQDN',
-        'port'          => 25,
+        'port'          => $SMTP_PORT,
         'timeout'       => 30,
         'client'        => null,
         'log'           => false,
@@ -104,7 +139,7 @@ class EmailConfig {
         'transport'     => 'Smtp',
         'from'          => array('misp-dev@admin.test' => 'Misp DEV'),
         'host'          => '$SMTP_FQDN',
-        'port'          => 25,
+        'port'          => $SMTP_PORT,
         'timeout'       => 30,
         'client'        => null,
         'log'           => false,
@@ -130,14 +165,13 @@ class EmailConfig {
         'emailFormat'   => null,
         'transport'     => 'Smtp',
         'host'          => '$SMTP_FQDN',
-        'port'          => 25,
+        'port'          => $SMTP_PORT,
         'timeout'       => 30,
         'client'        => null,
         'log'           => true,
     );
 }
 EOT
-    chmod -w $MISP_APP_CONFIG_PATH/email.php
 
     # Init files (shared with host)
     echo "... initialize app files"
@@ -149,10 +183,22 @@ EOT
 }
 
 update_misp_data_files(){
+    # If $MISP_APP_FILES_PATH was not changed since the build, skip file updates there
+    FILES_VERSION=
+    MISP_APP_FILES_PATH=/var/www/MISP/app/files
+    CORE_COMMIT=${CORE_COMMIT:-${CORE_TAG}}
+    if [ -f ${MISP_APP_FILES_PATH}/VERSION ]; then
+        FILES_VERSION=$(cat ${MISP_APP_FILES_PATH}/VERSION)
+        echo "... found local files/VERSION:" $FILES_VERSION
+        if [ "$FILES_VERSION" = "${CORE_COMMIT:-$(jq -r '"v\(.major).\(.minor).\(.hotfix)"' /var/www/MISP/VERSION.json)}" ]; then
+            echo "... local files/ match distribution version, skipping file sync"
+            return 0;
+        fi
+    fi
     for DIR in $(ls /var/www/MISP/app/files.dist); do
-        if [ "$DIR" = "certs" ] || [ "$DIR" = "img" ] || [ "$DIR" == "taxonomies" ] ; then
-            echo "... rsync  -azh \"/var/www/MISP/app/files.dist/$DIR\" \"/var/www/MISP/app/files/\""
-            rsync  -azh "/var/www/MISP/app/files.dist/$DIR" "/var/www/MISP/app/files/"
+        if [ "$DIR" = "certs" ] || [ "$DIR" = "img" ] || [ "$DIR" == "taxonomies" ] || [ "$DIR" == "terms" ] || [ "$DIR" == "misp-objects" ] ; then
+            echo "... rsync -azh \"/var/www/MISP/app/files.dist/$DIR\" \"/var/www/MISP/app/files/\""
+            rsync -azh "/var/www/MISP/app/files.dist/$DIR" "/var/www/MISP/app/files/"
         else
             echo "... rsync -azh --delete \"/var/www/MISP/app/files.dist/$DIR\" \"/var/www/MISP/app/files/\""
             rsync -azh --delete "/var/www/MISP/app/files.dist/$DIR" "/var/www/MISP/app/files/"
@@ -161,21 +207,28 @@ update_misp_data_files(){
 }
 
 enforce_misp_data_permissions(){
-#    echo "... chown -R www-data:www-data /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
-    # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
-    echo "... chmod -R 0550 files /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp -not -perm 550 -type f -exec chmod 0550 {} +
-    # Directories are also writable, because there seems to be a requirement to add new files every once in a while
-    echo "... chmod -R 0770 directories /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp -not -perm 770 -type d -exec chmod 0770 {} +
-    # We make 'files' and 'tmp' (logs) directories and files user and group writable (we removed the SGID bit)
-    echo "... chmod -R u+w,g+w /var/www/MISP/app/tmp" && chmod -R u+w,g+w /var/www/MISP/app/tmp
-    
-#    echo "... chown -R www-data:www-data /var/www/MISP/app/files" && find /var/www/MISP/app/files \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
-    # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
-    echo "... chmod -R 0550 files /var/www/MISP/app/files" && find /var/www/MISP/app/files -not -perm 550 -type f -exec chmod 0550 {} +
-    # Directories are also writable, because there seems to be a requirement to add new files every once in a while
-#    echo "... chmod -R 0770 directories /var/www/MISP/app/files" && find /var/www/MISP/app/files -not -perm 770 -type d -exec chmod 0770 {} +
-    # We make 'files' and 'tmp' (logs) directories and files user and group writable (we removed the SGID bit)
-    echo "... chmod -R u+w,g+w /var/www/MISP/app/files" && chmod -R u+w,g+w /var/www/MISP/app/files
+    # If $MISP_APP_FILES_PATH was not changed since the build, skip file updates there
+    MISP_APP_FILES_PATH=/var/www/MISP/app/files
+    CORE_COMMIT=${CORE_COMMIT:-${CORE_TAG}}
+    if [ -f "${MISP_APP_FILES_PATH}/VERSION" ] && [ "$(cat ${MISP_APP_FILES_PATH}/VERSION)" = "${CORE_COMMIT:-$(jq -r '"v\(.major).\(.minor).\(.hotfix)"' /var/www/MISP/VERSION.json)}" ]; then
+        echo "... local files/ match distribution version, skipping data permissions in files/"
+    else
+        # echo "... chown -R www-data:www-data /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
+        # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
+        echo "... chmod -R 0550 files /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp -not -perm 550 -type f -exec chmod 0550 {} +
+        # Directories are also writable, because there seems to be a requirement to add new files every once in a while
+        echo "... chmod -R 0770 directories /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp -not -perm 770 -type d -exec chmod 0770 {} +
+        # We make 'files' and 'tmp' (logs) directories and files user and group writable (we removed the SGID bit)
+        echo "... chmod -R u+w,g+w /var/www/MISP/app/tmp" && chmod -R u+w,g+w /var/www/MISP/app/tmp
+        
+        echo "... chown -R www-data:www-data /var/www/MISP/app/files" && find /var/www/MISP/app/files \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
+        # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
+        echo "... chmod -R 0550 files /var/www/MISP/app/files" && find /var/www/MISP/app/files -not -perm 550 -type f -exec chmod 0550 {} +
+        # Directories are also writable, because there seems to be a requirement to add new files every once in a while
+        echo "... chmod -R 0770 directories /var/www/MISP/app/files" && find /var/www/MISP/app/files -not -perm 770 -type d -exec chmod 0770 {} +
+        # We make 'files' and 'tmp' (logs) directories and files user and group writable (we removed the SGID bit)
+        echo "... chmod -R u+w,g+w /var/www/MISP/app/files" && chmod -R u+w,g+w /var/www/MISP/app/files
+    fi
     
 #    echo "... chown -R www-data:www-data /var/www/MISP/app/Config" && find /var/www/MISP/app/Config \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
     # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
@@ -183,7 +236,7 @@ enforce_misp_data_permissions(){
     # Directories are also writable, because there seems to be a requirement to add new files every once in a while
 #    echo "... chmod -R 0770 directories /var/www/MISP/app/Config" && find /var/www/MISP/app/Config -not -perm 770 -type d -exec chmod 0770 {} +
     # We make configuration files read only
-    echo "... chmod 600 /var/www/MISP/app/Config/{config,database,email}.php" && chmod 600 /var/www/MISP/app/Config/{config,database,email}.php
+    echo "... chmod 600 /var/www/MISP/app/Config/{config,database,email}.php" && chmod 600 /var/www/MISP/app/Config/{bootstrap,config,database,email}.php
 }
 
 flip_nginx() {
@@ -210,6 +263,79 @@ flip_nginx() {
 }
 
 init_nginx() {
+    # Adjust timeouts
+    echo "... adjusting 'fastcgi_read_timeout' to ${FASTCGI_READ_TIMEOUT}"
+    sed -i "s/fastcgi_read_timeout .*;/fastcgi_read_timeout ${FASTCGI_READ_TIMEOUT};/" /etc/nginx/includes/misp
+    echo "... adjusting 'fastcgi_send_timeout' to ${FASTCGI_SEND_TIMEOUT}"
+    sed -i "s/fastcgi_send_timeout .*;/fastcgi_send_timeout ${FASTCGI_SEND_TIMEOUT};/" /etc/nginx/includes/misp
+    echo "... adjusting 'fastcgi_connect_timeout' to ${FASTCGI_CONNECT_TIMEOUT}"
+    sed -i "s/fastcgi_connect_timeout .*;/fastcgi_connect_timeout ${FASTCGI_CONNECT_TIMEOUT};/" /etc/nginx/includes/misp
+
+    # Adjust maximum allowed size of the client request body
+    echo "... adjusting 'client_max_body_size' to ${NGINX_CLIENT_MAX_BODY_SIZE}"
+    sed -i "s/client_max_body_size .*;/client_max_body_size ${NGINX_CLIENT_MAX_BODY_SIZE};/" /etc/nginx/includes/misp
+
+    # Adjust forwarding header settings (clean up first)
+    sed -i '/real_ip_header/d' /etc/nginx/includes/misp
+    sed -i '/real_ip_recursive/d' /etc/nginx/includes/misp
+    sed -i '/set_real_ip_from/d' /etc/nginx/includes/misp
+    if [[ "$NGINX_X_FORWARDED_FOR" = "true" ]]; then
+        echo "... enabling X-Forwarded-For header"
+        echo "... setting 'real_ip_header X-Forwarded-For'"
+        echo "... setting 'real_ip_recursive on'"
+        sed -i "/index index.php/a real_ip_header X-Forwarded-For;\nreal_ip_recursive on;" /etc/nginx/includes/misp
+        if [[ ! -z "$NGINX_SET_REAL_IP_FROM" ]]; then
+            SET_REAL_IP_FROM_PRINT=$(echo $NGINX_SET_REAL_IP_FROM | tr ',' '\n')
+            for real_ip in ${SET_REAL_IP_FROM_PRINT[@]}; do
+                echo "... setting 'set_real_ip_from ${real_ip}'"
+            done
+            SET_REAL_IP_FROM=$(echo $NGINX_SET_REAL_IP_FROM | tr ',' '\n' | while read line; do echo -n "set_real_ip_from ${line};\n"; done)
+            SET_REAL_IP_FROM_ESCAPED=$(echo $SET_REAL_IP_FROM | sed '$!s/$/\\/' | sed 's/\\n$//')
+            sed -i "/real_ip_recursive on/a $SET_REAL_IP_FROM_ESCAPED" /etc/nginx/includes/misp
+        fi
+    fi
+
+    # Adjust Content-Security-Policy
+    echo "... adjusting Content-Security-Policy"
+    # Remove any existing CSP header
+    sed -i '/add_header Content-Security-Policy/d' /etc/nginx/includes/misp
+
+    if [[ -n "$CONTENT_SECURITY_POLICY" ]]; then
+        # If $CONTENT_SECURITY_POLICY is set, add CSP header
+        echo "... setting Content-Security-Policy to '$CONTENT_SECURITY_POLICY'"
+        sed -i "/add_header X-Download-Options/a add_header Content-Security-Policy \"$CONTENT_SECURITY_POLICY\";" /etc/nginx/includes/misp
+    else
+        # Otherwise, do not add any CSP headers
+        echo "... no Content-Security-Policy header will be set as CONTENT_SECURITY_POLICY is not defined"
+    fi
+
+    # Adjust X-Frame-Options
+    echo "... adjusting X-Frame-Options"
+    # Remove any existing X-Frame-Options header
+    sed -i '/add_header X-Frame-Options/d' /etc/nginx/includes/misp
+
+    if [[ -z "$X_FRAME_OPTIONS" ]]; then
+        echo "... setting 'X-Frame-Options SAMEORIGIN'"
+        sed -i "/add_header X-Download-Options/a add_header X-Frame-Options \"SAMEORIGIN\" always;" /etc/nginx/includes/misp
+    else
+        echo "... setting 'X-Frame-Options $X_FRAME_OPTIONS'"
+        sed -i "/add_header X-Download-Options/a add_header X-Frame-Options \"$X_FRAME_OPTIONS\";" /etc/nginx/includes/misp
+    fi
+
+    # Adjust HTTP Strict Transport Security (HSTS)
+    echo "... adjusting HTTP Strict Transport Security (HSTS)"
+    # Remove any existing HSTS header
+    sed -i '/add_header Strict-Transport-Security/d' /etc/nginx/includes/misp
+
+    if [[ -n "$HSTS_MAX_AGE" ]]; then
+        # If $HSTS_MAX_AGE is defined, add the HSTS header
+        echo "... setting HSTS to 'max-age=$HSTS_MAX_AGE; includeSubdomains'"
+        sed -i "/add_header X-Download-Options/a add_header Strict-Transport-Security \"max-age=$HSTS_MAX_AGE; includeSubdomains\";" /etc/nginx/includes/misp
+    else
+        # Otherwise, do nothing, keeping without the HSTS header
+        echo "... no HSTS header will be set as HSTS_MAX_AGE is not defined"
+    fi
+
     # Testing for files also test for links, and generalize better to mounted files
     if [[ ! -f "/etc/nginx/sites-enabled/misp80" ]]; then
         echo "... enabling port 80 redirect"
@@ -257,16 +383,22 @@ init_nginx() {
         echo "... TLS certificates found"
     fi
     
-    if [[ ! -f /etc/nginx/certs/dhparams.pem ]]; then
-        echo "... generating new DH parameters"
-        openssl dhparam -out /etc/nginx/certs/dhparams.pem 2048
-    else
-        echo "... DH parameters found"
+    if [[ "$FASTCGI_STATUS_LISTEN" != "" ]]; then
+        echo "... enabling php-fpm status page"
+        ln -s /etc/nginx/sites-available/php-fpm-status /etc/nginx/sites-enabled/php-fpm-status
+        sed -i -E "s/ listen [^;]+/ listen $FASTCGI_STATUS_LISTEN/" /etc/nginx/sites-enabled/php-fpm-status
+    elif [[ -f /etc/nginx/sites-enabled/php-fpm-status ]]; then
+        echo "... disabling php-fpm status page"
+        rm /etc/nginx/sites-enabled/php-fpm-status
     fi
 
     flip_nginx false false
 }
 
+# Hinders further execution when sourced from other scripts
+if [ -n "${BASH_SOURCE[0]}" ]; then
+    return
+fi
 
 # Initialize MySQL
 echo "INIT | Initialize MySQL ..." && init_mysql
@@ -289,6 +421,11 @@ if [[ -x /custom/files/customize_misp.sh ]]; then
     echo "INIT | Customize MISP installation ..."
     /custom/files/customize_misp.sh
 fi
+
+# Restart PHP workers
+echo "INIT | Configure PHP ..."
+supervisorctl restart php-fpm
+echo "INIT | Done ..."
 
 # Wait for it
 wait "$master_pid"

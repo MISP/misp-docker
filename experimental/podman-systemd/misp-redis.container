@@ -1,0 +1,25 @@
+[Unit]
+After=local-fs.target
+Description=misp redis
+
+[Container]
+AutoUpdate=registry
+HostName=redis
+ContainerName=misp-redis
+Image=docker.io/valkey/valkey:7.2
+Network=misp.network
+EnvironmentFile=misp.env
+Exec=sh -c 'if [ "${ENABLE_REDIS_EMPTY_PASSWORD:-false}" = "true" ]; then exec valkey-server; else exec valkey-server --requirepass "${REDIS_PASSWORD}"; fi'
+Volume=misp-redis_cache.volume:/data
+HealthCmd=sh -c 'if [ "${ENABLE_REDIS_EMPTY_PASSWORD:-false}" = "true" ]; then valkey-cli ping; else valkey-cli -a "${REDIS_PASSWORD}" ping; fi'
+HealthInterval=2s
+HealthTimeout=1s
+HealthRetries=3
+HealthStartPeriod=30s
+
+[Service]
+EnvironmentFile=%h/.config/containers/systemd/misp.env
+Restart=always
+
+[Install]
+WantedBy=default.target

@@ -2,11 +2,15 @@ name: Build the Docker images
 
 on:
   pull_request:
-    branches: [ "master" ]
+    branches: ["master"]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        target: [misp-core, misp-modules, misp-core-slim, misp-modules-slim, misp-guard]
 
     steps:
       - name: Checkout repository
@@ -26,9 +30,20 @@ jobs:
           echo "COMMIT_HASH=`echo '${{ github.sha }}' | cut -c 1-7`" >> "$GITHUB_ENV"
           echo "NAMESPACE=local" >> "$GITHUB_ENV"
 
+      - name: Prepare .env for compose validation
+        run: cp template.env .env
+
+      - name: Validate Docker Compose configuration
+        run: docker compose -f docker-compose.yml config -q
+
       - name: Build
-        uses: docker/bake-action@v4
+        uses: docker/bake-action@v6
         with:
+          source: .
           push: false
           provenance: false
           files: docker-bake.hcl, env.hcl
+          targets: ${{ matrix.target }}
+          # set: |
+          #   *.cache-from=type=gha
+          #   *.cache-to=type=gha,mode=max

@@ -1,7 +1,4 @@
 {
-  "MISP.ca_path": {
-    "default_value": "/var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem"
-  },
   "MISP.language": {
     "default_value": "eng"
   },
@@ -80,21 +77,6 @@
   "MISP.event_alert_republish_ban_threshold": {
     "default_value": 120
   },
-  "Plugin.ZeroMQ_enable": {
-    "default_value": false
-  },
-  "Plugin.Enrichment_services_enable": {
-    "default_value": true
-  },
-  "Plugin.Import_services_enable": {
-    "default_value": true
-  },
-  "Plugin.Export_services_enable": {
-    "default_value": true
-  },
-  "Plugin.Cortex_services_enable": {
-    "default_value": false
-  },
   "Security.advanced_authkeys": {
     "default_value": true
   },
@@ -103,10 +85,6 @@
   },
   "Security.check_sec_fetch_site_header": {
     "default_value": true
-  },
-  "Security.encryption_key": {
-    "default_value": "",
-    "command_args": "-f"
   },
   "Security.username_in_response_header": {
     "default_value": true

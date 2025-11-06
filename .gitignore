@@ -3,6 +3,12 @@
 /gnupg/
 /logs/
 /ssl/
+/custom/
 .env
 env.hcl
 rootca.crt
+cert.pem
+docker-compose.override.yml
+.DS_Store
+.AppleDouble
+.LSOverride

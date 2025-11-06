@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ./manifests/deployment-misp.yaml
+- ./manifests/deployment-nginx.yaml
+- ./manifests/redis.yaml
+- ./manifests/mysql.yaml
+- ./manifests/services.yaml
+- ./manifests/cronjobs/cache-all-feeds.yaml
+- ./manifests/cronjobs/fetch-all-feeds.yaml
+- ./manifests/cronjobs/pull-all-servers.yaml
+- ./manifests/cronjobs/push-all-servers.yaml
+- ./manifests/cronjobs/update-galaxies.yaml
+- ./manifests/cronjobs/update-noticelists.yaml
+- ./manifests/cronjobs/update-taxonomies.yaml
+- ./manifests/cronjobs/update-warninglists.yaml
+
+secretGenerator:
+  - name: instance-secrets
+    envs:
+      - ./instance-secrets.env
+  - name: mysql-credentials
+    envs:
+      - ./mysql-credentials.env
+    literals:
+      - MYSQL_DATABASE=misp
+      - MYSQL_USER=misp

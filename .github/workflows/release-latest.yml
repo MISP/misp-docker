@@ -3,10 +3,15 @@ name: Build the Docker images and push them to the container registry
 on:
   push:
     branches: [ "master" ]
+  workflow_dispatch: # manual trigger
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        target: [misp-core, misp-modules, misp-core-slim, misp-modules-slim, misp-guard]
 
     permissions:
       contents: read
@@ -28,7 +33,8 @@ jobs:
         run: |
           sed -e '/^[[:space:]]*$/d' -e '/[#@]/d' -e 's/\"//g' -e 's/\(^[^=]*\)=\(.*\)/\1="\2"/' template.env > env.hcl
           echo "COMMIT_HASH=`echo '${{ github.sha }}' | cut -c 1-7`" >> "$GITHUB_ENV"
-          echo "NAMESPACE=ghcr.io/mazdafunsunn/misp-openshift" >> "$GITHUB_ENV"
+          OWNER=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          echo "NAMESPACE=ghcr.io/${OWNER}/misp-docker" >> "$GITHUB_ENV"
 
       - name: Log in to the container registry
         uses: docker/login-action@v3
@@ -38,8 +44,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        uses: docker/bake-action@v4
+        uses: docker/bake-action@v6
         with:
+          source: .
           push: true
           provenance: false
           files: docker-bake.hcl, env.hcl
+          targets: ${{ matrix.target }}
+          # set: |
+          #   *.cache-from=type=gha
+          #   *.cache-to=type=gha,mode=max

@@ -1,0 +1,28 @@
+[Unit]
+Description=misp core
+After=local-fs.target misp-redis.service misp-db.service misp-modules.service
+Requires=misp-redis.service misp-db.service misp-modules.service
+
+[Container]
+AutoUpdate=registry
+HostName=misp-core
+ContainerName=misp-core
+AddCapability=AUDIT_WRITE
+Image=ghcr.io/misp/misp-docker/misp-core:latest
+PublishPort=10443:443
+Network=misp.network
+Volume=misp-core_conf.volume:/var/www/MISP/app/Config/
+Volume=misp-core_files.volume:/var/www/MISP/app/files/
+Volume=misp-core_gpg.volume:/var/www/MISP/.gnupg/
+Volume=misp-core_certs.volume:/etc/nginx/certs/
+Volume=misp-core_logs.volume:/var/www/MISP/app/tmp/logs/
+EnvironmentFile=misp.env
+HealthCmd=curl -ks ${BASE_URL:-https://localhost}/users/heartbeat > /dev/null || exit 1
+HealthInterval=2s
+HealthTimeout=1s
+HealthRetries=3
+HealthStartPeriod=30s
+HealthStartupInterval=30s
+
+[Install]
+WantedBy=default.target

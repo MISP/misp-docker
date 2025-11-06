@@ -1,0 +1,26 @@
+[Unit]
+After=local-fs.target
+Description=misp database
+
+[Container]
+AutoUpdate=registry
+HostName=db
+ContainerName=misp-db
+Image=docker.io/library/mariadb:10.11
+Network=misp.network
+Volume=misp-db_data.volume:/var/lib/mysql
+EnvironmentFile=misp.env
+AddCapability=SYS_NICE
+HealthCmd=mysqladmin --user=$MYSQL_USER --password=$MYSQL_PASSWORD status
+HealthInterval=2s
+HealthTimeout=1s
+HealthRetries=3
+HealthStartPeriod=30s
+HealthStartupInterval=5s
+HealthOnFailure=kill
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

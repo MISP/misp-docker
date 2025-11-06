@@ -24,20 +24,17 @@
     "default_value": "/etc/ssl/certs/ca-certificates.crt",
     "command_args": "-f"
   },
-  "MISP.redis_port": {
-    "default_value": 6379
-  },
   "MISP.redis_database": {
     "default_value": 13
-  },
-  "MISP.redis_password": {
-    "default_value": ""
   },
   "MISP.menu_custom_right_link": {
     "default_value": ""
   },
   "MISP.menu_custom_right_link_html": {
     "default_value": ""
+  },
+  "Plugin.ZeroMQ_enable": {
+    "default_value": false
   },
   "Security.rest_client_enable_arbitrary_urls": {
     "default_value": false
@@ -67,14 +64,8 @@
   "SimpleBackgroundJobs.supervisor_user": {
     "default_value": "supervisor"
   },
-  "SimpleBackgroundJobs.redis_port": {
-    "default_value": 6379
-  },
   "SimpleBackgroundJobs.redis_database": {
     "default_value": 1
-  },
-  "SimpleBackgroundJobs.redis_password": {
-    "default_value": ""
   },
   "SimpleBackgroundJobs.redis_namespace": {
     "default_value": "background_jobs"
