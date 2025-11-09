@@ -42,6 +42,7 @@ export ATTACHMENTS_DIR=${ATTACHMENTS_DIR:-/var/www/MISP/app/files}
 
 export AUTOCONF_GPG=${AUTOCONF_GPG:-true}
 export AUTOCONF_ADMIN_KEY=${AUTOCONF_ADMIN_KEY:-true}
+export AUTOGEN_ADMIN_KEY=${AUTOGEN_ADMIN_KEY:-$AUTOCONF_ADMIN_KEY}
 export OIDC_ENABLE=${OIDC_ENABLE:-false}
 export OIDC_MIXEDAUTH=${OIDC_MIXEDAUTH:-false}
 export LDAP_ENABLE=${LDAP_ENABLE:-false}
@@ -85,7 +86,7 @@ export SUPERVISOR_USERNAME=${SUPERVISOR_USERNAME:-supervisor}
 export SUPERVISOR_PASSWORD=${SUPERVISOR_PASSWORD:-supervisor}
 
 # Hinders further execution when sourced from other scripts
-if [ -n "${BASH_SOURCE[0]}" ]; then
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
     return
 fi
 

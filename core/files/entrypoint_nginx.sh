@@ -395,7 +395,7 @@ init_nginx() {
 }
 
 # Hinders further execution when sourced from other scripts
-if [ -n "${BASH_SOURCE[0]}" ]; then
+if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
     return
 fi
 
