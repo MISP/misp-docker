@@ -5,6 +5,12 @@ services:
     image: ghcr.io/egos-tech/smtp:1.1.3
     restart: always
     environment:
+      # For use with Amazon SES relay
+      - "SES_USER=${SES_USER}"
+      - "SES_PASSWORD=${SES_PASSWORD}"
+      - "SES_REGION=${SES_REGION}"
+      - "SES_PORT=${SES_PORT}"
+      # Generic SMTP relay
       - "SMARTHOST_ADDRESS=${SMARTHOST_ADDRESS}"
       - "SMARTHOST_PORT=${SMARTHOST_PORT}"
       - "SMARTHOST_USER=${SMARTHOST_USER}"
