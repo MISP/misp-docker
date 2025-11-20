@@ -24,7 +24,7 @@ spec:
         - name: misp
           command: 
             - /kubernetes/entrypoint_fpm.sh
-          image: "ghcr.io/misp/misp-docker/misp-core:v2.5.25"
+          image: "ghcr.io/misp/misp-docker/misp-core:latest"
           imagePullPolicy: IfNotPresent
           readinessProbe:
             tcpSocket:
@@ -77,7 +77,7 @@ spec:
             requests:
               memory: 128Mi
               cpu: 20m
-          image: "ghcr.io/misp/misp-docker/misp-modules:v3.0.2"
+          image: "ghcr.io/misp/misp-docker/misp-modules:latest"
           imagePullPolicy: IfNotPresent
           readinessProbe:
             tcpSocket:
