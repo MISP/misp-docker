@@ -8,6 +8,50 @@ term_proc() {
 
 trap term_proc SIGTERM
 
+update_database_tls_config() {
+    local key="$1"
+    local value="$2"
+    local config_file="$3"
+    local enable="$4"
+
+    [[ -z "$key" || -z "$config_file" ]] && { echo "key/config_file required"; return 1; }
+    [[ ! -f "$config_file" ]] && { echo "Config file not found: $config_file"; return 1; }
+
+    if [[ "$enable" == true && -z "$value" ]]; then
+        #echo "Not setting $key as value is empty..."
+        return 0
+    fi
+
+    if [[ "$enable" == true && "$key" =~ ^(ssl_ca|ssl_cert|ssl_key)$ ]]; then
+        if [[ ! -f "$value" ]]; then
+            echo "Cannot configure TLS key $key: file $value does not exist..."
+            return 1
+        fi
+    fi
+
+    local tmp
+    tmp="$(mktemp)"
+
+    if [[ "$enable" == true ]]; then
+        if grep -qE "^[[:space:]]*'${key}'[[:space:]]*=>" "$config_file"; then
+            sed -E "s@^([[:space:]]*'${key}'[[:space:]]*=>)[^,]*,@\1 '${value}',@g" \
+              "$config_file" > "$tmp"
+        else
+            sed -E "/public[[:space:]]+\\\$default[[:space:]]*=[[:space:]]*\\[/a\\
+        '${key}' => '${value}'," \
+              "$config_file" > "$tmp"
+        fi
+    else
+        sed -E "/^[[:space:]]*'${key}'[[:space:]]*=>/d" \
+          "$config_file" > "$tmp"
+    fi
+
+    if [[ -s "$tmp" ]]; then
+        cat "$tmp" > "$config_file"
+    fi
+    rm -f "$tmp"
+}
+
 init_mysql(){
     # Test when MySQL is ready....
     # wait for Database come ready
@@ -120,6 +164,13 @@ EOT
     sed "s/3306/$MYSQL_PORT/" $MISP_APP_CONFIG_PATH/database.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/database.php; rm tmp
     sed "s/db\s*password/$MYSQL_PASSWORD/" $MISP_APP_CONFIG_PATH/database.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/database.php; rm tmp
     sed "s/'database' => 'misp'/'database' => '$MYSQL_DATABASE'/" $MISP_APP_CONFIG_PATH/database.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/database.php; rm tmp
+
+    # Enable MySQL TLS immediately, as TLS requiring hosts like AWS RDS may banlist non-TLS connecting hosts
+    # Conversely, this is also a good spot to disable it if required
+
+    update_database_tls_config ssl_ca "$MYSQL_TLS_CA" "$MISP_APP_CONFIG_PATH/database.php" "$MYSQL_TLS"
+    update_database_tls_config ssl_cert "$MYSQL_TLS_CERT" "$MISP_APP_CONFIG_PATH/database.php" "$MYSQL_TLS"
+    update_database_tls_config ssl_key "$MYSQL_TLS_KEY" "$MISP_APP_CONFIG_PATH/database.php" "$MYSQL_TLS"
 
     echo "... initialize email.php settings"
     chmod +w $MISP_APP_CONFIG_PATH/email.php
