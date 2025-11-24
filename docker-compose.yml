@@ -255,6 +255,11 @@ services:
       - "MYSQL_USER=${MYSQL_USER:-misp}"
       - "MYSQL_PASSWORD=${MYSQL_PASSWORD:-example}"
       - "MYSQL_DATABASE=${MYSQL_DATABASE:-misp}"
+      # mysql TLS settings
+      - "MYSQL_TLS=${MYSQL_TLS:-false}"
+      - "MYSQL_TLS_CA=${MYSQL_TLS_CA}"
+      - "MYSQL_TLS_CERT=${MYSQL_TLS_CERT}"
+      - "MYSQL_TLS_KEY=${MYSQL_TLS_KEY}"
       # redis settings
       - "REDIS_HOST=${REDIS_HOST:-redis}"
       - "REDIS_PORT=${REDIS_PORT:-6379}"
