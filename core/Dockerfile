@@ -245,6 +245,7 @@ FROM php-base
                 php8.4-gd \
                 php8.4-fpm \
                 php8.4-zip \
+                stunnel4 \
                 unzip \
                 zip \
                 curl \
@@ -275,6 +276,7 @@ FROM php-base
                 php8.4-fpm \
                 php8.4-zip \
                 php8.4-ldap \
+                stunnel4 \
                 libmagic1 \
                 libldap-common \
                 librdkafka1 \
