@@ -111,7 +111,7 @@ group "debian-slim" {
     "misp-guard",
   ]
 }
-group "debain" {
+group "debian" {
   targets = [
     "misp-modules",
     "misp-core",
