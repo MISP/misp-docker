@@ -234,7 +234,7 @@ services:
       - "S3_ACCESS_KEY=${S3_ACCESS_KEY}"
       - "S3_SECRET_KEY=${S3_SECRET_KEY}"
       # stunnel settings
-      - "STUNNEL=${STUNNEL:-false}"
+      - "STUNNEL=${STUNNEL}"
       - "STUNNEL_CONFIG=${STUNNEL_CONFIG}"
       # supervisor settings
       - "SUPERVISOR_HOST=${SUPERVISOR_HOST}"
