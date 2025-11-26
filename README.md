@@ -238,6 +238,50 @@ For Okta, create a new application integration:
 - If you need to automatically run additional steps each time the container starts, create a new file `files/customize_misp.sh`, and replace the variable `${CUSTOM_PATH}` inside `docker-compose.yml` with its parent path.
 - If you are interested in running streamlined versions of the images (fewer dependencies, easier approval from compliance), you might want to use the `latest-slim` tag. Just adjust the `docker-compose.yml` file, and run again `docker compose pull` and `docker compose up`.
 
+### Build Options
+
+This project supports multiple build methods to suit different needs.
+
+#### Using Docker Compose (Standard Method)
+
+For most users, the standard Docker Compose build is recommended:
+```bash
+docker compose build
+```
+
+#### Using Docker Buildx Bake (Advanced)
+
+Docker Buildx bake provides advanced build capabilities including multi-platform builds and parallel building of multiple targets. This method uses the `docker-bake.hcl` configuration file.
+
+**Prerequisites:**
+- Docker Buildx plugin installed and enabled
+- Properly configured `.env` file (copy from `template.env`)
+
+**Build full-featured images:**
+```bash
+docker buildx bake debian
+```
+
+This builds `misp-core`, `misp-modules`, and `misp-guard` with all features included.
+
+**Build slim images:**
+```bash
+docker buildx bake debian-slim
+```
+
+This builds lightweight versions of `misp-core-slim`, `misp-modules-slim`, and `misp-guard` with reduced dependencies.
+
+**Available bake targets:**
+- `debian` - Full-featured images (misp-core, misp-modules, misp-guard)
+- `debian-slim` - Lightweight images (misp-core-slim, misp-modules-slim, misp-guard)
+- `default` - Builds all variants (both full and slim)
+
+**After building with buildx bake:**
+
+You can still use Docker Compose to run the services:
+```bash
+docker compose up
+```
 #### Using slow disks as volume mounts
 
 Using a slow disk as the mounted volume or a volume with high latency like NFS, EFS or S3 might significantly increase the startup time and downgrade the performance of the service. To address this we will mount the bare minimum that needs to be persisted.
