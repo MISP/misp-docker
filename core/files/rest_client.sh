@@ -3,13 +3,13 @@
 if ! command -v jq &> /dev/null
 then
     echo "aborting. jq could not be found"
-    exit
+    exit 1
 fi
 
 if ! command -v curl &> /dev/null
 then
     echo "aborting. curl could not be found"
-    exit
+    exit 1
 fi
 
 add_organization() {

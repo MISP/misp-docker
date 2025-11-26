@@ -24,7 +24,7 @@ spec:
         - name: nginx
           command:
             - /kubernetes/entrypoint_nginx.sh
-          image: "ghcr.io/misp/misp-docker/misp-core:v2.5.21"
+          image: "ghcr.io/misp/misp-docker/misp-core:latest"
           imagePullPolicy: IfNotPresent
           readinessProbe:
             tcpSocket:
@@ -48,13 +48,6 @@ spec:
             requests:
               memory: 512Mi
               cpu: 50m
-          volumeMounts:
-            - mountPath: /etc/nginx/certs/dhparams.pem
-              name: dhparams
-              subPath: dhparams.pem
-      volumes:
-        - configMap:
-            name: dhparams
-          name: dhparams
+
 
 

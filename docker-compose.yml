@@ -1,9 +1,16 @@
 services:
   # This is capable to relay via gmail, Amazon SES, or generic relays
-  # See: https://hub.docker.com/r/ixdotai/smtp
+  # See: https://gitlab.com/egos-tech/smtp
   mail:
-    image: ixdotai/smtp
+    image: ghcr.io/egos-tech/smtp:1.1.3
+    restart: always
     environment:
+      # For use with Amazon SES relay
+      - "SES_USER=${SES_USER}"
+      - "SES_PASSWORD=${SES_PASSWORD}"
+      - "SES_REGION=${SES_REGION}"
+      - "SES_PORT=${SES_PORT}"
+      # Generic SMTP relay
       - "SMARTHOST_ADDRESS=${SMARTHOST_ADDRESS}"
       - "SMARTHOST_PORT=${SMARTHOST_PORT}"
       - "SMARTHOST_USER=${SMARTHOST_USER}"
@@ -12,6 +19,7 @@ services:
 
   redis:
     image: valkey/valkey:7.2
+    restart: always
     command: |
       sh -c '
         if [ "$${ENABLE_REDIS_EMPTY_PASSWORD:-false}" = "true" ]; then
@@ -72,6 +80,7 @@ services:
 
   misp-core:
     image: ghcr.io/misp/misp-docker/misp-core:${CORE_RUNNING_TAG:-latest}
+    restart: always
     cap_add:
       - AUDIT_WRITE
     build:
@@ -91,6 +100,7 @@ services:
           - PYPI_CYBOX_VERSION=${PYPI_CYBOX_VERSION}
           - PYPI_PYMISP_VERSION=${PYPI_PYMISP_VERSION}
           - PYPI_MISP_STIX_VERSION=${PYPI_MISP_STIX_VERSION}
+          - PYPI_TAXII2_CLIENT=${PYPI_TAXII2_CLIENT}
           - PYPI_SETUPTOOLS_VERSION=${PYPI_SETUPTOOLS_VERSION}
           - PYPI_SUPERVISOR_VERSION=${PYPI_SUPERVISOR_VERSION}
     depends_on:
@@ -143,17 +153,18 @@ services:
       # OIDC authentication settings
       - "OIDC_ENABLE=${OIDC_ENABLE}"
       - "OIDC_PROVIDER_URL=${OIDC_PROVIDER_URL}"
+      - "OIDC_ISSUER=${OIDC_ISSUER}"
       - "OIDC_CLIENT_ID=${OIDC_CLIENT_ID}"
       - "OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET}"
       - "OIDC_CODE_CHALLENGE_METHOD=${OIDC_CODE_CHALLENGE_METHOD}"
       - "OIDC_ROLES_PROPERTY=${OIDC_ROLES_PROPERTY}"
       - "OIDC_ROLES_MAPPING=${OIDC_ROLES_MAPPING}"
       - "OIDC_DEFAULT_ORG=${OIDC_DEFAULT_ORG}"
-      - "OIDC_LOGOUT_URL=${OIDC_LOGOUT_URL}"
-      - "OIDC_SCOPES=${OIDC_SCOPES}"
       - "OIDC_MIXEDAUTH=${OIDC_MIXEDAUTH}"
       - "OIDC_AUTH_METHOD=${OIDC_AUTH_METHOD}"
       - "OIDC_REDIRECT_URI=${OIDC_REDIRECT_URI}"
+      - "OIDC_SCOPES=${OIDC_SCOPES}"
+      - "OIDC_LOGOUT_URL=${OIDC_LOGOUT_URL}"
       # APACHESECUREAUTH authentication settings
       - "APACHESECUREAUTH_LDAP_OLD_VAR_DETECT=${LDAP_ENABLE}"
       - "APACHESECUREAUTH_LDAP_ENABLE=${APACHESECUREAUTH_LDAP_ENABLE:-${LDAP_ENABLE}}"
@@ -244,6 +255,11 @@ services:
       - "MYSQL_USER=${MYSQL_USER:-misp}"
       - "MYSQL_PASSWORD=${MYSQL_PASSWORD:-example}"
       - "MYSQL_DATABASE=${MYSQL_DATABASE:-misp}"
+      # mysql TLS settings
+      - "MYSQL_TLS=${MYSQL_TLS:-false}"
+      - "MYSQL_TLS_CA=${MYSQL_TLS_CA}"
+      - "MYSQL_TLS_CERT=${MYSQL_TLS_CERT}"
+      - "MYSQL_TLS_KEY=${MYSQL_TLS_KEY}"
       # redis settings
       - "REDIS_HOST=${REDIS_HOST:-redis}"
       - "REDIS_PORT=${REDIS_PORT:-6379}"
@@ -288,6 +304,7 @@ services:
 
   misp-modules:
     image: ghcr.io/misp/misp-docker/misp-modules:${MODULES_RUNNING_TAG:-latest}
+    restart: always
     build:
       context: modules/.
       args:
@@ -311,6 +328,7 @@ services:
   misp-guard:
     profiles:
       - misp-guard
+    restart: always
     image: ghcr.io/misp/misp-docker/misp-guard:${GUARD_RUNNING_TAG:-latest}
     build:
       context: guard/.
