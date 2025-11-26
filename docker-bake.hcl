@@ -2,6 +2,10 @@ variable "PLATFORMS" {
   default = ["linux/amd64", "linux/arm64"]
 }
 
+variable "DOCKER_HUB_PROXY" {
+  default = ""
+}
+
 variable "PYPI_REDIS_VERSION" {
   default = ""
 }
@@ -123,6 +127,7 @@ target "misp-modules" {
     "MODULES_TAG": "${MODULES_TAG}",
     "MODULES_COMMIT": "${MODULES_COMMIT}",
     "MODULES_FLAVOR": "full",
+    "DOCKER_HUB_PROXY" : "${DOCKER_HUB_PROXY}",
   }
   platforms = "${PLATFORMS}"
 }
@@ -134,6 +139,7 @@ target "misp-modules-slim" {
     "MODULES_TAG": "${MODULES_TAG}",
     "MODULES_COMMIT": "${MODULES_COMMIT}",
     "MODULES_FLAVOR": "lite",
+    "DOCKER_HUB_PROXY" : "${DOCKER_HUB_PROXY}",
   }
 }
 
@@ -159,6 +165,8 @@ target "misp-core" {
     "PYPI_TAXII2_CLIENT": "${PYPI_TAXII2_CLIENT}",
     "PYPI_SETUPTOOLS_VERSION": "${PYPI_SETUPTOOLS_VERSION}",
     "PYPI_SUPERVISOR_VERSION": "${PYPI_SUPERVISOR_VERSION}",
+    "DOCKER_HUB_PROXY" : "${DOCKER_HUB_PROXY}",
+
   }
   
 }
@@ -184,6 +192,7 @@ target "misp-core-slim" {
     "PYPI_TAXII2_CLIENT": "${PYPI_TAXII2_CLIENT}",
     "PYPI_SETUPTOOLS_VERSION": "${PYPI_SETUPTOOLS_VERSION}",
     "PYPI_SUPERVISOR_VERSION": "${PYPI_SUPERVISOR_VERSION}",
+    "DOCKER_HUB_PROXY" : "${DOCKER_HUB_PROXY}",
   }
 }
 
@@ -194,6 +203,7 @@ target "misp-guard" {
   args = {
     "GUARD_TAG": "${GUARD_TAG}",
     "GUARD_COMMIT": "${GUARD_COMMIT}"
+    "DOCKER_HUB_PROXY" : "${DOCKER_HUB_PROXY}",
   }
   platforms = "${PLATFORMS}"
 }
