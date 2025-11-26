@@ -255,10 +255,11 @@ Docker Buildx bake provides advanced build capabilities including multi-platform
 
 **Prerequisites:**
 - Docker Buildx plugin installed and enabled
-- Properly configured `.env` file (copy from `template.env`)
+- `template.env` file in the project root
 
 **Build full-featured images:**
 ```bash
+sed -e '/^[[:space:]]*$/d' -e '/[#@]/d' -e 's/\"//g' -e 's/\(^[^=]*\)=\(.*\)/\1="\2"/' template.env > env.hcl
 docker buildx bake debian
 ```
 
@@ -266,6 +267,7 @@ This builds `misp-core`, `misp-modules`, and `misp-guard` with all features incl
 
 **Build slim images:**
 ```bash
+sed -e '/^[[:space:]]*$/d' -e '/[#@]/d' -e 's/\"//g' -e 's/\(^[^=]*\)=\(.*\)/\1="\2"/' template.env > env.hcl
 docker buildx bake debian-slim
 ```
 
@@ -275,6 +277,8 @@ This builds lightweight versions of `misp-core-slim`, `misp-modules-slim`, and `
 - `debian` - Full-featured images (misp-core, misp-modules, misp-guard)
 - `debian-slim` - Lightweight images (misp-core-slim, misp-modules-slim, misp-guard)
 - `default` - Builds all variants (both full and slim)
+
+**Note:** The `sed` command converts `template.env` to `env.hcl` format by removing empty lines, comments, and properly formatting variables for the bake file.
 
 **After building with buildx bake:**
 
