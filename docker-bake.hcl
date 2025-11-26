@@ -100,6 +100,21 @@ group "default" {
   ]
 }
 
+group "debian-slim" {
+  targets = [
+    "misp-modules-slim",
+    "misp-core-slim",
+    "misp-guard",
+  ]
+}
+group "debain" {
+  targets = [
+    "misp-modules",
+    "misp-core",
+    "misp-guard",
+  ]
+}
+
 target "misp-modules" {
   context = "modules/."
   dockerfile = "Dockerfile"
@@ -113,15 +128,13 @@ target "misp-modules" {
 }
 
 target "misp-modules-slim" {
-  context = "modules/."
-  dockerfile = "Dockerfile"
+  inherits = [ "misp-modules" ]
   tags = flatten(["${NAMESPACE}/misp-modules:latest-slim", "${NAMESPACE}/misp-modules:${COMMIT_HASH}-slim", MODULES_TAG != "" ? ["${NAMESPACE}/misp-modules:${MODULES_TAG}-slim"] : []])
   args = {
     "MODULES_TAG": "${MODULES_TAG}",
     "MODULES_COMMIT": "${MODULES_COMMIT}",
     "MODULES_FLAVOR": "lite",
   }
-  platforms = "${PLATFORMS}"
 }
 
 target "misp-core" {
@@ -147,12 +160,11 @@ target "misp-core" {
     "PYPI_SETUPTOOLS_VERSION": "${PYPI_SETUPTOOLS_VERSION}",
     "PYPI_SUPERVISOR_VERSION": "${PYPI_SUPERVISOR_VERSION}",
   }
-  platforms = "${PLATFORMS}"
+  
 }
 
 target "misp-core-slim" {
-  context = "core/."
-  dockerfile = "Dockerfile"
+  inherits = [ "misp-core" ]
   tags = flatten(["${NAMESPACE}/misp-core:latest-slim", "${NAMESPACE}/misp-core:${COMMIT_HASH}-slim", CORE_TAG != "" ? ["${NAMESPACE}/misp-core:${CORE_TAG}-slim"] : []])
   args = {
     "CORE_TAG": "${CORE_TAG}",
@@ -173,7 +185,6 @@ target "misp-core-slim" {
     "PYPI_SETUPTOOLS_VERSION": "${PYPI_SETUPTOOLS_VERSION}",
     "PYPI_SUPERVISOR_VERSION": "${PYPI_SUPERVISOR_VERSION}",
   }
-  platforms = "${PLATFORMS}"
 }
 
 target "misp-guard" {
