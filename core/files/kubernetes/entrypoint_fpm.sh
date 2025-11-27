@@ -34,4 +34,4 @@ echo "Configure PHP | Change PHP values ..." && change_php_vars
 
 echo "Configure PHP | Starting PHP FPM"
 
-exec /usr/bin/tini -- /usr/sbin/php-fpm8.2 -R -F
+exec /usr/bin/tini -- /usr/sbin/php-fpm8.4 -R -F

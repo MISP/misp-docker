@@ -1,6 +1,6 @@
 ARG DOCKER_HUB_PROXY=""
 
-FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm" AS python-build
+FROM "${DOCKER_HUB_PROXY}python:3.12-slim-trixie" AS python-build
     ENV DEBIAN_FRONTEND=noninteractive
     ARG GUARD_TAG
     ARG GUARD_COMMIT
@@ -28,7 +28,7 @@ EOF
 
 
 
-FROM "${DOCKER_HUB_PROXY}python:3.12-slim-bookworm"
+FROM "${DOCKER_HUB_PROXY}python:3.12-slim-trixie"
     ENV DEBIAN_FRONTEND=noninteractive
 
     RUN <<-EOF
