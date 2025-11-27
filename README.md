@@ -259,26 +259,30 @@ Docker Buildx bake provides advanced build capabilities including multi-platform
 
 **Build full-featured images:**
 ```bash
+export NAMESPACE=local
+export COMMIT_HASH=`git rev-parse --short HEAD`
 sed -e '/^[[:space:]]*$/d' -e '/[#@]/d' -e 's/\"//g' -e 's/\(^[^=]*\)=\(.*\)/\1="\2"/' template.env > env.hcl
-docker buildx bake debian
+docker buildx bake -f docker-bake.hcl -f env.hcl --provenance false debian
 ```
 
 This builds `misp-core`, `misp-modules`, and `misp-guard` with all features included.
 
 **Build slim images:**
 ```bash
+export NAMESPACE=local
+export COMMIT_HASH=`git rev-parse --short HEAD`
 sed -e '/^[[:space:]]*$/d' -e '/[#@]/d' -e 's/\"//g' -e 's/\(^[^=]*\)=\(.*\)/\1="\2"/' template.env > env.hcl
-docker buildx bake debian-slim
+docker buildx bake -f docker-bake.hcl -f env.hcl --provenance false debian-slim
 ```
 
 This builds lightweight versions of `misp-core-slim`, `misp-modules-slim`, and `misp-guard` with reduced dependencies.
 
 **Available bake targets:**
-- `debian` - Full-featured images (misp-core, misp-modules, misp-guard)
-- `debian-slim` - Lightweight images (misp-core-slim, misp-modules-slim, misp-guard)
-- `default` - Builds all variants (both full and slim)
+- `standard` - Full-featured images (misp-core, misp-modules, misp-guard)
+- `slim` - Lightweight images (misp-core-slim, misp-modules-slim, misp-guard)
+- `default` - Builds all variants (both standard and slim)
 
-**Note:** The `sed` command converts `template.env` to `env.hcl` format by removing empty lines, comments, and properly formatting variables for the bake file.
+**Note:** The (GNU) `sed` command converts `template.env` to `env.hcl` format by removing empty lines, comments, and properly formatting variables for the bake file (on OSX you should install `gsed`).
 
 **After building with buildx bake:**
 

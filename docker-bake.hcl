@@ -104,14 +104,14 @@ group "default" {
   ]
 }
 
-group "debian-slim" {
+group "slim" {
   targets = [
     "misp-modules-slim",
     "misp-core-slim",
     "misp-guard",
   ]
 }
-group "debian" {
+group "standard" {
   targets = [
     "misp-modules",
     "misp-core",
@@ -166,9 +166,7 @@ target "misp-core" {
     "PYPI_SETUPTOOLS_VERSION": "${PYPI_SETUPTOOLS_VERSION}",
     "PYPI_SUPERVISOR_VERSION": "${PYPI_SUPERVISOR_VERSION}",
     "DOCKER_HUB_PROXY" : "${DOCKER_HUB_PROXY}",
-
   }
-  
 }
 
 target "misp-core-slim" {
