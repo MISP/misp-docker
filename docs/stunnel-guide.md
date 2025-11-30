@@ -91,4 +91,10 @@ You should now have TLS wrapped Redis, where the client and server are authentic
 
 Check the Administration -> Server Settings & Maintenance -> Diagnostics tool for system status.
 
-Stunnel log files will appear in in the `logs` dir as `stunnel.log` and `stunnel-errors.log`, and the `redis` container will also have relevant log output should you need to troubleshoot.
+### Troubleshooting ###
+
+Places to look for clues if you run into trouble:
+
+* stunnel log files will appear in in the `logs` dir as `stunnel.log` and `stunnel-errors.log`
+* Redis/valkey log output can be found in the `redis` container
+* Supervisord log output can be found in the `misp-core` container
