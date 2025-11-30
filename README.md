@@ -238,6 +238,58 @@ For Okta, create a new application integration:
 - If you need to automatically run additional steps each time the container starts, create a new file `files/customize_misp.sh`, and replace the variable `${CUSTOM_PATH}` inside `docker-compose.yml` with its parent path.
 - If you are interested in running streamlined versions of the images (fewer dependencies, easier approval from compliance), you might want to use the `latest-slim` tag. Just adjust the `docker-compose.yml` file, and run again `docker compose pull` and `docker compose up`.
 
+### Build Options
+
+This project supports multiple build methods to suit different needs.
+
+#### Using Docker Compose (Standard Method)
+
+For most users, the standard Docker Compose build is recommended:
+```bash
+docker compose build
+```
+
+#### Using Docker Buildx Bake (Advanced)
+
+Docker Buildx bake provides advanced build capabilities including multi-platform builds and parallel building of multiple targets. This method uses the `docker-bake.hcl` configuration file.
+
+**Prerequisites:**
+- Docker Buildx plugin installed and enabled
+- `template.env` file in the project root
+
+**Build full-featured images:**
+```bash
+export NAMESPACE=local
+export COMMIT_HASH=`git rev-parse --short HEAD`
+sed -e '/^[[:space:]]*$/d' -e '/[#@]/d' -e 's/\"//g' -e 's/\(^[^=]*\)=\(.*\)/\1="\2"/' template.env > env.hcl
+docker buildx bake -f docker-bake.hcl -f env.hcl --provenance false debian
+```
+
+This builds `misp-core`, `misp-modules`, and `misp-guard` with all features included.
+
+**Build slim images:**
+```bash
+export NAMESPACE=local
+export COMMIT_HASH=`git rev-parse --short HEAD`
+sed -e '/^[[:space:]]*$/d' -e '/[#@]/d' -e 's/\"//g' -e 's/\(^[^=]*\)=\(.*\)/\1="\2"/' template.env > env.hcl
+docker buildx bake -f docker-bake.hcl -f env.hcl --provenance false debian-slim
+```
+
+This builds lightweight versions of `misp-core-slim`, `misp-modules-slim`, and `misp-guard` with reduced dependencies.
+
+**Available bake targets:**
+- `standard` - Full-featured images (misp-core, misp-modules, misp-guard)
+- `slim` - Lightweight images (misp-core-slim, misp-modules-slim, misp-guard)
+- `default` - Builds all variants (both standard and slim)
+
+**Note:** The (GNU) `sed` command converts `template.env` to `env.hcl` format by removing empty lines, comments, and properly formatting variables for the bake file (on OSX you should install `gsed`).
+
+**After building with buildx bake:**
+
+You can still use Docker Compose to run the services:
+```bash
+docker compose up
+```
 #### Using slow disks as volume mounts
 
 Using a slow disk as the mounted volume or a volume with high latency like NFS, EFS or S3 might significantly increase the startup time and downgrade the performance of the service. To address this we will mount the bare minimum that needs to be persisted.

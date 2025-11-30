@@ -577,6 +577,16 @@ create_default_scheduled_tasks() {
         ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID;" | ${MYSQL_CMD}
 }
 
+print_version() {
+    VERSION_FILE="/var/www/MISP/VERSION.json"
+    if [[ -f "$VERSION_FILE" ]]; then
+        VERSION=$(jq -r '"\(.major).\(.minor).\(.hotfix)"' ${VERSION_FILE})
+    else
+        VERSION="unknown"
+    fi
+    echo "MISP | Version: ${VERSION}"
+}
+
 echo "MISP | Update CA certificates ..." && update_ca_certificates
 
 echo "MISP | Apply minimum configuration directives ..." && init_minimum_config
@@ -615,5 +625,5 @@ echo "MISP | Set Up Proxy ..." && set_up_proxy
 
 echo "MISP | Create default Scheduled Tasks ..." && create_default_scheduled_tasks
 
-echo "MISP | Mark instance live"
+echo "MISP | Mark instance live" && print_version
 sudo -u www-data /var/www/MISP/app/Console/cake Admin live 1

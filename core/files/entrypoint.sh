@@ -17,6 +17,10 @@ export MYSQL_TLS=${MYSQL_TLS:-false}
 export MYSQL_TLS_CA=${MYSQL_TLS_CA}
 export MYSQL_TLS_CERT=${MYSQL_TLS_CERT}
 export MYSQL_TLS_KEY=${MYSQL_TLS_KEY}
+if [[ "${MYSQL_TLS}" != true ]]; then
+  MYSQL_CMD+=" --skip-ssl"
+  export MYSQL_CMD
+fi
 export REDIS_HOST=${REDIS_HOST:-redis}
 export REDIS_PORT=${REDIS_PORT:-6379}
 export ENABLE_REDIS_EMPTY_PASSWORD=${ENABLE_REDIS_EMPTY_PASSWORD:-false}
