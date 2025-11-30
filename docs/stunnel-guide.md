@@ -26,7 +26,7 @@ This example largely builds on [this](https://redis.io/blog/stunnel-secure-redis
 
 ### Steps: ###
 
-### Copy the example files into the root of your misp-docker project ###
+#### Copy the example files into the root of your misp-docker project ####
 
 If you have an existing directory named `misp_custom` or a `docker-compose.override.yml` file already, the below will mess with them. You may wish to manually add these things in that case.
 
