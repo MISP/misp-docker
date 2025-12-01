@@ -138,7 +138,7 @@ target "misp-modules-slim" {
   args = {
     "MODULES_TAG": "${MODULES_TAG}",
     "MODULES_COMMIT": "${MODULES_COMMIT}",
-    "MODULES_FLAVOR": "lite",
+    "MODULES_FLAVOR": "slim",
     "DOCKER_HUB_PROXY" : "${DOCKER_HUB_PROXY}",
   }
 }
@@ -175,7 +175,7 @@ target "misp-core-slim" {
   args = {
     "CORE_TAG": "${CORE_TAG}",
     "CORE_COMMIT": "${CORE_COMMIT}",
-    "CORE_FLAVOR": "lite",
+    "CORE_FLAVOR": "slim",
     "PHP_VER": "${PHP_VER}",
     "PYPI_REDIS_VERSION": "${PYPI_REDIS_VERSION}",
     "PYPI_LIEF_VERSION": "${PYPI_LIEF_VERSION}",

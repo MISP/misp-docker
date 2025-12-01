@@ -2,18 +2,18 @@ ARG DOCKER_HUB_PROXY=""
 
 
 FROM "${DOCKER_HUB_PROXY}python:3.12-slim-trixie" AS php-base
-    ENV DEBIAN_FRONTEND=noninteractive
-    ARG CORE_TAG
-    ARG CORE_COMMIT
-    ARG PHP_VER
-    ARG CORE_FLAVOR
+ENV DEBIAN_FRONTEND=noninteractive
+ARG CORE_TAG
+ARG CORE_COMMIT
+ARG PHP_VER
+ARG CORE_FLAVOR
 
-    # Uncomment when building in corporate environments
-    # COPY ./cert.pem /usr/local/share/ca-certificates/rootca.pem
-    # COPY ./cert.pem /usr/lib/ssl/cert.pem
+# Uncomment when building in corporate environments
+# COPY ./cert.pem /usr/local/share/ca-certificates/rootca.pem
+# COPY ./cert.pem /usr/lib/ssl/cert.pem
 
-    RUN <<-EOF
-        if [ "${CORE_FLAVOR}" = "lite" ]; then
+RUN <<-EOF
+        if [ "${CORE_FLAVOR}" = "slim" ]; then
             apt-get install -y --no-install-recommends \
                 lsb-release \
                 ca-certificates \
@@ -88,18 +88,18 @@ FROM "${DOCKER_HUB_PROXY}python:3.12-slim-trixie" AS php-base
 EOF
 
 FROM php-base AS composer-build
-    ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV COMPOSER_ALLOW_SUPERUSER=1
 
-    WORKDIR /tmp
-    RUN curl -o /tmp/composer.json https://raw.githubusercontent.com/MISP/MISP/${CORE_COMMIT:-${CORE_TAG}}/app/composer.json
-    RUN sed -i '/cake-resque/d' /tmp/composer.json
-    RUN sed -i 's/authentication",/authentication"/' /tmp/composer.json
+WORKDIR /tmp
+RUN curl -o /tmp/composer.json https://raw.githubusercontent.com/MISP/MISP/${CORE_COMMIT:-${CORE_TAG}}/app/composer.json
+RUN sed -i '/cake-resque/d' /tmp/composer.json
+RUN sed -i 's/authentication",/authentication"/' /tmp/composer.json
 
-    COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-    RUN composer config --no-interaction allow-plugins.composer/installers true
-    RUN composer install
-    RUN <<-EOF
-        if [ "${CORE_FLAVOR}" = "lite" ]; then
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+RUN composer config --no-interaction allow-plugins.composer/installers true
+RUN composer install
+RUN <<-EOF
+        if [ "${CORE_FLAVOR}" = "slim" ]; then
             :
         else
             composer require --with-all-dependencies --no-interaction \
@@ -111,10 +111,10 @@ EOF
 
 
 FROM php-base AS php-build
-    ENV TZ=Etc/UTC
+ENV TZ=Etc/UTC
 
-    RUN <<-EOF
-        if [ "${CORE_FLAVOR}" = "lite" ]; then
+RUN <<-EOF
+        if [ "${CORE_FLAVOR}" = "slim" ]; then
             apt-get install -y --no-install-recommends \
                 gcc \
                 g++ \
@@ -139,13 +139,13 @@ FROM php-base AS php-build
         apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 EOF
 
-    RUN update-alternatives --set php /usr/bin/php8.4
-    RUN update-alternatives --set php-config /usr/bin/php-config8.4
-    RUN update-alternatives --set phpize /usr/bin/phpize8.4
+RUN update-alternatives --set php /usr/bin/php8.4
+RUN update-alternatives --set php-config /usr/bin/php-config8.4
+RUN update-alternatives --set phpize /usr/bin/phpize8.4
 
-    RUN <<-EOF
+RUN <<-EOF
         pecl channel-update pecl.php.net
-        if [ "${CORE_FLAVOR}" = "lite" ]; then
+        if [ "${CORE_FLAVOR}" = "slim" ]; then
             tar -czf /pecl_libs.tar.gz -T /dev/null
         else
             cp "/usr/lib/$(gcc -dumpmachine)"/libfuzzy.* /usr/lib
@@ -166,26 +166,26 @@ EOF
 
 
 FROM php-base AS python-build
-    ARG PYPI_REDIS_VERSION
-    ARG PYPI_LIEF_VERSION
-    ARG PYPI_PYDEEP2_VERSION
-    ARG PYPI_PYTHON_MAGIC_VERSION
-    ARG PYPI_MISP_LIB_STIX2_VERSION
-    ARG PYPI_MAEC_VERSION
-    ARG PYPI_MIXBOX_VERSION
-    ARG PYPI_CYBOX_VERSION
-    ARG PYPI_PYMISP_VERSION
-    ARG PYPI_MISP_STIX_VERSION
-    ARG PYPI_TAXII2_CLIENT
-    ARG PYPI_SETUPTOOLS_VERSION
-    ARG PYPI_SUPERVISOR_VERSION
+ARG PYPI_REDIS_VERSION
+ARG PYPI_LIEF_VERSION
+ARG PYPI_PYDEEP2_VERSION
+ARG PYPI_PYTHON_MAGIC_VERSION
+ARG PYPI_MISP_LIB_STIX2_VERSION
+ARG PYPI_MAEC_VERSION
+ARG PYPI_MIXBOX_VERSION
+ARG PYPI_CYBOX_VERSION
+ARG PYPI_PYMISP_VERSION
+ARG PYPI_MISP_STIX_VERSION
+ARG PYPI_TAXII2_CLIENT
+ARG PYPI_SETUPTOOLS_VERSION
+ARG PYPI_SUPERVISOR_VERSION
 
-    RUN apt-get install -y --no-install-recommends \
-        git \
-        && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+RUN apt-get install -y --no-install-recommends \
+    git \
+    && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-    # Download MISP using git in the /var/www/ directory. Remove unnecessary items.
-    RUN <<-EOF
+# Download MISP using git in the /var/www/ directory. Remove unnecessary items.
+RUN <<-EOF
         if [ ! -z "${CORE_COMMIT}" ]; then
             git clone https://github.com/MISP/MISP.git /var/www/MISP && cd /var/www/MISP && git checkout "${CORE_COMMIT}"
         else
@@ -194,7 +194,7 @@ FROM php-base AS python-build
         cd /var/www/MISP || exit; git submodule update --init --recursive .
 EOF
 
-    RUN <<-EOF
+RUN <<-EOF
         mkdir /wheels
 
         # Add additional dependencies (container specific)
@@ -245,27 +245,27 @@ EOF
 
 FROM php-base
 
-    # Remove some defaults (kernel logging) and fix alternatives
-    RUN sed -i '/imklog/s/^/#/' /etc/rsyslog.conf
-    RUN update-alternatives --set php /usr/bin/php8.4
+# Remove some defaults (kernel logging) and fix alternatives
+RUN sed -i '/imklog/s/^/#/' /etc/rsyslog.conf
+RUN update-alternatives --set php /usr/bin/php8.4
 
-    # Install python modules
-    COPY --from=python-build /wheels /wheels
-    RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
+# Install python modules
+COPY --from=python-build /wheels /wheels
+RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
 
-    # PHP: install prebuilt libraries, then install the app's PHP deps
-    COPY --from=php-build /pecl_libs.tar.gz /
-    RUN tar -xzf /pecl_libs.tar.gz && rm /pecl_libs.tar.gz
+# PHP: install prebuilt libraries, then install the app's PHP deps
+COPY --from=php-build /pecl_libs.tar.gz /
+RUN tar -xzf /pecl_libs.tar.gz && rm /pecl_libs.tar.gz
 
-    # Do an early chown to limit image size
-    COPY --from=python-build --chown=www-data:www-data --chmod=0550 /var/www/MISP /var/www/MISP
-    COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/composer.lock /var/www/MISP/app/composer.lock
-    COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/Vendor /var/www/MISP/app/Vendor
-    COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/Plugin /var/www/MISP/app/Plugin
+# Do an early chown to limit image size
+COPY --from=python-build --chown=www-data:www-data --chmod=0550 /var/www/MISP /var/www/MISP
+COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/composer.lock /var/www/MISP/app/composer.lock
+COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/Vendor /var/www/MISP/app/Vendor
+COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/Plugin /var/www/MISP/app/Plugin
 
-    # Gather these in one layer, only act on actual directories under /etc/php/
-    RUN <<-EOF
-        if [ "${CORE_FLAVOR}" = "lite" ]; then
+# Gather these in one layer, only act on actual directories under /etc/php/
+RUN <<-EOF
+        if [ "${CORE_FLAVOR}" = "slim" ]; then
             set -- 
         else
             set -- "ssdeep" "rdkafka" "brotli" "simdjson" "zstd"
@@ -279,17 +279,17 @@ FROM php-base
         phpenmod redis
 EOF
 
-    # nginx
-    RUN rm /etc/nginx/sites-enabled/*; mkdir -p /run/php /etc/nginx/certs
+# nginx
+RUN rm /etc/nginx/sites-enabled/*; mkdir -p /run/php /etc/nginx/certs
 
-    # Make a copy of the file and configuration stores, so we can sync from it
+# Make a copy of the file and configuration stores, so we can sync from it
 
-    # The spirit of the upstream dockerization is to make:
-    #   1) User and group aligned in terms of permissions
-    #   2) Files executable and read only, because of some rogue scripts like 'cake'
-    #   3) Directories writable, because sometimes MISP add new files
+# The spirit of the upstream dockerization is to make:
+#   1) User and group aligned in terms of permissions
+#   2) Files executable and read only, because of some rogue scripts like 'cake'
+#   3) Directories writable, because sometimes MISP add new files
 
-    RUN <<-EOF
+RUN <<-EOF
         cp -R /var/www/MISP/app/files /var/www/MISP/app/files.dist
         echo "${CORE_COMMIT:-${CORE_TAG}}" > /var/www/MISP/app/files/VERSION
         cp -R /var/www/MISP/app/Config /var/www/MISP/app/Config.dist
@@ -300,9 +300,9 @@ EOF
         touch /var/www/MISP/.git/ORIG_HEAD && chmod 0600 /var/www/MISP/.git/ORIG_HEAD && chown www-data:www-data /var/www/MISP/.git/ORIG_HEAD
 EOF
 
-    # Copy all our image specific files to appropriate locations
-    COPY files/ /
-    ENTRYPOINT [ "/entrypoint.sh" ]
+# Copy all our image specific files to appropriate locations
+COPY files/ /
+ENTRYPOINT [ "/entrypoint.sh" ]
 
-    # Change Workdirectory
-    WORKDIR /var/www/MISP
+# Change Workdirectory
+WORKDIR /var/www/MISP
