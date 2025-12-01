@@ -3,39 +3,60 @@ ARG DOCKER_HUB_PROXY=""
 
 FROM "${DOCKER_HUB_PROXY}python:3.12-slim-trixie" AS php-base
     ENV DEBIAN_FRONTEND=noninteractive
+    ARG CORE_TAG
+    ARG CORE_COMMIT
+    ARG PHP_VER
+    ARG CORE_FLAVOR
 
     # Uncomment when building in corporate environments
     # COPY ./cert.pem /usr/local/share/ca-certificates/rootca.pem
     # COPY ./cert.pem /usr/lib/ssl/cert.pem
 
-    RUN apt-get update; apt-get install -y --no-install-recommends \
-        lsb-release \
-        ca-certificates \
-        curl \
-        tini
-
-
-FROM php-base AS composer-build
-    ENV DEBIAN_FRONTEND=noninteractive
-    ENV COMPOSER_ALLOW_SUPERUSER=1
-    ARG CORE_TAG
-    ARG CORE_COMMIT
-    ARG CORE_FLAVOR
-
     RUN <<-EOF
         if [ "${CORE_FLAVOR}" = "lite" ]; then
             apt-get install -y --no-install-recommends \
+                lsb-release \
+                ca-certificates \
+                tini \
+                gettext \
+                procps \
+                sudo \
+                nginx \
+                openssl \
+                gpg \
+                gpg-agent \
+                mariadb-client \
+                rsync \
+                rsyslog \
                 php8.4 \
                 php8.4-curl \
                 php8.4-xml \
+                php8.4-mbstring \
                 php8.4-mysql \
                 php8.4-redis \
                 php8.4-gd \
                 php8.4-fpm \
                 php8.4-zip \
-                unzip
+                unzip \
+                zip \
+                curl \
+                uuid-runtime \
+                jq
         else
             apt-get install -y --no-install-recommends \
+                lsb-release \
+                ca-certificates \
+                tini \
+                gettext \
+                procps \
+                sudo \
+                nginx \
+                openssl \
+                gpg \
+                gpg-agent \
+                mariadb-client \
+                rsync \
+                rsyslog \
                 php8.4 \
                 php8.4-apcu \
                 php8.4-curl \
@@ -48,10 +69,26 @@ FROM php-base AS composer-build
                 php8.4-gd \
                 php8.4-fpm \
                 php8.4-zip \
-                unzip
+                php8.4-ldap \
+                libmagic1 \
+                libldap-common \
+                librdkafka1 \
+                libbrotli1 \
+                libsimdjson25 \
+                libzstd1 \
+                ssdeep \
+                libfuzzy2 \
+                unzip \
+                zip \
+                curl \
+                uuid-runtime \
+                jq
         fi
         apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 EOF
+
+FROM php-base AS composer-build
+    ENV COMPOSER_ALLOW_SUPERUSER=1
 
     WORKDIR /tmp
     RUN curl -o /tmp/composer.json https://raw.githubusercontent.com/MISP/MISP/${CORE_COMMIT:-${CORE_TAG}}/app/composer.json
@@ -74,10 +111,7 @@ EOF
 
 
 FROM php-base AS php-build
-    ENV DEBIAN_FRONTEND=noninteractive
     ENV TZ=Etc/UTC
-    ARG PHP_VER
-    ARG CORE_FLAVOR
 
     RUN <<-EOF
         if [ "${CORE_FLAVOR}" = "lite" ]; then
@@ -86,9 +120,7 @@ FROM php-base AS php-build
                 g++ \
                 git \
                 make \
-                php8.4 \
                 php8.4-dev \
-                php8.4-xml \
                 php-pear
         else
             apt-get install -y --no-install-recommends \
@@ -96,9 +128,7 @@ FROM php-base AS php-build
                 g++ \
                 git \
                 make \
-                php8.4 \
                 php8.4-dev \
-                php8.4-xml \
                 php-pear \
                 libbrotli-dev \
                 libfuzzy-dev \
@@ -217,80 +247,6 @@ EOF
 
 
 FROM php-base
-    ENV DEBIAN_FRONTEND=noninteractive
-    ARG CORE_TAG
-    ARG CORE_COMMIT
-    ARG PHP_VER
-    ARG CORE_FLAVOR
-
-    RUN <<-EOF
-        if [ "${CORE_FLAVOR}" = "lite" ]; then
-            apt-get install -y --no-install-recommends \
-                gettext \
-                procps \
-                sudo \
-                nginx \
-                openssl \
-                gpg \
-                gpg-agent \
-                mariadb-client \
-                rsync \
-                rsyslog \
-                php8.4 \
-                php8.4-curl \
-                php8.4-xml \
-                php8.4-mbstring \
-                php8.4-mysql \
-                php8.4-redis \
-                php8.4-gd \
-                php8.4-fpm \
-                php8.4-zip \
-                unzip \
-                zip \
-                curl \
-                uuid-runtime \
-                jq
-        else
-            apt-get install -y --no-install-recommends \
-                gettext \
-                procps \
-                sudo \
-                nginx \
-                openssl \
-                gpg \
-                gpg-agent \
-                mariadb-client \
-                rsync \
-                rsyslog \
-                php8.4 \
-                php8.4-apcu \
-                php8.4-curl \
-                php8.4-xml \
-                php8.4-intl \
-                php8.4-bcmath \
-                php8.4-mbstring \
-                php8.4-mysql \
-                php8.4-redis \
-                php8.4-gd \
-                php8.4-fpm \
-                php8.4-zip \
-                php8.4-ldap \
-                libmagic1 \
-                libldap-common \
-                librdkafka1 \
-                libbrotli1 \
-                libsimdjson25 \
-                libzstd1 \
-                ssdeep \
-                libfuzzy2 \
-                unzip \
-                zip \
-                curl \
-                uuid-runtime \
-                jq
-        fi
-        apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
-EOF
 
     # Remove some defaults (kernel logging) and fix alternatives
     RUN sed -i '/imklog/s/^/#/' /etc/rsyslog.conf
