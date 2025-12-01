@@ -126,7 +126,7 @@ target "misp-modules" {
   args = {
     "MODULES_TAG": "${MODULES_TAG}",
     "MODULES_COMMIT": "${MODULES_COMMIT}",
-    "MODULES_FLAVOR": "full",
+    "MODULES_FLAVOR": "standard",
     "DOCKER_HUB_PROXY" : "${DOCKER_HUB_PROXY}",
   }
   platforms = "${PLATFORMS}"
@@ -150,7 +150,7 @@ target "misp-core" {
   args = {
     "CORE_TAG": "${CORE_TAG}",
     "CORE_COMMIT": "${CORE_COMMIT}",
-    "CORE_FLAVOR": "full",
+    "CORE_FLAVOR": "standard",
     "PHP_VER": "${PHP_VER}",
     "PYPI_REDIS_VERSION": "${PYPI_REDIS_VERSION}",
     "PYPI_LIEF_VERSION": "${PYPI_LIEF_VERSION}",
