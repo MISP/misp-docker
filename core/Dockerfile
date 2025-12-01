@@ -84,7 +84,6 @@ RUN <<-EOF
                 uuid-runtime \
                 jq
         fi
-        apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 EOF
 
 FROM php-base AS composer-build
@@ -248,11 +247,11 @@ FROM php-base
 # Remove some defaults (kernel logging) and fix alternatives
 RUN sed -i '/imklog/s/^/#/' /etc/rsyslog.conf
 RUN update-alternatives --set php /usr/bin/php8.4
+RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Install python modules
 COPY --from=python-build /wheels /wheels
 RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
-
 # PHP: install prebuilt libraries, then install the app's PHP deps
 COPY --from=php-build /pecl_libs.tar.gz /
 RUN tar -xzf /pecl_libs.tar.gz && rm /pecl_libs.tar.gz
