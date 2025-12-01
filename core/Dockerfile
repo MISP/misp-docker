@@ -13,6 +13,7 @@ ARG CORE_FLAVOR
 # COPY ./cert.pem /usr/lib/ssl/cert.pem
 
 RUN <<-EOF
+        apt-get update
         if [ "${CORE_FLAVOR}" = "slim" ]; then
             apt-get install -y --no-install-recommends \
                 lsb-release \
