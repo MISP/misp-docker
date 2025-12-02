@@ -7,8 +7,8 @@ source /utilities.sh
 # envsubst won't evaluate anything like $() or conditional variable expansion so lets do that here
 export PYTHON_BIN="$(which python3)"
 export GPG_BINARY="$(which gpg)"
-export SETTING_CONTACT="${MISP_CONTACT-$ADMIN_EMAIL}"
-export SETTING_EMAIL="${MISP_EMAIL-$ADMIN_EMAIL}"
+export SETTING_CONTACT="${MISP_CONTACT}"
+export SETTING_EMAIL="${MISP_EMAIL}"
 
 init_minimum_config() {
     # Temporarily disable DB to apply config file settings, reenable after if needed 
@@ -43,7 +43,7 @@ configure_gnupg() {
 Key-Type: RSA
 Key-Length: 3072
 Name-Real: MISP Admin
-Name-Email: ${MISP_EMAIL-$ADMIN_EMAIL}
+Name-Email: ${MISP_EMAIL}
 Expire-Date: 0
 Passphrase: $GPG_PASSPHRASE
 %commit
@@ -63,7 +63,7 @@ GPGEOF
 
     if [ ! -f ${GPG_ASC} ]; then
         echo "... exporting GPG key"
-        sudo -u www-data gpg --homedir ${GPG_DIR} --export --armor ${MISP_EMAIL-$ADMIN_EMAIL} > ${GPG_ASC}
+        sudo -u www-data gpg --homedir ${GPG_DIR} --export --armor ${MISP_EMAIL} > ${GPG_ASC}
     else
         echo "... found exported key ${GPG_ASC}"
     fi
