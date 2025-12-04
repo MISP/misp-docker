@@ -7,8 +7,8 @@ source /utilities.sh
 # envsubst won't evaluate anything like $() or conditional variable expansion so lets do that here
 export PYTHON_BIN="$(which python3)"
 export GPG_BINARY="$(which gpg)"
-export SETTING_CONTACT="${MISP_CONTACT-$ADMIN_EMAIL}"
-export SETTING_EMAIL="${MISP_EMAIL-$ADMIN_EMAIL}"
+export SETTING_CONTACT="${MISP_CONTACT}"
+export SETTING_EMAIL="${MISP_EMAIL}"
 
 init_minimum_config() {
     # Temporarily disable DB to apply config file settings, reenable after if needed 
@@ -43,7 +43,7 @@ configure_gnupg() {
 Key-Type: RSA
 Key-Length: 3072
 Name-Real: MISP Admin
-Name-Email: ${MISP_EMAIL-$ADMIN_EMAIL}
+Name-Email: ${MISP_EMAIL}
 Expire-Date: 0
 Passphrase: $GPG_PASSPHRASE
 %commit
@@ -63,7 +63,7 @@ GPGEOF
 
     if [ ! -f ${GPG_ASC} ]; then
         echo "... exporting GPG key"
-        sudo -u www-data gpg --homedir ${GPG_DIR} --export --armor ${MISP_EMAIL-$ADMIN_EMAIL} > ${GPG_ASC}
+        sudo -u www-data gpg --homedir ${GPG_DIR} --export --armor ${MISP_EMAIL} > ${GPG_ASC}
     else
         echo "... found exported key ${GPG_ASC}"
     fi
@@ -359,8 +359,13 @@ init_user() {
         fi
         CHANGE_CMD=(sudo -u www-data /var/www/MISP/app/Console/cake User change_authkey 1 "${ADMIN_KEY}")
     elif [ -z "$ADMIN_KEY" ] && [ "$AUTOGEN_ADMIN_KEY" == "true" ]; then
-        echo "... regenerating admin key (set \$ADMIN_KEY if you want it to change)"
-        CHANGE_CMD=(sudo -u www-data /var/www/MISP/app/Console/cake User change_authkey 1)
+        HAS_VALID_KEY=$($MYSQL_CMD -N -s -e 'SELECT EXISTS(SELECT 1 FROM auth_keys WHERE user_id = 1 AND (expiration = 0 OR expiration > UNIX_TIMESTAMP()));')
+	if (( HAS_VALID_KEY == 0 )); then
+            echo "... regenerating admin key (set \$ADMIN_KEY if you want it to change)"
+            CHANGE_CMD=(sudo -u www-data /var/www/MISP/app/Console/cake User change_authkey 1)
+	else
+	    echo "... valid admin key for admin user found, not changing"
+	fi
     else
         echo "... admin user key auto generation disabled"
     fi
