@@ -37,7 +37,7 @@ The underlying spirit of this project is to allow "repeatable deployments", and 
 Make sure the following tools are installed and up to date before you begin. Older
 releases are a common source of build and runtime issues.
 
-- Docker Engine **20.10+** or Podman **4.0+**
+- Docker Engine **25+** or Podman **4.9+**
 - Docker Compose plugin **2.17+** (or Podman Compose when using Podman)
 - Access to pull container images from `ghcr.io`
 - Access to [Docker Hub](https://hub.docker.com) for pulling dependencies and base images
