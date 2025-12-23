@@ -101,7 +101,8 @@ set_up_oidc() {
                 \"default_org\": \"${OIDC_DEFAULT_ORG}\",
                 \"mixedAuth\": ${OIDC_MIXEDAUTH},
                 \"authentication_method\": \"${OIDC_AUTH_METHOD}\",
-                \"redirect_uri\": \"${OIDC_REDIRECT_URI}\"                
+                \"redirect_uri\": \"${OIDC_REDIRECT_URI}\",
++               \"update_user_role\": ${OIDC_UPDATE_USER_ROLE}                
             }
         }" > /dev/null
 
