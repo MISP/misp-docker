@@ -1,0 +1,15 @@
+{{- if .Values.misp.mispConfig.customScripts.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.misp.mispConfig.customScripts.configMapName }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    reloader.stakater.com/match: "true"
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    {{- include "misp.labels" . | nindent 4 }}
+data:
+  {{- (.Files.Glob "files/custom/*.sh").AsConfig | nindent 2 }}
+{{- end }}

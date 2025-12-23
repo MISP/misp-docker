@@ -1,0 +1,73 @@
+{{- if .Values.misp.networkPolicy.enabled }}
+kind: NetworkPolicy
+apiVersion: {{ template "common.capabilities.networkPolicy.apiVersion" . }}
+metadata:
+  name: {{ template "common.names.fullname" . }}
+  namespace: {{ include "common.names.namespace" . | quote }}
+  labels: 
+    {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+    app.kubernetes.io/part-of: misp
+  {{- if .Values.commonAnnotations }}
+  annotations: 
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+  {{- end }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "misp.matchLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+
+  {{- if .Values.misp.networkPolicy.allowExternalEgress }}
+  egress:
+    - {}
+  {{- else }}
+  egress:
+    # Allow DNS resolution
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+      to:
+        - podSelector:
+            matchLabels: 
+              {{- include "common.labels.matchLabels" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 14 }}
+    
+    {{- if .Values.misp.networkPolicy.extraEgress }}
+      {{- include "common.tplvalues.render" ( dict "value" .Values.misp.networkPolicy.extraEgress "context" $ ) | nindent 4 }}
+    {{- end }}
+  {{- end }}
+
+  ingress:
+    - ports:
+        - port: 8080
+      from:
+        - podSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Release.Namespace }}
+        - podSelector:
+            matchLabels: 
+              {{- include "common.labels.matchLabels" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 14 }}
+
+        {{- if .Values.misp.networkPolicy.ingressNSMatchLabels }}
+        - namespaceSelector:
+            matchLabels:
+              {{- range $key, $value := .Values.misp.networkPolicy.ingressNSMatchLabels }}
+              {{ $key | quote }}: {{ $value | quote }}
+              {{- end }}
+          {{- if .Values.misp.networkPolicy.ingressNSPodMatchLabels }}
+          podSelector:
+            matchLabels:
+              {{- range $key, $value := .Values.misp.networkPolicy.ingressNSPodMatchLabels }}
+              {{ $key | quote }}: {{ $value | quote }}
+              {{- end }}
+          {{- end }}
+        {{- end }}
+
+    {{- if .Values.misp.networkPolicy.extraIngress }}
+      {{- include "common.tplvalues.render" ( dict "value" .Values.misp.networkPolicy.extraIngress "context" $ ) | nindent 4 }}
+    {{- end }}
+
+{{- end }}

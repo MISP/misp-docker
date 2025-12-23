@@ -1,0 +1,1422 @@
+---
+## @section global parameters
+global:
+  ## @param global.imagePullSecrets List of secrets used for pulling images from private registries.
+  ## If your container images are stored in a private registry, you need to specify
+  ## the corresponding Kubernetes secret that contains authentication credentials.
+  ## Example: A secret created for Harbor or Docker Hub authentication.
+  imagePullSecrets:
+    - name: gitlab-registry-secret
+
+## @section Common parameters
+commonAnnotations: {}
+# yamllint disable
+## @param commonLabels Common labels to add to all MISP resources (sub-charts are not considered). Evaluated as a template
+##
+# yamllint enable
+commonLabels: {}
+## @param nameOverride String to partially override common.names.fullname template (will maintain the release name)
+##
+nameOverride: ""
+## @param fullnameOverride String to fully override common.names.fullname template
+##
+fullnameOverride: ""
+
+misp:
+
+  ## Specifies whether a ServiceAccount should be created
+  ##
+  serviceAccount: &serviceAccount
+    ## @param serviceAccount.create Enable the creation of a ServiceAccount for MISP pods
+    ##
+    create: true
+    ## @param serviceAccount.name Name of the created ServiceAccount
+    ## If not set and create is true, a name is generated using the MISP.fullname template
+    ##
+    name: ""
+    ## @param serviceAccount.annotations Annotations for MISP Service Account
+    ##
+    annotations: {}
+    ## @param serviceAccount.automountServiceAccountToken Automount service account token for the server service account
+    ##
+    automountServiceAccountToken: false
+
+  ## @param replicaCount Number of MISP replicas
+  ##
+  replicaCount: 1
+
+
+  ## MISP image
+  ## @param image.registry [default: REGISTRY_NAME] MISP image registry
+  ## @param image.tag MISP image tag (immutable tags are recommended)
+  ## @param image.pullPolicy MISP image pull policy
+  ##
+  image:
+    repository: path/to/misp/image
+    pullPolicy: Always
+    tag: 2.5.27
+
+  initContainers:
+    ## @param initContainers.image The image used for the initialization container.
+    ## Specifies the container image that will run before the main application container starts.
+    ## In this case, it's set to `busybox`, a lightweight container often used for simple tasks.
+    image: busybox
+    resources:
+      limits:
+        cpu: 250m
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    waitForDbAndValkey:
+      command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Waiting for MariaDB Database, Valkey Database to be ready..."
+          until nc -z -w 5 {{ .Release.Name }}-mariadb 3306; do
+            echo "waiting for MariaDB..."; sleep 10;
+          done;
+          echo "MariaDB is ready.";
+          until nc -z -w 5 {{ .Release.Name }}-valkey-master 6379; do
+            echo "waiting for Valkey..."; sleep 10;
+          done;
+          echo "Valkey is ready.";
+          echo "All services are ready"
+
+    ## @param initContainers.pullPolicy The pull policy for the initialization container image.
+    ## Determines when the image should be pulled from the registry.
+    ## `Always` means the image will be pulled every time the container starts, ensuring the latest version.
+    pullPolicy: Always
+
+  ## @param podLabels MISP pod label. If labels are same as commonLabels , this will take precedence
+  podLabels:
+    sidecar.istio.io/inject: "true"
+
+  ## todo: maybe delete
+  ## @param global.serviceAccount Kubernetes ServiceAccount configuration.
+  ## Specifies the name of the ServiceAccount that will be used by the deployed resources.
+  ## This can be useful for managing permissions and access within the cluster.
+  ## serviceAccount:
+  ##  name: basic-secret
+
+  ## @section vault secrets
+  vault:
+    ## @param vault.enabled Enable or disable Vault integration.
+    ## When set to `true`, secrets such as passwords and API keys will be retrieved from a Vault instance.
+    enabled: false
+    ## @param vault.role Role used for Vault authentication.
+    ## This defines the Vault role that provides access to the required secrets.
+    role: ""
+    ## @param vault.secrets List of secrets to retrieve from Vault.
+    ## Each secret must define the following required parameters:
+    ## - `name`: The internal reference name for the secret.
+    ## - `secretmount`: The Vault mount path where the secret is stored.
+    ## - `secretpath`: The specific Vault path to the secret within the mount.
+    ## - `destinationname`: The name under which the secret will be available in the application.
+    ## Example:
+    ##    - name: misp-core-secrets
+    ##      secretmount: siem
+    ##      secretpath: misp/initial_user
+    ##      destinationname: misp-core-secrets
+    secrets: []
+
+  keycloakSecret:
+    enabled: false
+
+  mispCertSecret:
+    ## @param mispCertSecret.enabled Enable or disable the usage of a TLS certificate for MISP.
+    ## When set to `true`, a TLS certificate is mounted to enable secure communication with MISP.
+    ## This may be required for jobs such as the `initTags` job that interact with MISP securely.
+    enabled: false
+    ## @param mispCertSecret.name Name of the Kubernetes secret containing the MISP TLS certificate.
+    ## This secret stores the TLS certificate needed for secure communication with MISP.
+    name: ""
+    ## @param mispCertSecret.key Key within the secret that holds the TLS certificate.
+    ## Defines the specific key inside the Kubernetes secret where the certificate is stored.
+    ## Typically, this is `tls.crt` for TLS certificates.
+    key: ""
+    ## @param mispCertSecret.mountpath Mount path where the TLS certificate will be available.
+    ## Specifies the location inside the container where the certificate will be mounted.
+    ## The mounted certificate allows MISP-related jobs to establish a secure connection.
+    mountpath: ""
+
+  ## @section MISP core/transit parameters
+  isCore:
+    ## @param isCore.enabled Enable or disable Core mode for MISP.
+    ## When set to `true`, MISP runs in Core mode
+    enabled: true
+  ##
+  isTransit:
+    ## @param isTransit.enabled Enable or disable Transit MISP mode.
+    ## When set to `true`, this instance operates as a Transit MISP.
+    ## A Transit MISP is used to exchange events with other organizations.
+    ## Each organization (maybe) requires a dedicated Transit MISP instance.
+    ## The Transit MISP connects to the Core MISP and cannot function independently.
+    enabled: false
+    ## @param isTransit.debug Enable debug mode for the Transit MISP.
+    ## When set to `true`, additional debugging information is logged.
+    ## This is useful for troubleshooting connectivity issues with the Core MISP.
+    debug: false
+    ## @param isTransit.coreUrl URL of the Core MISP instance.
+    ## The Transit MISP connects to this Core MISP for synchronization.
+    ## Example: "https://core-misp.example.com"
+    coreUrl: ""
+    ## @param isTransit.serverName Name of the Transit MISP server.
+    ## This is used for identification within the MISP ecosystem.
+    ## Example: Org-1
+    serverName: ""
+    ## @param isTransit.selfSigned Allow self-signed SSL certificates.
+    ## When set to `true`, self-signed certificates are accepted for communication
+    ## between the Transit MISP and the Core MISP.
+    selfSigned: false
+    ## @param isTransit.isInternal Define whether the Transit MISP is internal.
+    ## When set to `true`, this Transit MISP is used for internal event exchange within an organization.
+    ## If `false`, it is used for external event sharing with other organizations.
+    isInternal: false
+    ## @param isTransit.push Enable pushing events to the Core MISP.
+    ## When set to `true`, events are actively sent from the Transit MISP to the Core MISP and Organisation.
+    push: true
+    ## @param isTransit.pull Enable pulling events from the Core MISP.
+    ## When set to `true`, the Transit MISP can pull Events from Core MISP and Organisations.
+    pull: true
+    ## @param isTransit.syncOrgName Name of the organization that this Transit MISP represents.
+    ## This name is used for synchronization and event exchange with the Core MISP.
+    syncOrgName: ""
+    ## @param isTransit.isLocalOrg Define whether the organization is considered local.
+    ## When set to `true`, the organization is treated as a local entity within the Core MISP.
+    ## If `false`, it is considered an external organization.
+    isLocalOrg: false
+    ## @param isTransit.orgType Type of the organization using this Transit MISP.
+    ## Options:
+    ## - Custom values: You can define your own organization types based on specific requirements.
+    ## - `remote`: The organization is external and connects remotely.
+    ## - `local`: The organization is part of the internal network.
+    orgType: "remote"
+    ## @param isTransit.org_description Description of the organization.
+    ## This is used for documentation and identification purposes.
+    org_description: "my remote org"
+  ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+
+
+  ## @section MISP logging
+  mispLogs:
+    ## @param mispLogs.enabled Enable or disable extended logging for MISP.
+    ## When set to `true`, additional logging features are activated in MISP.
+    ## This helps in monitoring and debugging MISP operations.
+    enabled: true
+    ## @param mispLogs.debug Enable debug mode for the logging container.
+    ## When set to `true`, the logging container will be paused for debugging purposes.
+    ## Useful for troubleshooting logging-related issues.
+    debug: false
+
+  ## @section MISP initial config
+  mispConfig:
+    ## @param mispConfig.soarUsers.enabled Enable SOAR (Security Orchestration, Automation and Response) users
+    ## When set to `true`, additional SOAR users will be created with predefined API keys
+    soarUsers:
+      enabled: false
+      ## @param mispConfig.soarUsers.secretName Name of the secret containing SOAR user credentials
+      secretName: misp-soar-users-secret
+      ## @param mispConfig.soarUsers.users List of SOAR users to create
+      ## Each user should have email, role_id, org_id, and secret_key defined
+      users: []
+        # - email: "soar1@misp.local"
+        #   role_id: 1
+        #   org_id: 1
+        #   secret_key: "soaruser1"
+    customScripts:
+      ## @param mispConfig.customScripts.enabled Enable custom scripts execution after MISP initialization
+      ## When set to `true`, custom scripts will be mounted and executed after MISP starts
+      enabled: true
+      ## @param mispConfig.customScripts.configMapName Name of the ConfigMap containing custom scripts
+      ## This ConfigMap should contain the scripts to be executed
+      configMapName: "misp-customize"
+      ## @param mispConfig.customScripts.mountPath Path where custom scripts will be mounted
+      ## Default path matches Docker setup convention. Available as CUSTOM_PATH env var in scripts
+      mountPath: "/custom/files"
+      ## @param mispConfig.customScripts.runInBackground Run scripts in background (async) or synchronously
+      ## When `true`, each script runs independently in background (parallel execution)
+      ## When `false`, scripts run sequentially with full console logging
+      ## NOTE: MISP startup is NEVER blocked - scripts wait for MISP to be ready first
+      runInBackground: true
+      ## @param mispConfig.customScripts.scripts List of script names to execute
+      ## Scripts will be executed in the order specified
+      scripts:
+        - "customize_misp.sh"
+    ## @param mispConfig.backoffLimit Number of retries before considering the configuration job as failed
+    backoffLimit: 4
+    ## @param mispConfig.loglevel Log level for the MISP configuration job (debug, info, warning, error)
+    loglevel: info
+    ## @param mispConfig.jobAnnotations Additional annotations for the MISP configuration job
+    jobAnnotations: {}
+    ## @param mispConfig.restartPolicy Restart policy for the MISP configuration job (OnFailure, Never)
+    restartPolicy: OnFailure
+    ## @param mispConfig.image Docker image for the MISP configurator.
+    ## This image is responsible for initializing and configuring MISP settings.
+    image:
+      repository: path/to/image/misp-configurator
+      tag: 1.0.20
+      pullPolicy: Always
+    ## @param mispConfig.initialAdminUsername Email address/username for the initial MISP admin user
+    initialAdminUsername: "admin"
+    ## @param mispConfig.emergencyUser.enabled Enable creation of an emergency user account
+    ## Emergency user can be used for system recovery when primary admin account is locked
+    emergencyUser:
+      ## @param mispConfig.emergencyUser.username Email address for the emergency user
+      username: "emergency@misp.local"
+      enabled: false
+      ## @param mispConfig.emergencyUser.role Role for the emergency user (e.g., "Publisher", "Admin")
+      role: "Publisher"
+    ## @param mispConfig.disableInitialAdmin.enabled Disable the initial admin user after setup
+    ## Useful for security when using alternative authentication methods
+    disableInitialAdmin:
+      ## @param mispConfig.disableInitialAdmin.username Username of the admin account to disable
+      username: "config@misp.local"
+      enabled: false
+      ## @param mispConfig.disableInitialAdmin.existingSecret Name of existing secret with credentials
+      existingSecret: ""
+    ## @param mispConfig.extraCerts.enabled Enable mounting of additional CA certificates
+    ## Useful when MISP needs to trust custom certificate authorities
+    extraCerts:
+      enabled: false
+      ## @param mispConfig.extraCerts.templatePath Path to the template directory
+      templatePath: misp/templates
+      ## @param mispConfig.extraCerts.configMapFile Name of the ConfigMap file containing certificates
+      configMapFile: extra-certs.yaml
+    ## @param mispConfig.extraObjects.enabled Enable custom MISP object templates
+    ## Allows adding custom object types beyond the default MISP objects
+    extraObjects:
+      enabled: false
+      ## @param mispConfig.extraObjects.mountPath Temporary mount path for extra objects during initialization
+      mountPath: "/tmp/extra-objects"
+      ## @param mispConfig.extraObjects.objectPath Final path where MISP objects are stored
+      objectPath: "/var/www/MISP/app/files/misp-objects/objects"
+      ## @param mispConfig.extraObjects.objectSchema Path to custom object schema override file
+      objectSchema: "/tmp/objects-schema-override/schema_objects.json"
+
+    extraVars:
+      ## @param extraVars.ORGNAME Name of the organization.
+      ## This is used as the default organization name in MISP.
+      ORGNAME: "Demo"
+      ## @param extraVars.ADMIN_ORG Name of the administrative organization.
+      ## Defines which organization has administrative privileges.
+      ADMIN_ORG: "Demo"
+      ## @param extraVars.EMAIL Default contact email address.
+      ## This email is used for system notifications and administrative contact.
+      EMAIL: misp@example.com
+      ## @param extraVars.CONTACT Support contact email address.
+      ## This email is displayed for users needing support.
+      CONTACT: "support@example.com"
+      ## @param extraVars.DISABLE_EMAIL Disable email functionality.
+      ## If set to `true`, MISP will not send emails.
+      DISABLE_EMAIL: false
+      ## @param extraVars.DO_NOT_LOG_AUTH_KEYS Prevent logging of authentication keys.
+      ## When set to `true`, API authentication keys will not be logged for security reasons.
+      #DO_NOT_LOG_AUTH_KEYS: true
+      ## @param extraVars.AUTH_AMOUNT Maximum number of authentication attempts.
+      ## Defines how many times a user can attempt authentication before being locked out.
+      AUTH_AMOUNT: 5
+      ## @param extraVars.AUTH_EXPIRE Authentication session expiration time in seconds.
+      ## Determines how long a session remains valid before requiring re-authentication.
+      AUTH_EXPIRE: 300
+      # @param extraVars.LOG_CLIENT_IP Enable logging of client IP addresses.
+      ## When set to `true`, MISP will log the IP addresses of connected clients.
+      LOG_CLIENT_IP: true
+      ## @param extraVars.LOG_AUTH Enable authentication logging.
+      ## If `true`, MISP will log authentication events.
+      LOG_AUTH: true
+      ## @param extraVars.STORE_API_ACCESS_TIME Store API access timestamps.
+      ## If `true`, MISP will log the time of API requests for auditing purposes.
+      STORE_API_ACCESS_TIME: true
+      ## @param extraVars.LOG_USER_IPS Enable logging of user IP addresses.
+      ## When set to `true`, user IPs will be stored in the logs.
+      LOG_USER_IPS: true
+      ## @param extraVars.LOG_NEW_AUDIT Enable new audit logging.
+      ## If `true`, additional audit logs will be created for security tracking.
+      LOG_NEW_AUDIT: true
+      ## @param extraVars.LOG_NEW_AUDIT_COMPRESS Enable compression for new audit logs.
+      ## When set to `true`, audit logs will be compressed to save space.
+      LOG_NEW_AUDIT_COMPRESS: true
+      ## @param extraVars.DISABLE_USER_ADD Prevent new user creation.
+      ## If `true`, new user accounts cannot be created.
+      DISABLE_USER_ADD: true
+      ## @param extraVars.DISABLE_USER_LOGIN_CHANGE Prevent users from changing their login.
+      ## If `true`, users cannot modify their login credentials.
+      DISABLE_USER_LOGIN_CHANGE: true
+      ## @param extraVars.DISABLE_USER_PASSWORD_CHANGE Prevent users from changing their password.
+      ## If `true`, password changes by users are disabled.
+      DISABLE_USER_PASSWORD_CHANGE: true
+      ## @param extraVars.ENABLE_CSP_ENFORCE Enforce Content Security Policy (CSP).
+      ## If `true`, CSP rules will be applied for enhanced security.
+      ENABLE_CSP_ENFORCE: true
+      ## @param extraVars.PASSWORD_LENGTH Minimum password length.
+      ## Defines the required length for user passwords.
+      PASSWORD_LENGTH: 16
+      ## @param extraVars.PASSWORD_COMPLEXITY Password complexity regex.
+      ## Specifies a regex pattern enforcing password complexity rules.
+      PASSWORD_COMPLEXITY: "/^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).{16,}$/"
+      ## @param extraVars.NGINX_LIVE Enable live Nginx updates.
+      ## If `true`, Nginx will update configurations without restarting.
+      # NGINX_LIVE: false
+      ## @param extraVars.NGINX_RELOAD Force Nginx to reload configurations.
+      ## If `true`, Nginx will be reloaded after config changes.
+      NGINX_RELOAD: false
+      ## @param extraVars.DISABLE_SSL_REDIRECT Disable automatic SSL redirection.
+      ## If `true`, HTTP traffic will not be automatically redirected to HTTPS.
+      DISABLE_SSL_REDIRECT: true
+      ## @param extraVars.VERIFY_CERT Enable certificate verification.
+      ## When set to `true`, SSL certificates will be validated for secure communication.
+      VERIFY_CERT: true
+      ## @param extraVars.NUM_WORKERS_DEFAULT Number of default worker processes.
+      ## Defines the number of background workers handling general tasks.
+      NUM_WORKERS_DEFAULT: 1
+      ## @param extraVars.NUM_WORKERS_PRIO Number of priority worker processes.
+      ## Specifies the number of workers assigned to priority tasks.
+      NUM_WORKERS_PRIO: 2
+      ## @param extraVars.NUM_WORKERS_EMAIL Number of email worker processes.
+      ## Determines how many workers handle email-related tasks.
+      NUM_WORKERS_EMAIL: 3
+      ## @param extraVars.NUM_WORKERS_UPDATE Number of update worker processes.
+      ## Specifies the number of workers responsible for updates.
+      NUM_WORKERS_UPDATE: 4
+      ## @param extraVars.NUM_WORKERS_CACHE Number of cache worker processes.
+      ## Defines the number of workers handling caching tasks.
+      NUM_WORKERS_CACHE: 5
+      ## @param extraVars.MISP_debug_logs Enable MISP debug logs.
+      ## If `true`, additional debug logs will be recorded for troubleshooting.
+      MISP_debug_logs: false
+      ## @param extraVars.MISP_ADVANCED_LOGGING Enable advanced logging for MISP.
+      ## When set to `true`, more detailed logs are collected for debugging and monitoring.
+      MISP_ADVANCED_LOGGING: true
+      ## @param extraVars.AUTH_ENFORCED Enforce authentication.
+      ## If `true`, authentication is mandatory for accessing MISP.
+      AUTH_ENFORCED: true
+      ## Custom script configuration variables
+      ## @param extraVars.CUSTOM_ORG_NAME Custom organization name for MISP
+      CUSTOM_ORG_NAME: ""
+      ## @param extraVars.CUSTOM_EMAIL Custom admin email for MISP
+      CUSTOM_EMAIL: ""
+      ## @param extraVars.CUSTOM_TAGS Comma-separated list of custom tags to create
+      CUSTOM_TAGS: ""
+      ## @param extraVars.DISABLE_CORRELATION Disable MISP correlation engine
+      DISABLE_CORRELATION: false
+      ## @param extraVars.ENABLE_BACKGROUND_PROCESSING Enable background processing
+      ENABLE_BACKGROUND_PROCESSING: true
+      ## @param extraVars.UPDATE_WARNINGLISTS Update MISP warning lists during startup
+      UPDATE_WARNINGLISTS: false
+      ## @param extraVars.UPDATE_TAXONOMIES Update MISP taxonomies during startup
+      UPDATE_TAXONOMIES: false
+      ## @param extraVars.UPDATE_OBJECT_TEMPLATES Update MISP object templates during startup
+      UPDATE_OBJECT_TEMPLATES: false
+      ## @param extraVars.UPDATE_GALAXY_CLUSTERS Update MISP galaxy clusters during startup
+      UPDATE_GALAXY_CLUSTERS: false
+      ## @param misp.misp.mispConfig.extraVars.ATTACHMENTS_DIR Attachments directory
+      ## ATTACHMENTS_DIR: "/var/www/MISP/app/files"
+      ## @param misp.misp.mispConfig.extraVars.ADMIN_ORG_UUID Admin organization UUID
+      ## ADMIN_ORG_UUID: "e8a464ce-f140-47b4-a535-0a571816fd3d"
+      # yamllint disable
+      ## @param misp.misp.mispConfig.extraVars.DISABLE_PRINTING_PLAINTEXT_CREDENTIALS Prevent printing plaintext credentials
+      # yamllint enable
+      DISABLE_PRINTING_PLAINTEXT_CREDENTIALS: true
+      ## @param misp.misp.mispConfig.extraVars.DEBUG Enable debug mode
+      DEBUG: 0
+      ## @param misp.misp.mispConfig.extraVars.SUPERVISOR_USERNAME Supervisor username
+      SUPERVISOR_USERNAME: supervisor
+
+    ## Enable persistence using Persistent Volume Claims
+    ## ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+    ##
+    persistence:
+      # yamllint disable
+      ## @param primary.persistence.enabled Enable persistence on MISP primary replicas using a `PersistentVolumeClaim`. If false, use emptyDir
+      # yamllint enable
+      ##
+      enabled: true
+      ## @param primary.persistence.size MISP primary persistent volume size
+      ##
+      size: 5Gi
+      labels: {}
+      annotations: {}
+      spec:
+        ## @param primary.persistence.storageClass MISP primary persistent volume storage Class
+        ## If defined, storageClassName: <storageClass>
+        ## If set to "-", storageClassName: "", which disables dynamic provisioning
+        ## If undefined (the default) or set to null, no storageClassName spec is
+        ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+        ##   GKE, AWS & OpenStack)
+        ##
+        storageClassName: local-path
+        ## @param primary.persistence.accessModes MISP primary persistent volume access Modes
+        ##
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 5Gi
+
+  ## MISP authentification parameters
+  auth:
+    ## @param auth.adminEmail Username for the admin user in MISP.
+    ## Ignored if existing secret is provided
+    adminEmail: "admin@misp.devlab.local"
+    ## @param auth.adminPassword Password for the admin user in MISP.
+    ## Autogenerated if empty, Ignored if existing secret is provided
+    adminPassword: ""
+    ## @param auth.apiKey Password for the admin user in MISP. Autogenerated if empty.
+    ## Ignored if existing secret is provided
+    apiKey: ""
+    ## @param auth.existingSecret Use existing secret for password details.
+    ## The secret has to contain the keys `username`, `password` and `apikey`
+    ## NOTE: When it's set the auth.adminEmail, auth.adminPassword, auth.apiKey a are ignored.
+    existingSecret: ""
+
+    oidc:
+      ## @param auth.oidc.enable Enable or disable OIDC authentication.
+      ## Set to `true` to enable OIDC authentication, otherwise `false`.
+      enable: false
+      ## @param auth.oidc.offline_access Enable offline access for OIDC tokens.
+      ## When set to `true`, refresh tokens will be requested to allow long-lived sessions.
+      offline_access: false
+      ## @param auth.oidc.provider_url URL of the OIDC provider.
+      ## This should point to the realm-specific endpoint of your identity provider.
+      provider_url: ""
+      ## @param auth.oidc.custom_logout_url Custom logout URL for OIDC.
+      ## Defines the endpoint for logging out users from the identity provider.
+      custom_logout_url: ""
+      ## @param auth.oidc.client_id Client ID for OIDC authentication.
+      ## This must match the client ID configured in the identity provider.
+      client_id: "misp"
+      ## @param auth.oidc.roles_property OIDC claim containing user roles.
+      ## Defines the claim in the ID token that maps to MISP roles.
+      roles_property: "misp-roles"
+      ## @param auth.oidc.roles_mapping Mapping of OIDC roles to MISP roles.
+      ## Defines how OIDC roles map to MISP role IDs.
+      ## Example: "misp-admin" → MISP Role ID 1, "misp-user" → MISP Role ID 3
+      roles_mapping: '{"misp-admin": "1", "misp-user": "3", "misp-publisher": "4"}'
+      ## @param auth.oidc.default_org Default organization for new OIDC users.
+      ## Specifies the MISP organization assigned to users authenticated via OIDC.
+      default_org: "Demo"
+  ## @param extraEnvVarsSecret Name of existing Secret containing extra env vars
+  ## e.g:
+  ##  - name: SYNC_USER
+  ##     valueFrom:
+  ##       secretKeyRef:
+  ##         name: "{{ include \"common.names.fullname\" . }}-sync-user"
+  ##         key: username
+  ##  - name: OIDC_CLIENT_SECRET
+  ##    valueFrom:
+  ##      secretKeyRef:
+  ##        name: "{{ include \"common.names.fullname\" . }}-oidc"
+  ##        key: keycloak-client-secret
+  ## only for transit MISP
+  ## - name: SYNC_USER
+  ##   valueFrom:
+  ##     secretKeyRef:
+  ##       name: "{{ include \"common.names.fullname\" . }}-sync-user"
+  ##       key: username
+  ## - name: SYNC_USER_AUTHKEY
+  ##   valueFrom:
+  ##     secretKeyRef:
+  ##       name: "{{ include \"common.names.fullname\" . }}-sync-user"
+  ##       key: apikey
+  extraEnvVarsSecret:
+    - name: ADMIN_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: "{{ include \"misp.serviceAccountName\" . }}-misp-secrets"
+          key: password
+
+  ## @param extraEnvVars List with extra environment variables to add to backend containers
+  ## e.g:
+  ## extraEnvVars:
+  ##   - FOO: bar
+  ##
+  extraEnvVars:
+    ## @param extraEnvVars.ORGNAME Name of the organization.
+    ## This is used as the default organization name in MISP.
+    ORGNAME: "Demo"
+    ## @param extraEnvVars.ADMIN_ORG Name of the administrative organization.
+    ## Defines which organization has administrative privileges.
+    ADMIN_ORG: "Demo"
+    ## @param extraEnvVars.EMAIL Default contact email address.
+    ## This email is used for system notifications and administrative contact.
+    EMAIL: "misp@example.com"
+    ## @param extraEnvVars.CONTACT Support contact email address.
+    ## This email is displayed for users needing support.
+    CONTACT: "support@example.com"
+    ## @param extraEnvVars.DISABLE_EMAIL Disable email functionality.
+    ## If set to `true`, MISP will not send emails.
+    DISABLE_EMAIL: "false"
+    ## @param extraEnvVars.DO_NOT_LOG_AUTH_KEYS Prevent logging of authentication keys.
+    ## When set to `true`, API authentication keys will not be logged for security reasons.
+    DO_NOT_LOG_AUTH_KEYS: "true"
+    ## @param extraEnvVars.AUTH_AMOUNT Maximum number of authentication attempts.
+    ## Defines how many times a user can attempt authentication before being locked out.
+    AUTH_AMOUNT: "5"
+    ## @param extraEnvVars.AUTH_EXPIRE Authentication session expiration time in seconds.
+    ## Determines how long a session remains valid before requiring re-authentication.
+    AUTH_EXPIRE: "300"
+    # @param extraEnvVars.LOG_CLIENT_IP Enable logging of client IP addresses.
+    ## When set to `true`, MISP will log the IP addresses of connected clients.
+    LOG_CLIENT_IP: "true"
+    ## @param extraEnvVars.LOG_AUTH Enable authentication logging.
+    ## If `true`, MISP will log authentication events.
+    LOG_AUTH: "true"
+    ## @param extraEnvVars.STORE_API_ACCESS_TIME Store API access timestamps.
+    ## If `true`, MISP will log the time of API requests for auditing purposes.
+    STORE_API_ACCESS_TIME: "true"
+    ## @param extraEnvVars.LOG_USER_IPS Enable logging of user IP addresses.
+    ## When set to `true`, user IPs will be stored in the logs.
+    LOG_USER_IPS: "true"
+    ## @param extraEnvVars.LOG_NEW_AUDIT Enable new audit logging.
+    ## If `true`, additional audit logs will be created for security tracking.
+    LOG_NEW_AUDIT: "true"
+    ## @param extraEnvVars.LOG_NEW_AUDIT_COMPRESS Enable compression for new audit logs.
+    ## When set to `true`, audit logs will be compressed to save space.
+    LOG_NEW_AUDIT_COMPRESS: "true"
+    ## @param extraEnvVars.DISABLE_USER_ADD Prevent new user creation.
+    ## If `true`, new user accounts cannot be created.
+    DISABLE_USER_ADD: "true"
+    ## @param extraEnvVars.DISABLE_USER_LOGIN_CHANGE Prevent users from changing their login.
+    ## If `true`, users cannot modify their login credentials.
+    DISABLE_USER_LOGIN_CHANGE: "true"
+    ## @param extraEnvVars.DISABLE_USER_PASSWORD_CHANGE Prevent users from changing their password.
+    ## If `true`, password changes by users are disabled.
+    DISABLE_USER_PASSWORD_CHANGE: "true"
+    ## @param extraEnvVars.ENABLE_CSP_ENFORCE Enforce Content Security Policy (CSP).
+    ## If `true`, CSP rules will be applied for enhanced security.
+    ENABLE_CSP_ENFORCE: "false"
+    ## @param extraEnvVars.PASSWORD_LENGTH Minimum password length.
+    ## Defines the required length for user passwords.
+    PASSWORD_LENGTH: "16"
+    ## @param extraEnvVars.PASSWORD_COMPLEXITY Password complexity regex.
+    ## Specifies a regex pattern enforcing password complexity rules.
+    PASSWORD_COMPLEXITY: "/^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).{16,}$/"
+    ## @param extraEnvVars.NGINX_LIVE Enable live Nginx updates.
+    ## If `true`, Nginx will update configurations without restarting.
+    NGINX_LIVE: "false"
+    ## @param extraEnvVars.NGINX_RELOAD Force Nginx to reload configurations.
+    ## If `true`, Nginx will be reloaded after config changes.
+    NGINX_RELOAD: "false"
+    ## @param extraEnvVars.DISABLE_SSL_REDIRECT Disable automatic SSL redirection.
+    ## If `true`, HTTP traffic will not be automatically redirected to HTTPS.
+    DISABLE_SSL_REDIRECT: "true"
+    ## @param extraEnvVars.BACKUP_COUNT Number of backups to retain.
+    ## Defines how many backup versions are stored before older ones are deleted.
+    BACKUP_COUNT: "90"
+    ## @param extraEnvVars.VERIFY_CERT Enable certificate verification.
+    ## When set to `true`, SSL certificates will be validated for secure communication.
+    VERIFY_CERT: "true"
+    ## @param extraEnvVars.NUM_WORKERS_DEFAULT Number of default worker processes.
+    ## Defines the number of background workers handling general tasks.
+    NUM_WORKERS_DEFAULT: 1
+    ## @param extraEnvVars.NUM_WORKERS_PRIO Number of priority worker processes.
+    ## Specifies the number of workers assigned to priority tasks.
+    NUM_WORKERS_PRIO: 1
+    ## @param extraEnvVars.NUM_WORKERS_EMAIL Number of email worker processes.
+    ## Determines how many workers handle email-related tasks.
+    NUM_WORKERS_EMAIL: 1
+    ## @param extraEnvVars.NUM_WORKERS_UPDATE Number of update worker processes.
+    ## Specifies the number of workers responsible for updates.
+    NUM_WORKERS_UPDATE: 1
+    ## @param extraEnvVars.NUM_WORKERS_CACHE Number of cache worker processes.
+    ## Defines the number of workers handling caching tasks.
+    NUM_WORKERS_CACHE: 1
+    ## @param extraEnvVars.MISP_debug_logs Enable MISP debug logs.
+    ## If `true`, additional debug logs will be recorded for troubleshooting.
+    MISP_debug_logs: "false"
+    ## @param extraEnvVars.MISP_ADVANCED_LOGGING Enable advanced logging for MISP.
+    ## When set to `true`, more detailed logs are collected for debugging and monitoring.
+    MISP_ADVANCED_LOGGING: "true"
+    ## @param extraEnvVars.AUTH_ENFORCED Enforce authentication.
+    ## If `true`, authentication is mandatory for accessing MISP.
+    AUTH_ENFORCED: "true"
+    SUPERVISOR_USERNAME: supervisor
+    SUPERVISOR_PASSWORD: supervisor123
+    BASE_URL: "https://misp.devlab.local"
+
+  ## MISP Service parameters
+  ##
+  service:
+    ## @param service.annotations Custom annotations for the service.
+    ## Annotations can be used to attach metadata or configure service-specific settings.
+    annotations: {}
+    ## @param primary.service.type MISP Primary K8s service type
+    type: ClusterIP
+    ## @param service.port Port on which the service is exposed.
+    ## This defines the internal service port used within the cluster.
+    port: 8080
+    ## @param service.nodePort Static port for NodePort services.
+    ## Only applicable if `service.type` is set to `NodePort`.
+    ## If empty, Kubernetes will assign a random port.
+    nodePort: ""
+    ## @param service.loadBalancerIP Static IP for LoadBalancer services.
+    ## If specified, the load balancer will be assigned this IP (if supported).
+    ## Only applicable if `service.type` is `LoadBalancer`.
+    loadBalancerIP: ""
+    ## @param service.urlSuffix Custom URL suffix for the service.
+    ## eg.
+    ## urlSuffix: "svc.cluster.local"
+    urlSuffix: ""
+
+  ## @param istio.enabled Enable Istio service mesh integration
+  ## When set to `true`, Istio Gateway and VirtualService resources will be created
+  ## NOTE: Cannot be enabled at the same time as ingress.enabled
+  istio:
+    enabled: false
+    ## @param istio.tlsCredentialName Name of the secret containing TLS certificate for Istio Gateway
+    tlsCredentialName: ""
+    ## @param istio.gateway.annotations Additional annotations for the Istio Gateway resource
+    gateway:
+      annotations: {}
+    ## @param istio.virtualService.annotations Additional annotations for the Istio VirtualService resource
+    virtualService:
+      annotations: {}
+
+  ## @param ingress.enabled Enable Kubernetes Ingress resource for external access
+  ## When set to `true`, an Ingress resource will be created to expose MISP externally
+  ## NOTE: Cannot be enabled at the same time as istio.enabled
+  ## REQUIREMENT: An Ingress Controller (e.g., nginx-ingress-controller) must be installed
+  ingress:
+    enabled: true
+    ## @param ingress.className Ingress class name (e.g., "nginx", "traefik")
+    className: "nginx"
+    ## @param ingress.hosts List of hostnames and paths for the Ingress resource
+    hosts:
+      - host: "misp.devlab.local"
+        paths:
+          - path: "/"
+            pathType: "ImplementationSpecific"
+    ## @param ingress.annotations Additional annotations for the Ingress resource
+    ## Common annotations:
+    ## - kubernetes.io/ingress.class: Ingress controller class
+    ## - cert-manager.io/cluster-issuer: ClusterIssuer name for automatic TLS certificate generation
+    ## - nginx.ingress.kubernetes.io/ssl-redirect: Force HTTPS redirect
+    annotations:
+      kubernetes.io/ingress.class: "nginx"
+      cert-manager.io/cluster-issuer: "selfsigned-issuer"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    ## @param ingress.tls TLS configuration for the Ingress resource
+    ## cert-manager will automatically generate certificates based on the cluster-issuer annotation
+    tls:
+      - hosts:
+          - misp.devlab.local
+        secretName: misp-devlab-local-tls
+    ## @param ingress.enabled Enable Ingress resource.
+    ## If set to `true`, an Ingress resource will be created to expose the application.
+    ## @param ingress.tls setup tls connection parameters for ingress
+    ## Example:
+    ## - hosts:
+    ##    - misp.devlab.local
+    ##   secretName: misp-devlab-local-tls
+    ## tls: []
+
+  ## @param hostname Base URL/hostname for MISP
+  ## This is used when ingress is disabled or for internal references
+  ## Format: "https://misp.example.com" or "http://misp.example.com"
+  hostname: "https://misp.devlab.local"
+  ## @param nodePort NodePort for accessing MISP when using NodePort service type
+  ## Only used if service.type is set to NodePort
+  nodePort: ""
+
+  ## @param annotations MISP annotations
+  annotations: {}
+
+  ## @param podAnnotations Additional pod annotations for MISP pod
+  ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  podAnnotations: {}
+
+  ## MISP Pod security context
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+  ## @param podSecurityContext.enabled Enable security context for MISP pods
+  ## @param podSecurityContext.fsGroupChangePolicy Set filesystem group change policy
+  ## @param podSecurityContext.sysctls Set kernel settings using the sysctl interface
+  ## @param podSecurityContext.supplementalGroups Set filesystem extra groups
+  ## @param podSecurityContext.fsGroup Group ID for the mounted volumes' filesystem
+  podSecurityContext: {}
+  # yamllint disable
+
+  ## MISP container security context
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container
+  ## @param containerSecurityContext.enabled MISP container securityContext
+  ## @param containerSecurityContext.seLinuxOptions [object,nullable] Set SELinux options in container
+  ## @param containerSecurityContext.runAsUser User ID for the MISP container
+  ## @param containerSecurityContext.runAsGroup Group ID for the MISP container
+  ## @param containerSecurityContext.runAsNonRoot Set MISP container's Security Context runAsNonRoot
+  ## @param containerSecurityContext.allowPrivilegeEscalation Set container's privilege escalation
+  ## @param containerSecurityContext.capabilities.drop Set container's Security Context runAsNonRoot
+  ## @param containerSecurityContext.seccompProfile.type Set container's Security Context seccomp profile
+  ## @param containerSecurityContext.readOnlyRootFilesystem Set container's Security Context read-only root filesystem
+  # yamllint enable
+  securityContext:
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    seccompProfile:
+      type: RuntimeDefault
+    runAsNonRoot: true
+    runAsUser: 33
+    runAsGroup: 33
+    capabilities:
+      drop:
+        - ALL
+  # yamllint disable
+  ## MISP job security context
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container
+  ## @param JobSecurityContext.enabled MISP Job securityContext
+  ## @param JobSecurityContext.seLinuxOptions [object,nullable] Set SELinux options in Job
+  ## @param JobSecurityContext.runAsUser User ID for the MISP Job
+  ## @param JobSecurityContext.runAsGroup Group ID for the MISP Job
+  ## @param JobSecurityContext.runAsNonRoot Set MISP Job's Security Context runAsNonRoot
+  ## @param JobSecurityContext.allowPrivilegeEscalation Set Job's privilege escalation
+  ## @param JobSecurityContext.capabilities.drop Set Job's Security Context runAsNonRoot
+  ## @param JobSecurityContext.seccompProfile.type Set Job's Security Context seccomp profile
+  ## @param JobSecurityContext.readOnlyRootFilesystem Set Job's Security Context read-only root filesystem
+  # yamllint enable
+
+  # yamllint disable
+  # yamllint enable
+
+  ## @param volumesForReadOnly List of read-only volumes to be mounted.
+  ## These volumes are used to provide necessary files and configurations to the container.
+  ## Some volumes use `rsync` to ensure file synchronization.
+  ## @param volumesForReadOnly[].name Name of the volume.
+  ## Defines the unique name of the volume, which is referenced within the container.
+  ## This name must match a defined volume in the Kubernetes configuration.
+  ## @param volumesForReadOnly[].mountPath Path inside the container where the volume is mounted.
+  ## Specifies the location in the container's filesystem where the volume will be attached.
+  ## This determines where the container can access the files stored in the volume.
+  ## @param volumesForReadOnly[].rsync Enable or disable rsync synchronization for the volume.
+  ## - `true`: The volume contents are synchronized using rsync, ensuring the latest files are available.
+  ## - `false`: The volume is mounted as-is without automatic file synchronization.
+  ## Use `true` for critical configurations that need to stay updated.
+  volumesForReadOnly:
+    - name: misp-data
+      mountPath: /var/www/MISP
+      rsync: true
+      persistent: true
+    - name: fpm
+      mountPath: /etc/php/7.4/fpm
+      rsync: true
+    - name: nginx
+      mountPath: /etc/nginx
+      rsync: true
+    - name: log
+      mountPath: /var/log
+      rsync: true
+    - name: run
+      mountPath: /var/run
+      rsync: true
+    - name: tmp
+      mountPath: /tmp
+      rsync: false
+    - name: body
+      mountPath: /var/lib/nginx
+      rsync: false
+    - name: certs
+      mountPath: /etc/ssl/certs
+      rsync: false
+    - name: cron
+      mountPath: /etc/cron.d
+      rsync: false
+    - name: cron-spool
+      mountPath: /var/spool/cron
+      rsync: false
+  ## Configure extra options for startupProbe probe
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
+  ## @param startupProbe.enabled Enable startupProbe
+  ## @param startupProbe.initialDelaySeconds Initial delay seconds for startupProbe
+  ## @param startupProbe.periodSeconds Period seconds for startupProbe
+  ## @param startupProbe.timeoutSeconds Timeout seconds for startupProbe
+  ## @param startupProbe.failureThreshold Failure threshold for startupProbe
+  ## @param startupProbe.successThreshold Success threshold for startupProbe
+  ##
+  startup:
+    enabled: true
+    failure: 40
+    success: 1
+    delay: 0
+    period: 5
+    timeout: 2
+
+  ## Configure extra options for readiness probe
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
+  ## @param readinessProbe.enabled Enable readinessProbe
+  ## @param readinessProbe.initialDelaySeconds Initial delay seconds for readinessProbe
+  ## @param readinessProbe.periodSeconds Period seconds for readinessProbe
+  ## @param readinessProbe.timeoutSeconds Timeout seconds for readinessProbe
+  ## @param readinessProbe.failureThreshold Failure threshold for readinessProbe
+  ## @param readinessProbe.successThreshold Success threshold for readinessProbe
+  ##
+  readiness:
+    enabled: true
+    failure: 3600
+    success: 1
+    delay: 10
+    period: 2
+    timeout: 1
+
+  ## Configure extra options for liveness probe
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
+  ## @param livenessProbe.enabled Enable livenessProbe
+  ## @param livenessProbe.initialDelaySeconds Initial delay seconds for livenessProbe
+  ## @param livenessProbe.periodSeconds Period seconds for livenessProbe
+  ## @param livenessProbe.timeoutSeconds Timeout seconds for livenessProbe
+  ## @param livenessProbe.failureThreshold Failure threshold for livenessProbe
+  ## @param livenessProbe.successThreshold Success threshold for livenessProbe
+  ##
+  liveness:
+    enabled: true
+    failure: 3
+    success: 1
+    delay: 10
+    period: 10
+    timeout: 1
+
+  # yamllint disable
+  ## @param resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
+  ## Example:
+  ## resources:
+  ##   requests:
+  ##     cpu: 2
+  ##     memory: 512Mi
+  ##   limits:
+  ##     cpu: 3
+  ##     memory: 1024Mi
+  ##
+  # yamllint enable
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "400m"
+    limits:
+      memory: "1024Mi"
+      cpu: "1"
+
+  ## @param nodeSelector Node labels for MySQL primary pods assignment
+  ## ref: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/
+  ##
+  nodeSelector: {}
+
+  ## @param primary.tolerations Tolerations for MySQL primary pods assignment
+  ## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+  ##
+  tolerations: []
+
+  ## @param primary.affinity Affinity for MySQL primary pods assignment
+  ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+  ## Note: podAffinityPreset, podAntiAffinityPreset, and  nodeAffinityPreset will be ignored when it's set
+  ##
+  affinity: {}
+
+  ##
+  autoscaling:
+    enabled: false
+    annotations: {}
+    minReplicas: 1
+    maxReplicas: 100
+    targetCPUUtilizationPercentage: 80
+
+  ## Network Policy configuration
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/network-policies/
+  ##
+  networkPolicy:
+    ## @param networkPolicy.enabled Enable creation of NetworkPolicy resources
+    ##
+    enabled: false
+    ## @param networkPolicy.allowExternal Don't require client label for connections
+    ## When set to false, only pods with the correct client label will have network access to the ports
+    ## MISP is listening on. When true, MISP will accept connections from any source
+    ## (with the correct destination port).
+    ##
+    allowExternal: false
+    ## @param networkPolicy.allowExternalEgress Allow the pod to access any range of port and all destinations.
+    ##
+    allowExternalEgress: false
+    ## @param networkPolicy.extraIngress Add extra ingress rules to the NetworkPolicy
+    ## e.g:
+    ## extraIngress:
+    ##   - ports:
+    ##       - port: 1234
+    ##     from:
+    ##       - podSelector:
+    ##           - matchLabels:
+    ##               - role: frontend
+    ##       - podSelector:
+    ##           - matchExpressions:
+    ##               - key: role
+    ##                 operator: In
+    ##                 values:
+    ##                   - frontend
+    ##
+    extraIngress: []
+    ## @param networkPolicy.extraEgress Add extra egress rules to the NetworkPolicy
+    ## e.g:
+    ## extraEgress:
+    ##   - ports:
+    ##       - port: 1234
+    ##     to:
+    ##       - podSelector:
+    ##           - matchLabels:
+    ##               - role: frontend
+    ##       - podSelector:
+    ##           - matchExpressions:
+    ##               - key: role
+    ##                 operator: In
+    ##                 values:
+    ##                   - frontend
+    ##
+    extraEgress: []
+    ## @param networkPolicy.ingressNSMatchLabels Labels to match to allow traffic from other namespaces
+    ##
+    ingressNSMatchLabels: {}
+    ## @param networkPolicy.ingressNSPodMatchLabels Pod labels to match to allow traffic from other namespaces
+    ##
+    ingressNSPodMatchLabels: {}
+
+  ## @param misp.valkey.host Override the valkey host. Defaults to the address of the valkey subchart.
+  ##
+  valkey:
+    host: ""
+
+  ## @param misp.mariadb.host Override mariadb host. Defaults to the address of the mariadb subchart.
+  ## @param misp.mariadb.user Override mariadb user.
+  ## @param misp.mariadb.database Override mariadb database.
+  ##
+  mariadb:
+    host: "misp-mariadb"
+    user: "misp"
+    database: "misp"
+
+  ## @param misp.updateCaCertificatesOnStart Whether CA certificates should be updated on start.
+  ## CA Certificates are automatically updated when misp.keycloakSecret or misp.mispConfig.extraCerts are used.
+  ## This option is useful when you are not using any of the two options, but mount certificates manually
+  ##
+  updateCaCertificatesOnStart: false
+
+##
+valkey:
+  enabled: true
+  serviceAccount: *serviceAccount
+  image:
+    registry: registry-1.docker.io
+    repository: bitnamilegacy/valkey
+    tag: 8.1.1
+    pullPolicy: Always
+  resources: &valkeyResources
+    requests:
+      cpu: "400m"
+      memory: "512Mi"
+    limits:
+      cpu: "800m"
+      memory: "1024Mi"
+
+  ## Valkey Authentication parameters
+  ## ref: https://github.com/bitnami/containers/tree/main/bitnami/valkey#setting-the-server-password-on-first-run
+  ##
+  auth:
+    enabled: false
+    ## NOTE: ignored unless `auth.existingSecret` parameter is set
+    existingSecretPasswordKey: password
+    ## NOTE: When it's set, the previous `auth.password` parameter is ignored
+    existingSecret: |
+      {{ printf "%s-valkey" .Release.Name }}
+
+  ## 'volumePermissions' init container parameters
+  ## Changes the owner and group of the persistent volume mount point to runAsUser:fsGroup values
+  ##   based on the *podSecurityContext/*containerSecurityContext parameters
+  volumePermissions:
+    # yamllint disable
+    # yamllint enable
+    enabled: false
+
+  ##
+  master:
+    resources: *valkeyResources
+    ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+    podLabels: &valkeyPodLabels
+      sidecar.istio.io/inject: "true"
+    serviceAccount: *serviceAccount
+    ## Persistence parameters
+    ## ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+    persistence:
+      # yamllint disable
+      # yamllint enable
+      enabled: true
+      size: 5Gi
+    # yamllint disable
+    # yamllint enable
+    extraVolumeMounts: &valkeyExtraVolumeMounts
+      - name: vault-valkey
+        mountPath: /vault/secrets
+    # yamllint disable
+    # yamllint enable
+    extraVolumes: &valkeyExtraVolumes |
+      - name: vault-valkey
+        secret:
+          secretName: {{ printf "%s-valkey" .Release.Name }}
+    containerSecurityContext: &valkeyContainerSecurityContext
+      runAsUser: 1001
+      runAsGroup: 1001
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      seccompProfile:
+        type: "RuntimeDefault"
+    ## Commands will be completely disabled by renaming each to an empty string.
+    ## ref: https://valkey.io/topics/security#disabling-of-specific-commands
+    disableCommands: &valkeyDisableCommands
+      - FLUSHDB
+      - FLUSHALL
+      - APPEND
+      - ASKING
+      - BGREWRITEAOF
+      - BGSAVE
+      - BITCOUNT
+      - BITFIELD
+      - BITFIELD_RO
+      - BITOP
+      - BITPOS
+      - BLMOVE
+      - BLMPOP
+      - BRPOP
+      - BRPOPLPUSH
+      - BZMPOP
+      - BZPOPMAX
+      - BZPOPMIN
+      - CLUSTER
+      - COMMAND
+      - CONFIG
+      - COPY
+      - DBSIZE
+      - DEBUG
+      - DECR
+      - DECRBY
+      - DISCARD
+      - DUMP
+      - EVAL
+      - EVAL_RO
+      - EVALSHA
+      - EVALSHA_RO
+      - EXEC
+      - EXPIREAT
+      - EXPIRETIME
+      - FAILOVER
+      - FCALL
+      - FCALL_RO
+      - FUNCTION
+      - GEOADD
+      - GEODIST
+      - GEOHASH
+      - GEOPOS
+      - GEORADIUS
+      - GEORADIUSBYMEMBER
+      - GEORADIUSBYMEMBER_RO
+      - GEORADIUS_RO
+      - GEOSEARCH
+      - GEOSEARCHSTORE
+      - GETBIT
+      - GETDEL
+      - GETEX
+      - GETRANGE
+      - GETSET
+      - HDEL
+      - HELLO
+      - HEXISTS
+      - HINCRBY
+      - HINCRBYFLOAT
+      - HLEN
+      - HMGET
+      - HMSET
+      - HRANDFIELD
+      - HSCAN
+      - HSETNX
+      - HSTRLEN
+      - HVALS
+      - INCR
+      - INCRBYFLOAT
+      - INFO
+      - KEYS
+      - LASTSAVE
+      - LATENCY
+      - LCS
+      - LINDEX
+      - LINSERT
+      - LMOVE
+      - LMPOP
+      - LOLWUT
+      - LPOS
+      - LPUSH
+      - LPUSHX
+      - LRANGE
+      - LREM
+      - LSET
+      - LTRIM
+      - MEMORY
+      - MGET
+      - MIGRATE
+      - MODULE
+      - MONITOR
+      - MOVE
+      - MSET
+      - MSETNX
+      - MULTI
+      - OBJECT
+      - PERSIST
+      - PEXPIRE
+      - PEXPIRETIME
+      - PFADD
+      - PFCOUNT
+      - PFDEBUG
+      - PFMERGE
+      - PFSELFTEST
+      - PSETEX
+      - PSUBSCRIBE
+      - PTTL
+      - PUBLISH
+      - PUBSUB
+      - PUNSUBSCRIBE
+      - QUIT
+      - RANDOMKEY
+      - READONLY
+      - READWRITE
+      - RENAME
+      - RENAMENX
+      - REPLICAOF
+      - RESET
+      - RESTORE
+      - RESTORE-ASKING
+      - ROLE
+      - RPOP
+      - RPOPLPUSH
+      - RPUSHX
+      - SAVE
+      - SCAN
+      - SCARD
+      - SCRIPT
+      - SDIFF
+      - SDIFFSTORE
+      - SETBIT
+      - SETNX
+      - SETRANGE
+      - SHUTDOWN
+      - SINTER
+      - SINTERCARD
+      - SINTERSTORE
+      - SLAVEOF
+      - SLOWLOG
+      - SMISMEMBER
+      - SMOVE
+      - SORT
+      - SORT_RO
+      - SPOP
+      - SPUBLISH
+      - SRANDMEMBER
+      - SREM
+      - SSCAN
+      - SSUBSCRIBE
+      - STRLEN
+      - SUBSCRIBE
+      - SUBSTR
+      - SUNION
+      - SUNIONSTORE
+      - SUNSUBSCRIBE
+      - SWAPDB
+      - TIME
+      - TOUCH
+      - TTL
+      - TYPE
+      - UNSUBSCRIBE
+      - UNWATCH
+      - WAIT
+      # - WAITAOF Not available in this version of Redis
+      - WATCH
+      - XACK
+      - XADD
+      - XAUTOCLAIM
+      - XCLAIM
+      - XDEL
+      - XGROUP
+      - XINFO
+      - XLEN
+      - XPENDING
+      - XRANGE
+      - XREAD
+      - XREADGROUP
+      - XREVRANGE
+      - XSETID
+      - XTRIM
+      - ZADD
+      - ZCARD
+      - ZCOUNT
+      - ZDIFF
+      - ZDIFFSTORE
+      - ZINCRBY
+      - ZINTER
+      - ZINTERCARD
+      - ZINTERSTORE
+      - ZLEXCOUNT
+      - ZMPOP
+      - ZMSCORE
+      - ZPOPMAX
+      - ZPOPMIN
+      - ZRANDMEMBER
+      - ZRANGE
+      - ZRANGEBYLEX
+      - ZRANGESTORE
+      - ZRANK
+      - ZREM
+      - ZREMRANGEBYLEX
+      - ZREMRANGEBYRANK
+      - ZREMRANGEBYSCORE
+      - ZREVRANGE
+      - ZREVRANGEBYLEX
+      - ZREVRANGEBYSCORE
+      - ZREVRANK
+      - ZSCAN
+      - ZSCORE
+      - ZUNION
+      - ZUNIONSTORE
+  ##
+  replica:
+    resources: *valkeyResources
+    ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+    podLabels: *valkeyPodLabels
+    serviceAccount: *serviceAccount
+    replicaCount: 1
+    ## Persistence parameters
+    ## ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+    persistence:
+      # yamllint disable
+      # yamllint enable
+      enabled: true
+      size: 5Gi
+    # yamllint disable
+    # yamllint enable
+    extraVolumeMounts: *valkeyExtraVolumeMounts
+    # yamllint disable
+    # yamllint enable
+    extraVolumes: *valkeyExtraVolumes
+    # yamllint disable
+    ## Configure Container Security Context
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod
+    # yamllint enable
+    containerSecurityContext: *valkeyContainerSecurityContext
+    ## Commands will be completely disabled by renaming each to an empty string.
+    ## ref: https://valkey.io/topics/security#disabling-of-specific-commands
+    disableCommands: *valkeyDisableCommands
+
+##
+mariadb:
+  enabled: true
+  serviceAccount: *serviceAccount
+  image:
+    ## @param misp.mariadb.image.registry MariaDB image registry
+    registry: docker.io
+    ## @param misp.mariadb.image.repository MariaDB image repository
+    repository: bitnamilegacy/mariadb
+    ## @param misp.mariadb.image.tag MariaDB image tag
+    tag: 11.4.7-debian-12-r1
+    pullPolicy: Always
+  resources: &mariadbResources
+    requests:
+      cpu: "800m"
+      memory: "1024Mi"
+    limits:
+      cpu: 1
+      memory: "2048Mi"
+
+  auth:
+    username: "misp"
+    database: "misp"
+    existingSecret: "misp-mariadb"
+    defaultAuthenticationPlugin: "caching_sha2_password"
+
+  tde:
+    enabled: false
+    existingSecert: ""
+    vaultSecretPath: ""
+    randomKeyFilename: keyfile.key
+    encryptedKeyFilename: keyfile.enc
+
+  volumePermissions:
+    enabled: false
+    randomKeyFilename: keyfile.key
+    encryptedKeyFilename: keyfile.enc
+
+
+# yamllint disable
+  # yamllint enable
+  primary:
+    resources: *mariadbResources
+    podLabels: &mariadbPodLabels
+      sidecar.istio.io/inject: "true"
+    persistence:
+      enabled: true
+      size: 5Gi
+    extraVolumeMounts: &mariadbVolumeMounts
+      - name: vault-mariadb
+        mountPath: /vault/secrets
+
+    extraVolumes: &mariadbVolumes
+      - name: vault-mariadb
+        secret:
+          secretName: "{{ printf \"%s-mariadb\" .Release.Name }}"
+      - name: mysql-conf
+        emptyDir: {}
+      - name: mysql-tmp
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+
+    containerSecurityContext: &mariadbContainerSecurityContext
+      runAsUser: 1001
+      runAsGroup: 1001
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      seccompProfile:
+        type: RuntimeDefault
+    ## Configuration file path in pod: /opt/bitnami/mariadb/conf/my.cnf
+    configuration: &mariadbConfiguration |-
+      [mysqld]
+      port= {{ .Values.primary.containerPorts.mysql }}
+      socket=/opt/bitnami/mariadb/tmp/mysql.sock
+      pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
+      bind-address=*
+      basedir=/opt/bitnami/mariadb
+      plugin_dir=/opt/bitnami/mariadb/lib/plugin
+      datadir=/bitnami/mariadb/data
+      tmpdir=/opt/bitnami/mariadb/tmp
+      max_allowed_packet=16M
+      skip-name-resolve
+      skip-grant-tables=FALSE
+      explicit_defaults_for_timestamp
+      character-set-server=UTF8MB4
+      max_connections=151
+      max_user_connections=100
+      sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'
+      # Logging
+      general_log=ON
+      general_log_file=/opt/bitnami/mariadb/logs/mysql.log
+      slow_query_log=1
+      slow_query_log_file=/opt/bitnami/mariadb/logs/mysql-slow.log
+      long_query_time=10.0
+      log_bin=/opt/bitnami/mariadb/logs/mysql-bin.log
+      server-id=1
+      log-error=/opt/bitnami/mariadb/logs/mysqld.log
+      [client]
+      port=3306
+      socket=/opt/bitnami/mariadb/tmp/mysql.sock
+      default-character-set=UTF8MB4
+      plugin_dir=/opt/bitnami/mariadb/lib/plugin
+      [manager]
+      port=3306
+      socket=/opt/bitnami/mariadb/tmp/mysql.sock
+      pid-file=/opt/bitnami/mariadb/tmp/mysqld.pid
+  # secondary:
+  #   podLabels: *mariadbPodLabels
+  #   extraVolumeMounts: *mariadbVolumeMounts
+  #   extraVolumes: *mariadbVolumes
+  #   configuration: *mariadbConfiguration
+  #   containerSecurityContext: &mariadbContainerSecurityContext
