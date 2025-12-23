@@ -1,0 +1,9 @@
+{{- if .Values.misp.mispConfig.extraCerts.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: extra-certs
+  namespace: {{ .Release.Namespace }}
+data:
+
+{{- end }}
