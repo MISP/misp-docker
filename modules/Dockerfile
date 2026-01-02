@@ -3,7 +3,7 @@ ARG MISP_UID=1001
 ARG MISP_GID=1001
 
 
-FROM "${DOCKER_HUB_PROXY}python:3.12-slim-trixie" AS python-build
+FROM "${DOCKER_HUB_PROXY}dhi.io/python:3.12-debian13" AS python-build
 ENV DEBIAN_FRONTEND=noninteractive
 ARG MODULES_TAG
 ARG MODULES_COMMIT

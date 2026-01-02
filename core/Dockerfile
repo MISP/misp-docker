@@ -1,7 +1,7 @@
 ARG DOCKER_HUB_PROXY=""
 
 
-FROM "${DOCKER_HUB_PROXY}python:3.12-slim-trixie" AS php-base
+FROM "${DOCKER_HUB_PROXY}dhi.io/python:3.12-debian13" AS php-base
 ENV DEBIAN_FRONTEND=noninteractive
 ARG CORE_TAG
 ARG CORE_COMMIT

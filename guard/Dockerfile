@@ -1,6 +1,6 @@
 ARG DOCKER_HUB_PROXY=""
 
-FROM "${DOCKER_HUB_PROXY}python:3.12-slim-trixie" AS python-build
+FROM "${DOCKER_HUB_PROXY}dhi.io/python:3.12-debian13" AS python-build
     ENV DEBIAN_FRONTEND=noninteractive
     ARG GUARD_TAG
     ARG GUARD_COMMIT
