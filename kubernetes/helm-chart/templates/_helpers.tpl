@@ -65,8 +65,6 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 Selector labels for MISP
 */}}
 {{- define "misp.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "misp.name" . }}
-app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/component: "misp"
 app.kubernetes.io/part-of: {{ include "misp.name" . }}
 {{- end }}
