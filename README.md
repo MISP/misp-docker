@@ -216,6 +216,7 @@ For Okta, create a new application integration:
       OIDC_AUTH_METHOD="client_secret_post"  
       OIDC_REDIRECT_URI="https://<MISP_URL>/users/login" # (same value set in Okta)
       OIDC_DISABLE_REQUEST_OBJECT=false
+      OIDC_SKIP_PROXY=true
       ``` 
  Valid options for OIDC_AUTH_METHOD are:
    - client_secret_post: tested
