@@ -474,7 +474,6 @@ configure_misp_guard_ca() {
     fi
 }
 
-
 create_sync_servers() {
     if [ -z "$ADMIN_KEY" ]; then
         echo "... admin key auto configuration is required to configure sync servers"
