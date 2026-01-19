@@ -466,6 +466,15 @@ update_ca_certificates() {
     fi
 }
 
+configure_misp_guard_ca() {
+    if [[ "$COMPOSE_PROFILES" = "misp-guard" ]]; then
+        echo "... configuring misp-guard CA certificate"
+        chown www-data:www-data /usr/local/share/ca-certificates/misp_guard/mitmproxy-ca.pem
+        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.ca_path" "/usr/local/share/ca-certificates/misp_guard/mitmproxy-ca.pem"
+    fi
+}
+
+
 create_sync_servers() {
     if [ -z "$ADMIN_KEY" ]; then
         echo "... admin key auto configuration is required to configure sync servers"
@@ -630,6 +639,8 @@ echo "MISP | Set Up Session ..." && set_up_session
 echo "MISP | Set Up Proxy ..." && set_up_proxy
 
 echo "MISP | Create default Scheduled Tasks ..." && create_default_scheduled_tasks
+
+echo "MISP | Configure misp-guard CA certificate ..." && configure_misp_guard_ca
 
 echo "MISP | Mark instance live" && print_version
 sudo -u www-data /var/www/MISP/app/Console/cake Admin live 1
