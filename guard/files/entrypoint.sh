@@ -24,4 +24,21 @@ jq --arg ip "$MISP_IP" \
    '.instances.misp_container.ip = $ip' \
    /config.json > /srv/misp-guard/src/config.json
 
-exec mitmdump -s mispguard.py -p ${GUARD_PORT:-8888} ${GUARD_ARGS:+$GUARD_ARGS} --set config=config.json
+# start mitmdump in background
+mitmdump \
+  -s mispguard.py \
+  -p "${GUARD_PORT:-8888}" \
+  ${GUARD_ARGS:+$GUARD_ARGS} \
+  --set config=config.json &
+
+MITM_PID=$!
+
+# wait for mitmproxy CA to exist
+while [ ! -f /root/.mitmproxy/mitmproxy-ca.pem ]; do
+  sleep 1
+done
+
+# copy mitmproxy CA to shared volume for misp-core to use
+cp /root/.mitmproxy/mitmproxy-ca.pem /misp_guard_ca/mitmproxy-ca.pem
+
+wait "$MITM_PID"

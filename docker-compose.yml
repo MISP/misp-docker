@@ -126,6 +126,7 @@ services:
       - "./files/:/var/www/MISP/app/files/:Z"
       - "./ssl/:/etc/nginx/certs/:Z"
       - "./gnupg/:/var/www/MISP/.gnupg/:Z"
+      - "misp_guard_ca:/usr/local/share/ca-certificates/misp_guard:Z"
     # customize by replacing ${CUSTOM_PATH} with a path containing 'files/customize_misp.sh'
     # - "${CUSTOM_PATH}/:/custom/:Z"
     # mount custom ca root certificates
@@ -305,6 +306,8 @@ services:
       - "HSTS_MAX_AGE=${HSTS_MAX_AGE}"
       - "X_FRAME_OPTIONS=${X_FRAME_OPTIONS}"
       - "CONTENT_SECURITY_POLICY=${CONTENT_SECURITY_POLICY}"
+      # compose profiles
+      - "COMPOSE_PROFILES=${COMPOSE_PROFILES}"
 
   misp-modules:
     image: ghcr.io/misp/misp-docker/misp-modules:${MODULES_RUNNING_TAG:-latest}
@@ -348,6 +351,7 @@ services:
       - "GUARD_ARGS=${GUARD_ARGS}"
     volumes:
       - ./guard/config.json:/config.json:ro
+      - misp_guard_ca:/misp_guard_ca
     healthcheck:
       test: "/bin/bash -c '</dev/tcp/localhost/${GUARD_PORT:-8888}'"
       interval: 2m
@@ -358,3 +362,4 @@ services:
 volumes:
   mysql_data:
   cache_data:
+  misp_guard_ca:
