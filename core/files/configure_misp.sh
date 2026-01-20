@@ -102,7 +102,8 @@ set_up_oidc() {
                 \"mixedAuth\": ${OIDC_MIXEDAUTH},
                 \"authentication_method\": \"${OIDC_AUTH_METHOD}\",
                 \"redirect_uri\": \"${OIDC_REDIRECT_URI}\",
-                \"disable_request_object\": \"${OIDC_DISABLE_REQUEST_OBJECT}\"
+                \"disable_request_object\": \"${OIDC_DISABLE_REQUEST_OBJECT}\",
+                \"skipProxy\": ${OIDC_SKIP_PROXY}
             }
         }" > /dev/null
 
