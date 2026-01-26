@@ -107,6 +107,7 @@ RUN <<-EOF
             composer require --with-all-dependencies --no-interaction \
                 elasticsearch/elasticsearch:^8.7.0 \
                 jakub-onderka/openid-connect-php:^1.0.0 \
+                certmichelin/openid-connect-php:1.3.0 \
                 aws/aws-sdk-php
         fi
 EOF

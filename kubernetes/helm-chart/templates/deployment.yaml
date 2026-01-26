@@ -1,0 +1,467 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ include "misp.fullname" . }}
+  labels:
+    {{- include "misp.labels" . | nindent 4 }}
+    {{- if .Values.misp.isCore.enabled }}
+    misp-type: "core"
+    {{- else }}
+    misp-type: "transit"
+    {{- end }}
+  annotations:
+    reloader.stakater.com/search: "true"
+    {{- with .Values.misp.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if not .Values.misp.autoscaling.enabled }}
+  replicas: {{ .Values.misp.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "misp.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        reloader.stakater.com/search: "true"
+        {{- if .Values.misp.mispConfig.extraCerts.enabled }}
+        checksum/extra-certs: {{ pick ( include (print .Values.misp.mispConfig.extraCerts.templatePath "/" .Values.misp.mispConfig.extraCerts.configMapFile ) . | fromYaml ) "data" | toYaml | sha256sum }}
+        {{- end }}
+        {{- with .Values.misp.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "common.labels.standard" . | nindent 8 }}
+        {{- include "misp.selectorLabels" . | nindent 8 }}
+        {{- with .Values.misp.podLabels }}
+        {{- . | toYaml | nindent 8 }}
+        {{- end }}
+        {{- if .Values.misp.isCore.enabled }}
+        misp-type: "core"
+        {{- else }}
+        misp-type: "transit"
+        {{- end }}
+    spec:
+      {{- if not .Values.misp.serviceAccount.create }}
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+      serviceAccountName: {{ include "misp.serviceAccountName" . }}
+      {{- with .Values.misp.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        - name: wait-for-db-and-valkey
+          image: {{ .Values.misp.initContainers.image }}
+          imagePullPolicy: {{ .Values.misp.initContainers.pullPolicy | default "Always" }}
+          {{- if .Values.misp.initContainers.resources }}
+          resources:
+          {{- toYaml .Values.misp.initContainers.resources | nindent 12 }}
+          {{- end }}
+          securityContext:
+            runAsUser: 1337
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          command:
+            {{- tpl (toYaml .Values.misp.initContainers.waitForDbAndValkey.command) . | nindent 12 }}
+            # - /bin/sh
+            # - -c
+            # - |
+            #   echo "Waiting for MariaDB Database, Valkey Database to be ready..."
+            #   until nc -z -w 5 {{ .Release.Name }}-mariadb 3306; do
+            #     echo "waiting for MariaDB..."; sleep 10;
+            #   done;
+            #   echo "MariaDB is ready.";
+            #   until nc -z -w 5 {{ .Release.Name }}-valkey-master 6379; do
+            #     echo "waiting for Valkey..."; sleep 10;
+            #   done;
+            #   echo "Valkey is ready.";
+            #   echo "All services are ready"
+        {{- if .Values.misp.securityContext.readOnlyRootFilesystem }}
+        - name: init-copy-files
+          image: "{{ .Values.misp.image.repository }}:{{ .Values.misp.image.tag | default "latest" }}"
+          {{- if .Values.misp.initContainers.resources }}
+          resources:
+          {{- toYaml .Values.misp.initContainers.resources | nindent 12 }}
+          {{- end }}
+          {{- with .Values.misp.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          command:
+            - "sh"
+            - "-c"
+            {{- $rsyncCommands := list }}
+            {{- range .Values.misp.volumesForReadOnly }}
+            {{- if .rsync }}
+            #{{- $rsyncCommands = append $rsyncCommands (printf "rsync -a %s/* /mnt/%s || [ $? -eq 23 ]" .mountPath .name) }}
+            {{- $rsyncCommands = append $rsyncCommands (printf "rsync -rlptD --ignore-existing --no-perms --no-owner --no-group --exclude='/var/log/btmp' --exclude='/var/log/apt/term.log' --exclude='*.log' %s/* /mnt/%s 2>/dev/null || [ $? -eq 23 ]" .mountPath .name) }}
+            {{- end }}
+            {{- end }}
+            - "{{ join " && " $rsyncCommands }}"
+
+          volumeMounts:
+            {{- range .Values.misp.volumesForReadOnly }}
+            - name: {{ .name }}
+              mountPath: /mnt/{{ .name }}
+            {{- end }}
+          env:
+            {{- range $key, $value := .Values.misp.extraEnvVars }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- if .Values.misp.extraEnvVarsSecret }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.misp.extraEnvVarsSecret "context" $) | nindent 12 }}
+            {{- end }}
+        {{- end }}
+      containers:
+        - name: misp-logs
+          {{- if .Values.misp.initContainers.resources }}
+          resources:
+          {{- toYaml .Values.misp.initContainers.resources | nindent 12 }}
+          {{- end }}
+          {{- with .Values.misp.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.misp.mispConfig.image.registry }}/{{ .Values.misp.mispConfig.image.repository }}:{{ .Values.misp.mispConfig.image.tag }}"
+          imagePullPolicy: {{ .Values.misp.mispConfig.image.pullPolicy }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              until nc -z -w 5 \
+                {{ .Release.Name}}.{{ .Release.Namespace}}{{ .Values.misp.service.urlSuffix}} {{ .Values.misp.service.port}}; do
+                echo "waiting for MISP...";
+                sleep 10;
+              done;
+              tail -F /var/www/MISP/app/tmp/logs/debug.log \
+                      /var/www/MISP/app/tmp/logs/error.log \
+                      /var/www/MISP/app/tmp/logs/misp.log &
+              TAIL_PID=$!
+              while true; do
+                /opt/scripts/read-misp-logs.sh $MYSQL_USER $MYSQL_HOST $MYSQL_DATABASE
+                sleep 3
+              done &
+              WAIT_PID=$!
+              trap "kill $TAIL_PID $WAIT_PID" TERM INT
+              wait
+          env:
+            - name: MYSQL_HOST
+              value: {{ .Values.misp.mariadb.host | default (printf "%s-mariadb" .Release.Name) | quote }}
+            - name: MYSQL_DATABASE
+              value: {{ .Values.misp.mariadb.database | default .Values.mariadb.auth.database | quote }}
+            - name: MYSQL_USER
+              value: {{ .Values.misp.mariadb.user | default .Values.mariadb.auth.username | quote }}
+            {{- if .Values.misp.mispConfig.emergencyUser.enabled }}
+            - name: EMERGENCY_USER
+              value: {{ .Values.misp.mispConfig.emergencyUser.username | quote }}
+            {{- end }}
+            {{- if .Values.misp.mispConfig.disableInitialAdmin.enabled }}
+            - name: CONFIG_USERNAME
+              value: {{ .Values.misp.mispConfig.disableInitialAdmin.username | quote }}
+            {{- end }}
+            {{- range $key, $value := .Values.misp.extraEnvVars }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- if .Values.misp.extraEnvVarsSecret }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.misp.extraEnvVarsSecret "context" $) | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+          {{- if .Values.misp.vault.enabled }}
+          {{- range .Values.misp.vault.secrets }}
+            - name: {{ printf "vault-%s" .destinationname }}
+              mountPath: /vault/{{ .destinationname }}
+          {{- end }}
+          {{- else }}
+            - name: vault-mariadb
+              mountPath: /vault/mariadb
+          {{- end }}
+            - name: misp-data
+              mountPath: /var/www/MISP/app/tmp/logs
+              subPath: app/tmp/logs
+
+        - name: {{ .Chart.Name }}
+          {{- with .Values.misp.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.misp.image.repository }}:{{ .Values.misp.image.tag | default "latest" }}"
+          imagePullPolicy: {{ .Values.misp.image.pullPolicy }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              if [ "{{ .Values.misp.keycloakSecret.enabled }}" = "true" ]; then
+                while [ ! -f {{ .Values.misp.keycloakSecret.mountpath }}/{{ .Values.misp.keycloakSecret.key }} ]; do
+                  echo "Waiting for {{ .Values.misp.keycloakSecret.mountpath }}/{{ .Values.misp.keycloakSecret.key }} certificate..."
+                  sleep 2
+                done
+                # cat {{ .Values.misp.keycloakSecret.mountpath }}/{{ .Values.misp.keycloakSecret.name }}/{{ .Values.misp.keycloakSecret.key }} >> /usr/local/share/ca-certificates/extra/keycloak.crt
+                #cat {{ .Values.misp.keycloakSecret.mountpath }}/{{ .Values.misp.keycloakSecret.name }}/{{ .Values.misp.keycloakSecret.key }} >> /etc/ssl/certs/ca-certificates.crt
+              fi
+
+              {{- if or .Values.misp.keycloakSecret.enabled (or .Values.misp.mispConfig.extraCerts.enabled .Values.misp.updateCaCertificatesOnStart) }}
+              update-ca-certificates --fresh --verbose
+              echo "CA Certificates updated."
+              {{- end }}
+
+              exec /entrypoint.sh
+          
+          env:
+            - name: ADMIN_EMAIL
+              value: {{ .Values.misp.mispConfig.initialAdminUsername | quote }}
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "misp.secretName" . }}
+                  key: password
+            - name: ADMIN_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "misp.secretName" . }}
+                  key: apikey
+            {{- if .Values.misp.mispConfig.disableInitialAdmin.enabled }}
+            - name: CONFIG_USERNAME
+              value: {{ .Values.misp.mispConfig.disableInitialAdmin.username | quote }}
+            - name: CONFIG_USER_AUTHKEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "misp.configUserSecret" . }}
+                  key: apikey
+            {{- end }}
+            {{- if .Values.misp.mispConfig.extraObjects.enabled }}
+            {{- range $key, $value := .Values.misp.mispConfig.extraObjects }}
+            - name: EXTRA_OBJECTS_{{ $key | upper }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- end }}
+            # OIDC values
+            {{- if .Values.misp.auth.oidc.enabled }}
+            - name: CUSTOM_LOGOUT_URL
+              value: {{ .Values.misp.auth.oidc.custom_logout_url | quote }}
+            - name: OIDC_ENABLE #-- This Variable name is uesed in configure_misp.sh
+              value: {{ .Values.misp.auth.oidc.enabled | quote }}
+            {{- with .Values.misp.auth.oidc }}
+            {{- range $key, $value := . }}
+            - name: OIDC_{{ $key | upper | replace "-" "_" }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
+            # Valkey Connection Details
+            - name: REDIS_HOST
+              value: {{ .Values.misp.valkey.host | default (printf "%s-valkey-master" .Release.Name) | quote }}
+            - name: REDIS_PASSWORD_FILE
+              value: /vault/valkey/password
+            # MySQL Connection Details
+            - name: MYSQL_HOST
+              value: {{ .Values.misp.mariadb.host | default (printf "%s-mariadb" .Release.Name) | quote }}
+            - name: MYSQL_DATABASE
+              value: {{ .Values.misp.mariadb.database | default .Values.mariadb.auth.database | quote }}
+            - name: MYSQL_USER
+              value: {{ .Values.misp.mariadb.user | default .Values.mariadb.auth.username | quote }}
+            - name: MYSQL_PASSWORD_FILE
+              value: /vault/mariadb/mariadb-password
+            - name: MYSQL_PASSWORD_FILE_BACKUP
+              value: /vault/mariadb/mariadb-backup-password
+            # MISP Related Environment Variables
+            - name: BASE_URL
+            {{- if and .Values.misp.ingress.enabled .Values.misp.ingress.hosts }}
+              {{- with (first .Values.misp.ingress.hosts) }}
+              value: "http{{ if $.Values.misp.ingress.tls }}s{{ end }}://{{ .host }}"
+              {{- end }}
+            {{- else }}
+              value: "{{ .Values.misp.hostname | default (printf "http://%s.%s" (include "misp.fullname" .) .Release.Namespace) }}{{ if .Values.misp.nodePort }}:{{ .Values.misp.nodePort }}{{ end }}"
+            {{- end }}
+            - name: CRON_USER_ID
+              value: "1"
+            {{- if .Values.misp.mispConfig.customScripts.enabled }}
+            # Custom scripts environment
+            - name: CUSTOM_PATH
+              value: "{{ .Values.misp.mispConfig.customScripts.mountPath }}"
+            {{- end }}
+            {{- if .Values.misp.mispConfig.soarUsers.enabled }}
+            - name: SOAR_USERS_ENABLED
+              value: "{{ .Values.misp.mispConfig.soarUsers.enabled }}"
+            - name: SOAR_USERS
+              value: |-
+                {{ .Values.misp.mispConfig.soarUsers.users | toJson }}
+            {{- end }}
+            {{- if .Values.misp.mispConfig.extraVars }}
+            {{- range $key, $value := .Values.misp.mispConfig.extraVars }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- end }}
+            {{- range $key, $value := .Values.misp.extraEnvVars }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- if .Values.misp.extraEnvVarsSecret }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.misp.extraEnvVarsSecret "context" $) | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.misp.service.port }}
+              protocol: TCP
+          {{- if .Values.misp.liveness.enabled }}
+          livenessProbe:
+            failureThreshold: {{ .Values.misp.liveness.failure }}
+            initialDelaySeconds: {{ .Values.misp.liveness.delay }}
+            periodSeconds: {{ .Values.misp.liveness.period }}
+            successThreshold: {{ .Values.misp.liveness.success }}
+            timeoutSeconds: {{ .Values.misp.liveness.timeout }}
+            httpGet:
+              path: /
+              port: 8080
+          {{- end }}
+          {{- if .Values.misp.readiness.enabled }}
+          readinessProbe:
+            failureThreshold: {{ .Values.misp.readiness.failure }}
+            initialDelaySeconds: {{ .Values.misp.readiness.delay }}
+            periodSeconds: {{ .Values.misp.readiness.period }}
+            successThreshold: {{ .Values.misp.readiness.success }}
+            timeoutSeconds: {{ .Values.misp.readiness.timeout }}
+            exec:
+              command:
+                - "/bin/sh"
+                - "-c"
+                - "grep -i 'MISP is ready' /misp/readiness/ready.log"
+          {{- end }}
+          {{- if .Values.misp.startup.enabled }}
+          startupProbe:
+            failureThreshold: {{ .Values.misp.startup.failure }}
+            initialDelaySeconds: {{ .Values.misp.startup.delay }}
+            periodSeconds: {{ .Values.misp.startup.period }}
+            successThreshold: {{ .Values.misp.startup.success }}
+            timeoutSeconds: {{ .Values.misp.startup.timeout }}
+            httpGet:
+              path: /
+              port: 8080
+          {{- end }}
+          volumeMounts:
+            {{- if .Values.misp.mispConfig.extraObjects.enabled }}
+            - name: extra-objects
+              mountPath: /tmp/extra-objects
+            - name: extra-objects-schema
+              mountPath: /tmp/objects-schema-override
+            {{- end }}
+            {{- if .Values.misp.vault.enabled}}
+            {{- range .Values.misp.vault.secrets }}
+            - name: {{ printf "vault-%s" .destinationname }}
+              mountPath: {{ printf "/vault/%s" .destinationname }}
+            {{- end }}
+            {{- else }}
+            {{- $secrets := list "mariadb" "valkey" "misp-secrets" }}
+            {{- range $secrets }}
+            - name: {{ printf "vault-%s" . }}
+              mountPath: {{ printf "/vault/%s" . }}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.misp.securityContext.readOnlyRootFilesystem }}
+            {{- if .Values.misp.volumesForReadOnly }}
+            {{- range .Values.misp.volumesForReadOnly }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
+            {{- if .Values.misp.keycloakSecret.enabled }}
+            - name: keycloak-secret
+              mountPath: {{ .Values.misp.keycloakSecret.mountpath }}/{{ .Values.misp.keycloakSecret.key}}
+              subPath: {{ .Values.misp.keycloakSecret.key }}
+            {{- end }}
+            {{- if .Values.misp.mispConfig.extraCerts.enabled }}
+            - name: extra-certs
+              mountPath: /usr/local/share/ca-certificates/extra
+            {{- end }}
+            - name: readiness
+              mountPath: /misp/readiness
+            {{- if .Values.misp.extraVolumeMounts }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.misp.extraVolumeMounts "context" $) | nindent 12 }}
+            {{- end }}
+            {{- if .Values.misp.mispConfig.customScripts.enabled }}
+            - name: custom-scripts
+              mountPath: {{ .Values.misp.mispConfig.customScripts.mountPath }}
+            {{- end }}
+          {{- with .Values.misp.resources }}
+          resources:
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        {{- if .Values.misp.vault.enabled }}
+        {{- range .Values.misp.vault.secrets }}
+        - name: {{ printf "vault-%s" .destinationname }}
+          secret:
+            secretName: {{ include "common.names.fullname" $ }}-{{ .destinationname }}
+        {{- end }}
+        {{- else }}
+        {{- $folder := list "mariadb" "valkey" "misp-secrets" }}
+        {{- range $folder }}
+        - name: {{ printf "vault-%s" . }}
+          secret:
+            secretName: {{ include "common.names.fullname" $ }}-{{ . }}
+        {{- end }}
+        {{- end }}
+        {{- if .Values.misp.securityContext.readOnlyRootFilesystem }}
+        {{- range .Values.misp.volumesForReadOnly }}
+        - name: {{ .name }}
+          {{- if .persistent }}
+          persistentVolumeClaim:
+            claimName: {{ printf "%s-%s" .name $.Release.Name }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- end }}
+        {{- end }}
+        {{- if .Values.misp.keycloakSecret.enabled }}
+        - name: keycloak-secret
+          secret:
+            secretName: {{ .Values.misp.keycloakSecret.name }}
+        {{- end }}
+        {{- if .Values.misp.mispConfig.extraCerts.enabled}}
+        - name: extra-certs
+          configMap:
+            name: {{ .Release.Name }}-extra-certs
+        {{- end }}
+        {{- if .Values.misp.mispConfig.extraObjects.enabled }}
+        - name: extra-objects
+          configMap:
+            name: {{ .Release.Name }}-extra-objects
+        - name: extra-objects-schema
+          configMap:
+            name: {{ .Release.Name }}-objects-schema-override
+        {{- end}}
+        - name: readiness
+          emptyDir: {}
+        {{- if .Values.misp.extraVolumes }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.misp.extraVolumes "context" $) | nindent 8 }}
+        {{- end }}
+        {{- if .Values.misp.mispConfig.customScripts.enabled }}
+        - name: custom-scripts
+          configMap:
+            name: {{ .Values.misp.mispConfig.customScripts.configMapName }}
+            defaultMode: 0755
+        {{- end }}
+      {{- with .Values.misp.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.misp.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.misp.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

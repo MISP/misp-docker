@@ -1,0 +1,12 @@
+dependencies:
+- name: valkey
+  repository: https://charts.bitnami.com/bitnami
+  version: 1.0.2
+- name: mariadb
+  repository: https://charts.bitnami.com/bitnami
+  version: 20.5.3
+- name: common
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 2.31.4
+digest: sha256:e402cb79cd50845d4e25ac5d39d86ba0f55ffa766da1159d5c7cf2c3c6032048
+generated: "2025-12-22T12:26:04.779853+07:00"

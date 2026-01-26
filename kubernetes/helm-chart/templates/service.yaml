@@ -1,0 +1,27 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ include "misp.fullname" . }}
+  labels:
+    {{- include "misp.labels" . | nindent 4 }}
+  {{- with .Values.misp.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ default "ClusterIP" .Values.misp.service.type }}
+  ports:
+    - port: {{ default 80 .Values.misp.service.port }}
+    {{- if eq "NodePort" .Values.misp.service.type }}
+      nodePort: {{ default 30080 .Values.misp.service.nodePort }}
+    {{- end }}
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "misp.selectorLabels" . | nindent 4 }}
+  {{- if and (eq "LoadBalancer" .Values.misp.service.type) .Values.misp.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.misp.service.loadBalancerIP }}
+  {{- end }}
