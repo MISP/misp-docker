@@ -105,5 +105,16 @@ if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
     return
 fi
 
+# Install stunnel4 apt package if needed, before we load supervisord
+if [[ "$STUNNEL" == true ]]; then
+    if ! command -v stunnel >/dev/null 2>&1; then
+        echo "INIT | Install stunnel4 apt package"
+        apt-get update \
+          && apt-get install -y --no-install-recommends stunnel4 \
+          && apt-get autoremove -y \
+          && apt-get clean -y \
+          && rm -rf /var/lib/apt/lists/*
+    fi
+fi
 # start supervisord using the main configuration file so we have a socket interface
 exec /usr/bin/tini -- /usr/local/bin/supervisord -c /etc/supervisor/supervisord.conf
