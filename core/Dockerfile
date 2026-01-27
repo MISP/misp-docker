@@ -38,7 +38,6 @@ RUN <<-EOF
                 php8.4-gd \
                 php8.4-fpm \
                 php8.4-zip \
-                stunnel4 \
                 unzip \
                 zip \
                 curl \
