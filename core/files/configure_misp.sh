@@ -100,7 +100,7 @@ set_up_oidc() {
                 \"role_mapper\": ${OIDC_ROLES_MAPPING},
                 \"default_org\": \"${OIDC_DEFAULT_ORG}\",
                 \"mixedAuth\": ${OIDC_MIXEDAUTH},
-                \"authentication_method\": \"${OIDC_AUTH_METHOD}\",
+                \"authentication_method\": \"${OIDC_AUTH_METHOD:-client_secret_post}\",
                 \"redirect_uri\": \"${OIDC_REDIRECT_URI}\",
                 \"disable_request_object\": \"${OIDC_DISABLE_REQUEST_OBJECT}\",
                 \"skipProxy\": ${OIDC_SKIP_PROXY}
