@@ -69,8 +69,13 @@ change_php_vars() {
         if [[ "$FASTCGI_STATUS_LISTEN" != "" ]]; then
             echo "Configure PHP | Setting 'pm.status_path = /status'"
             sed -i -E "s/;?pm.status_path = .*/pm.status_path = \/status/" "$FILE"
-            echo "Configure PHP | Setting 'pm.status_path = /run/php/php-fpm-status.sock'"
-            sed -i -E "s/;?pm.status_listen = .*/pm.status_listen = \/run\/php\/php-fpm-status.sock/" "$FILE"
+            if [[ -n "$PHP_LISTEN_FPM" ]]; then
+                echo "Configure PHP | Setting 'pm.status_listen' to [::]:9003"
+                sed -i -E "s/;?pm.status_listen = .*/pm.status_listen = [::]:9003/" "$FILE"
+            else
+                echo "Configure PHP | Setting 'pm.status_listen = /run/php/php-fpm-status.sock'"
+                sed -i -E "s/;?pm.status_listen = .*/pm.status_listen = \/run\/php\/php-fpm-status.sock/" "$FILE"
+            fi
         else
             echo "Configure PHP | Disabling 'pm.status_path'"
             sed -i -E "s/^pm.status_path = /;pm.status_path = /" "$FILE"
