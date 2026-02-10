@@ -19,7 +19,7 @@ spec:
             imagePullPolicy: IfNotPresent
             command: ["/bin/sh", "-c"]
             args:
-              - 'curl -s -X POST -k -H "Authorization: ${ADMIN_KEY}" -H "Accept: application/json" -H "Content-Type: application/json" https://minginxr/warninglists/update'
+              - 'curl -s -X POST -k -H "Authorization: ${ADMIN_KEY}" -H "Accept: application/json" -H "Content-Type: application/json" https://nginx/warninglists/update'
             envFrom:
               - secretRef:
                   name: instance-secrets
