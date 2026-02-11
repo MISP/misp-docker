@@ -2,7 +2,7 @@ services:
   # This is capable to relay via gmail, Amazon SES, or generic relays
   # See: https://gitlab.com/egos-tech/smtp
   mail:
-    image: ghcr.io/egos-tech/smtp:1.1.3
+    image: ${REGISTRY_MIRROR_URL:-}ghcr.io/egos-tech/smtp:1.1.3
     restart: always
     environment:
       # For use with Amazon SES relay
@@ -18,7 +18,7 @@ services:
       - "SMARTHOST_ALIASES=${SMARTHOST_ALIASES}"
 
   redis:
-    image: valkey/valkey:7.2
+    image: ${REGISTRY_MIRROR_URL:-}valkey/valkey:7.2
     restart: always
     command: |
       sh -c '
@@ -50,7 +50,7 @@ services:
 
   db:
     # We use MariaDB because it supports ARM and has the expected collations
-    image: mariadb:10.11
+    image: ${REGISTRY_MIRROR_URL:-}mariadb:10.11
     restart: always
     environment:
       - "MYSQL_USER=${MYSQL_USER:-misp}"
@@ -79,7 +79,7 @@ services:
       start_interval: 5s
 
   misp-core:
-    image: ghcr.io/misp/misp-docker/misp-core:${CORE_RUNNING_TAG:-latest}
+    image: ${REGISTRY_MIRROR_URL:-}ghcr.io/misp/misp-docker/misp-core:${CORE_RUNNING_TAG:-latest}
     restart: always
     cap_add:
       - AUDIT_WRITE
@@ -313,7 +313,7 @@ services:
       - "COMPOSE_PROFILES=${COMPOSE_PROFILES}"
 
   misp-modules:
-    image: ghcr.io/misp/misp-docker/misp-modules:${MODULES_RUNNING_TAG:-latest}
+    image: ${REGISTRY_MIRROR_URL:-}ghcr.io/misp/misp-docker/misp-modules:${MODULES_RUNNING_TAG:-latest}
     restart: always
     build:
       context: modules/.
@@ -339,7 +339,7 @@ services:
     profiles:
       - misp-guard
     restart: always
-    image: ghcr.io/misp/misp-docker/misp-guard:${GUARD_RUNNING_TAG:-latest}
+    image: ${REGISTRY_MIRROR_URL:-}ghcr.io/misp/misp-docker/misp-guard:${GUARD_RUNNING_TAG:-latest}
     build:
       context: guard/.
       args:
