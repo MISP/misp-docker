@@ -18,7 +18,7 @@ services:
       - "SMARTHOST_ALIASES=${SMARTHOST_ALIASES}"
 
   redis:
-    image: valkey/valkey:7.2
+    image: ${REGISTRY_MIRROR_URL:-}valkey/valkey:7.2
     restart: always
     command: |
       sh -c '
@@ -50,7 +50,7 @@ services:
 
   db:
     # We use MariaDB because it supports ARM and has the expected collations
-    image: mariadb:10.11
+    image: ${REGISTRY_MIRROR_URL:-}mariadb:10.11
     restart: always
     environment:
       - "MYSQL_USER=${MYSQL_USER:-misp}"
