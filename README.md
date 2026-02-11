@@ -26,6 +26,7 @@ Notable features:
 - Add direct push of docker images to GitHub Packages
 - Consolidated `docker-compose.yml` file
 - Workaround VirtioFS bug when running Docker Desktop for Mac
+- stunnel service for TLS wrapping of plaintext services, such as Redis
 - ... and many others
 
 The underlying spirit of this project is to allow "repeatable deployments", and all pull requests in this direction will be merged post-haste.
@@ -375,6 +376,10 @@ The process is *NOT* battle-tested, so it is *NOT* to be followed uncritically.
    ```bash
    docker compose up
    ```
+
+## stunnel service
+
+See [here](/docs/stunnel-guide.md)
 
 ## Troubleshooting
 

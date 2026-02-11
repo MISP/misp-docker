@@ -1,0 +1,50 @@
+services:
+  misp-core:
+    volumes:
+      - ./misp_custom:/custom
+  redis:
+    command: |
+      sh -c '
+        if [ "$${ENABLE_REDIS_EMPTY_PASSWORD:-false}" = "true" ]; then
+          exec valkey-server \
+            --port 0 \ 
+            --tls-port 6379 \
+            --tls-cert-file /custom/server-cert.pem \
+            --tls-key-file /custom/server-key.pem \
+            --tls-ca-cert-file /custom/ca.pem \
+            --tls-auth-clients yes
+        else
+          exec valkey-server \
+            --port 0 \
+            --tls-port 6379 \
+            --tls-cert-file /custom/client-cert.pem \
+            --tls-key-file /custom/client-key.pem \
+            --tls-ca-cert-file /custom/ca.pem \
+            --tls-auth-clients yes \
+            --requirepass "$${REDIS_PASSWORD:-redispassword}"
+        fi
+      '
+    healthcheck:
+      test: |
+        sh -c '
+          if [ "$${ENABLE_REDIS_EMPTY_PASSWORD:-false}" = "true" ]; then
+            valkey-cli \
+              --tls \
+              --cert /custom/client-cert.pem \
+              --key /custom/client-key.pem \
+              --cacert /custom/ca.pem \
+              -p $${REDIS_PORT:-6379} \
+              ping | grep -q PONG || exit 1
+          else
+            valkey-cli \
+              --tls \
+              --cert /custom/client-cert.pem \
+              --key /custom/client-key.pem \
+              --cacert /custom/ca.pem \
+              -a "$${REDIS_PASSWORD:-redispassword}" \
+              -p $${REDIS_PORT:-6379} \
+              ping | grep -q PONG || exit 1
+          fi
+        '
+    volumes:
+      - ./misp_custom/redis_tls:/custom:ro

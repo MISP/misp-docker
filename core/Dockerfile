@@ -78,6 +78,7 @@ RUN <<-EOF
                 libsimdjson25 \
                 libzstd1 \
                 ssdeep \
+                stunnel4 \
                 libfuzzy2 \
                 unzip \
                 zip \
