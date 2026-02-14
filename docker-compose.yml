@@ -16,6 +16,7 @@ services:
       - "SMARTHOST_USER=${SMARTHOST_USER}"
       - "SMARTHOST_PASSWORD=${SMARTHOST_PASSWORD}"
       - "SMARTHOST_ALIASES=${SMARTHOST_ALIASES}"
+      - "TZ=${TZ:-UTC}"
 
   redis:
     image: ${REGISTRY_MIRROR_URL:-}valkey/valkey:7.2
@@ -31,6 +32,7 @@ services:
     environment:
       - "ENABLE_REDIS_EMPTY_PASSWORD=${ENABLE_REDIS_EMPTY_PASSWORD:-false}"
       - "REDIS_PASSWORD=${REDIS_PASSWORD:-redispassword}"
+      - "TZ=${TZ:-UTC}"
     healthcheck:
       test: |
         sh -c '
@@ -57,6 +59,7 @@ services:
       - "MYSQL_PASSWORD=${MYSQL_PASSWORD:-example}"
       - "MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-password}"
       - "MYSQL_DATABASE=${MYSQL_DATABASE:-misp}"
+      - "TZ=${TZ:-UTC}"
     command: "\
       --innodb-buffer-pool-size=${INNODB_BUFFER_POOL_SIZE:-2048M} \
       --innodb-change-buffering=${INNODB_CHANGE_BUFFERING:-none} \
@@ -153,6 +156,7 @@ services:
       - "ADMIN_ORG_UUID=${ADMIN_ORG_UUID}"
       - "GPG_PASSPHRASE=${GPG_PASSPHRASE}"
       - "ATTACHMENTS_DIR=${ATTACHMENTS_DIR}"
+      - "TZ=${TZ:-UTC}"
       # OIDC authentication settings
       - "OIDC_ENABLE=${OIDC_ENABLE}"
       - "OIDC_PROVIDER_URL=${OIDC_PROVIDER_URL}"
@@ -334,6 +338,8 @@ services:
       - "./custom/expansion/:/custom/expansion/:Z"
       - "./custom/export_mod/:/custom/export_mod/:Z"
       - "./custom/import_mod/:/custom/import_mod/:Z"
+    environment:  
+      - "TZ=${TZ:-UTC}"
 
   misp-guard:
     profiles:
@@ -352,6 +358,7 @@ services:
     environment:
       - "GUARD_PORT=${GUARD_PORT:-8888}"
       - "GUARD_ARGS=${GUARD_ARGS}"
+      - "TZ=${TZ:-UTC}"
     volumes:
       - ./guard/config.json:/config.json:ro
       - misp_guard_ca:/misp_guard_ca
