@@ -315,6 +315,9 @@ services:
       - "CONTENT_SECURITY_POLICY=${CONTENT_SECURITY_POLICY}"
       # compose profiles
       - "COMPOSE_PROFILES=${COMPOSE_PROFILES}"
+    configs:
+      - source: tzone.ini
+        target: /etc/php/8.2/fpm/conf.d/99-tzone.ini
 
   misp-modules:
     image: ${REGISTRY_MIRROR_URL:-}ghcr.io/misp/misp-docker/misp-modules:${MODULES_RUNNING_TAG:-latest}
@@ -368,6 +371,12 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+
+configs:
+  tzone.ini:
+    content: |
+      [PHP]
+      date.timezone = "${TZ:-UTC}"
 
 volumes:
   mysql_data:
