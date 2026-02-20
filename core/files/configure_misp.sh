@@ -373,25 +373,15 @@ set_up_custom_auth() {
         echo "... CUSTOM_AUTH authentication enabled"
 
     else
-        echo "Plugin.CustomAuth_enable"
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_enable" false
-        echo "Plugin.CustomAuth_header"
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_header"
-        echo "Plugin.CustomAuth_use_header_namespace"
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_use_header_namespace" true
-        echo "Plugin.CustomAuth_required"
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_required" false
-        echo "Plugin.CustomAuth_header_namespace"
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_header_namespace" "HTTP_"
-        echo "Plugin.CustomAuth_only_allow_source"
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_only_allow_source"
-        echo "Plugin.CustomAuth_name"
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_name" "External Authentication"
-        echo "Plugin.CustomAuth_disable_logout"
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_disable_logout" false
-        echo "Plugin.CustomAuth_custom_password_reset"
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_custom_password_reset"
-        echo "Plugin.CustomAuth_custom_logout"
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_custom_logout"
         # Re-enable password confirmation if necessary
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" true
