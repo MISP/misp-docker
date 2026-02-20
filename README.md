@@ -202,7 +202,9 @@ For Okta, create a new application integration:
 - Set the Sign-in redirect URI to: "https://<MISP_URL>/users/login"
 - Under the Sign-in tab, add a group claim called "roles" and an appropriate filter
 - In MISP docker `.env` file, set the following variables:
-  `     OIDC_ENABLE=true
+
+```
+OIDC_ENABLE=true
 OIDC_PROVIDER_URL=https://<OKTA_ORG_URL>/.well-known/openid-configuration
 OIDC_ISSUER=https://<OKTA_ORG_URL>
 OIDC_CLIENT_ID=[client_id]
@@ -217,12 +219,15 @@ OIDC_CODE_CHALLENGE_METHOD=S256
 OIDC_AUTH_METHOD="client_secret_post"
 OIDC_REDIRECT_URI="https://<MISP_URL>/users/login" # (same value set in Okta)
 OIDC_DISABLE_REQUEST_OBJECT=false
-OIDC_SKIP_PROXY=true`
-  Valid options for OIDC_AUTH_METHOD are:
+OIDC_SKIP_PROXY=true
+```
+
+Valid options for OIDC_AUTH_METHOD are:
+
 - client_secret_post: tested
 - client*secret_basic: the default if variable is not set, but seems broken with Okta. It will return the following error: *"Error 'invalid*request' received from IdP: Cannot supply multiple client credentials"*.
-- client*secret_jwt: *not tested*
-- private*key_jwt: *not tested*
+- client*secret_jwt: *not tested\*
+- private*key_jwt: *not tested\*
 
 #### CustomAuth
 

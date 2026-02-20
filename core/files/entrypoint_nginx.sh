@@ -449,13 +449,18 @@ init_nginx() {
             CUSTOM_AUTH_HEADER="Authorization"
         fi
 
+        if [[ ! "$CUSTOM_AUTH_HEADER" =~ ^[A-Za-z0-9_-]+$ ]]; then
+            echo "Invalid CUSTOM_AUTH_HEADER value. Only alphanumeric characters, underscores, and dashes are allowed."
+            exit 1
+        fi
+
         # the header needs to start with HTTP_, must be uppercase and dashes must be replaced with underscores, as per FastCGI specifications
-        local auth_header="HTTP_$(echo $CUSTOM_AUTH_HEADER | tr '[:lower:]' '[:upper:]' | tr '-' '_')"
-        local auth_header_nginx="$(echo $auth_header | tr '[:upper:]' '[:lower:]')"
+        local auth_header="HTTP_$(echo "$CUSTOM_AUTH_HEADER" | tr '[:lower:]' '[:upper:]' | tr '-' '_')"
+        local auth_header_nginx="$(echo "$auth_header" | tr '[:upper:]' '[:lower:]')"
 
         echo "setting custom auth header for NGINX to '$CUSTOM_AUTH_HEADER'"
         if ! grep -qE "^fastcgi_param $auth_header " /etc/nginx/fastcgi.conf; then
-            echo "fastcgi_param $auth_header \$$auth_header_nginx;" >> /etc/nginx/fastcgi.conf
+            printf 'fastcgi_param %s $%s;\n' "$auth_header" "$auth_header_nginx" >> /etc/nginx/fastcgi.conf
         fi
     fi
 
