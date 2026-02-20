@@ -244,7 +244,7 @@ CUSTOM_AUTH_REQUIRED=false
 CUSTOM_AUTH_ONLY_ALLOW_SOURCE=
 # The name of the authentication method, this is cosmetic only and will be shown on the user creation page and logs.
 CUSTOM_AUTH_NAME="External Authentication"
-# Disable the logout button for users authenticate with the external auth mechanism.
+# Disable the logout button for users authenticated with the external auth mechanism.
 CUSTOM_AUTH_DISABLE_LOGOUT=false
 # Provide your custom authentication users with an external URL to the authentication system to reset their passwords.
 CUSTOM_AUTH_CUSTOM_PASSWORD_RESET=
