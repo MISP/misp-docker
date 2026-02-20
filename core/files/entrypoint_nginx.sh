@@ -454,7 +454,9 @@ init_nginx() {
         local auth_header_nginx="$(echo $auth_header | tr '[:upper:]' '[:lower:]')"
 
         echo "setting custom auth header for NGINX to '$CUSTOM_AUTH_HEADER'"
-        echo "fastcgi_param $auth_header \$$auth_header_nginx;" >> /etc/nginx/fastcgi.conf
+        if ! grep -qE "^fastcgi_param $auth_header " /etc/nginx/fastcgi.conf; then
+            echo "fastcgi_param $auth_header \$$auth_header_nginx;" >> /etc/nginx/fastcgi.conf
+        fi
     fi
 
     flip_nginx false false
