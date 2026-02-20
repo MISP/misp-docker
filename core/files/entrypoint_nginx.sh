@@ -271,7 +271,7 @@ enforce_misp_data_permissions(){
         echo "... chmod -R 0770 directories /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp -not -perm 770 -type d -exec chmod 0770 {} +
         # We make 'files' and 'tmp' (logs) directories and files user and group writable (we removed the SGID bit)
         echo "... chmod -R u+w,g+w /var/www/MISP/app/tmp" && chmod -R u+w,g+w /var/www/MISP/app/tmp
-        
+
         echo "... chown -R www-data:www-data /var/www/MISP/app/files" && find /var/www/MISP/app/files \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
         # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
         echo "... chmod -R 0550 files /var/www/MISP/app/files" && find /var/www/MISP/app/files -not -perm 550 -type f -exec chmod 0550 {} +
@@ -280,7 +280,7 @@ enforce_misp_data_permissions(){
         # We make 'files' and 'tmp' (logs) directories and files user and group writable (we removed the SGID bit)
         echo "... chmod -R u+w,g+w /var/www/MISP/app/files" && chmod -R u+w,g+w /var/www/MISP/app/files
     fi
-    
+
     echo "... chown -R www-data:www-data /var/www/MISP/app/Config" && find /var/www/MISP/app/Config \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
     # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
     echo "... chmod -R 0550 files /var/www/MISP/app/Config ..." && find /var/www/MISP/app/Config -not -perm 550 -type f -exec chmod 0550 {} +
@@ -424,7 +424,7 @@ init_nginx() {
         echo "... enabling IPv6 on port 443"
         sed -i "s/# listen \[/listen \[/" /etc/nginx/sites-enabled/misp443
     fi
-    
+
     if [[ ! -f /etc/nginx/certs/cert.pem || ! -f /etc/nginx/certs/key.pem ]]; then
         echo "... generating new self-signed TLS certificate"
         openssl req -x509 -subj '/CN=localhost' -nodes -newkey rsa:4096 -keyout /etc/nginx/certs/key.pem -out /etc/nginx/certs/cert.pem -days 365 \
@@ -432,7 +432,7 @@ init_nginx() {
     else
         echo "... TLS certificates found"
     fi
-    
+
     if [[ "$FASTCGI_STATUS_LISTEN" != "" ]]; then
         echo "... enabling php-fpm status page"
         ln -s /etc/nginx/sites-available/php-fpm-status /etc/nginx/sites-enabled/php-fpm-status
@@ -440,6 +440,21 @@ init_nginx() {
     elif [[ -f /etc/nginx/sites-enabled/php-fpm-status ]]; then
         echo "... disabling php-fpm status page"
         rm /etc/nginx/sites-enabled/php-fpm-status
+    fi
+
+    if [[ "$CUSTOM_AUTH_ENABLE" == "true" ]]; then
+        echo "... enabling support for CustomAuth plugin in NGINX"
+        if [[ -z "$CUSTOM_AUTH_HEADER" ]]; then
+            # Default to 'Authorization' if not set, as this is the most common header for custom auth and also the default header used by the CustomAuth plugin
+            CUSTOM_AUTH_HEADER="Authorization"
+        fi
+
+        # the header needs to start with HTTP_, must be uppercase and dashes must be replaced with underscores, as per FastCGI specifications
+        local auth_header="HTTP_$(echo $CUSTOM_AUTH_HEADER | tr '[:lower:]' '[:upper:]' | tr '-' '_')"
+        local auth_header_nginx="$(echo $auth_header | tr '[:upper:]' '[:lower:]')"
+
+        echo "setting custom auth header for NGINX to '$CUSTOM_AUTH_HEADER'"
+        echo "fastcgi_param $auth_header \$$auth_header_nginx;" >> /etc/nginx/fastcgi.conf
     fi
 
     flip_nginx false false
