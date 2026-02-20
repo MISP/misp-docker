@@ -221,8 +221,8 @@ OIDC_SKIP_PROXY=true`
   Valid options for OIDC_AUTH_METHOD are:
 - client_secret_post: tested
 - client*secret_basic: the default if variable is not set, but seems broken with Okta. It will return the following error: *"Error 'invalid*request' received from IdP: Cannot supply multiple client credentials"*.
-- client*secret_jwt: \_not tested*
-- private*key_jwt: \_not tested*
+- client*secret_jwt: *not tested*
+- private*key_jwt: *not tested*
 
 #### CustomAuth
 
