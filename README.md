@@ -226,7 +226,7 @@ OIDC_SKIP_PROXY=true`
 
 #### CustomAuth
 
-You can add authentication using the `Plugin.CustomAuth` plugin as described here https://www.circl.lu/doc/misp/appendices/#appendix-a-external-authentication. It will use a user provided http header to authenticate the user. This is usefull where MISP runs behind an authenticating reverse proxy server.
+You can add authentication using the `Plugin.CustomAuth` plugin as described here https://www.circl.lu/doc/misp/appendices/#appendix-a-external-authentication. It will use a user provided http header to authenticate the user. This is useful where MISP runs behind an authenticating reverse proxy server.
 
 ```
 # Enable this functionality if you would like to handle the authentication via an external tool and authenticate with MISP using a custom header.
