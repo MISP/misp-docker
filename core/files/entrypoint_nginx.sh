@@ -442,28 +442,6 @@ init_nginx() {
         rm /etc/nginx/sites-enabled/php-fpm-status
     fi
 
-    if [[ "$CUSTOM_AUTH_ENABLE" == "true" ]]; then
-        echo "... enabling support for CustomAuth plugin in NGINX"
-        if [[ -z "$CUSTOM_AUTH_HEADER" ]]; then
-            # Default to 'Authorization' if not set, as this is the most common header for custom auth and also the default header used by the CustomAuth plugin
-            CUSTOM_AUTH_HEADER="Authorization"
-        fi
-
-        if [[ ! "$CUSTOM_AUTH_HEADER" =~ ^[A-Za-z0-9_-]+$ ]]; then
-            echo "Invalid CUSTOM_AUTH_HEADER value. Only alphanumeric characters, underscores, and dashes are allowed."
-            exit 1
-        fi
-
-        # the header needs to start with HTTP_, must be uppercase and dashes must be replaced with underscores, as per FastCGI specifications
-        local auth_header="HTTP_$(echo "$CUSTOM_AUTH_HEADER" | tr '[:lower:]' '[:upper:]' | tr '-' '_')"
-        local auth_header_nginx="$(echo "$auth_header" | tr '[:upper:]' '[:lower:]')"
-
-        echo "setting custom auth header for NGINX to '$CUSTOM_AUTH_HEADER'"
-        if ! grep -qE "^fastcgi_param $auth_header " /etc/nginx/fastcgi.conf; then
-            printf 'fastcgi_param %s $%s;\n' "$auth_header" "$auth_header_nginx" >> /etc/nginx/fastcgi.conf
-        fi
-    fi
-
     flip_nginx false false
 }
 
