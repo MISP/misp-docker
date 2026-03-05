@@ -264,28 +264,28 @@ enforce_misp_data_permissions(){
     if [ -f "${MISP_APP_FILES_PATH}/VERSION" ] && [ "$(cat ${MISP_APP_FILES_PATH}/VERSION)" = "${CORE_COMMIT:-$(jq -r '"v\(.major).\(.minor).\(.hotfix)"' /var/www/MISP/VERSION.json)}" ]; then
         echo "... local files/ match distribution version, skipping data permissions in files/"
     else
-        echo "... chown -R www-data:www-data /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
+        echo "find & change ... chown -R www-data:www-data /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
         # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
-        echo "... chmod -R 0550 files /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp -not -perm 550 -type f -exec chmod 0550 {} +
+        echo "find & change ... chmod -R 0550 files /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp -not -perm /0550 -type f -exec chmod 0550 {} +
         # Directories are also writable, because there seems to be a requirement to add new files every once in a while
-        echo "... chmod -R 0770 directories /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp -not -perm 770 -type d -exec chmod 0770 {} +
+        echo "find & change ... chmod -R 0770 directories /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp -not -perm /0770 -type d -exec chmod 0770 {} +
         # We make 'files' and 'tmp' (logs) directories and files user and group writable (we removed the SGID bit)
-        echo "... chmod -R u+w,g+w /var/www/MISP/app/tmp" && chmod -R u+w,g+w /var/www/MISP/app/tmp
+        echo "find & change ... chmod -R u+w,g+w /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp \( ! -perm -u+w -o ! -perm -g+w \) -exec chmod u+w,g+w {} +
         
-        echo "... chown -R www-data:www-data /var/www/MISP/app/files" && find /var/www/MISP/app/files \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
+        echo "find & change ... chown -R www-data:www-data /var/www/MISP/app/files" && find /var/www/MISP/app/files \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
         # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
-        echo "... chmod -R 0550 files /var/www/MISP/app/files" && find /var/www/MISP/app/files -not -perm 550 -type f -exec chmod 0550 {} +
+        echo "find & change ... chmod -R 0550 files /var/www/MISP/app/files" && find /var/www/MISP/app/files -not -perm /0550 -type f -exec chmod 0550 {} +
         # Directories are also writable, because there seems to be a requirement to add new files every once in a while
-        echo "... chmod -R 0770 directories /var/www/MISP/app/files" && find /var/www/MISP/app/files -not -perm 770 -type d -exec chmod 0770 {} +
+        echo "find & change ... chmod -R 0770 directories /var/www/MISP/app/files" && find /var/www/MISP/app/files -not -perm /0770 -type d -exec chmod 0770 {} +
         # We make 'files' and 'tmp' (logs) directories and files user and group writable (we removed the SGID bit)
-        echo "... chmod -R u+w,g+w /var/www/MISP/app/files" && chmod -R u+w,g+w /var/www/MISP/app/files
+        echo "find & change ... chmod -R u+w,g+w /var/www/MISP/app/files" && find /var/www/MISP/app/files \( ! -perm -u+w -o ! -perm -g+w \) -exec chmod u+w,g+w {} +
     fi
     
-    echo "... chown -R www-data:www-data /var/www/MISP/app/Config" && find /var/www/MISP/app/Config \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
+    echo "find & change ... chown -R www-data:www-data /var/www/MISP/app/Config" && find /var/www/MISP/app/Config \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
     # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
-    echo "... chmod -R 0550 files /var/www/MISP/app/Config ..." && find /var/www/MISP/app/Config -not -perm 550 -type f -exec chmod 0550 {} +
+    echo "find & change ... chmod -R 0550 files /var/www/MISP/app/Config ..." && find /var/www/MISP/app/Config -not -perm /0550 -type f -exec chmod 0550 {} +
     # Directories are also writable, because there seems to be a requirement to add new files every once in a while
-    echo "... chmod -R 0770 directories /var/www/MISP/app/Config" && find /var/www/MISP/app/Config -not -perm 770 -type d -exec chmod 0770 {} +
+    echo "find & change ... chmod -R 0770 directories /var/www/MISP/app/Config" && find /var/www/MISP/app/Config -not -perm /0770 -type d -exec chmod 0770 {} +
     # We make configuration files read only
     echo "... chmod 600 /var/www/MISP/app/Config/{config,database,email}.php" && chmod 600 /var/www/MISP/app/Config/{bootstrap,config,database,email}.php
 }
