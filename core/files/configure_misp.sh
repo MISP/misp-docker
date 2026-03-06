@@ -368,7 +368,10 @@ set_up_custom_auth() {
             sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_custom_logout"
         fi
 
+        # normally users need to enter their password on updating their profile even if they are using external authentication, which can be problematic if the password is not known due to external management. Disable this confirmation as recommended.
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
+        # Disable auth logging as it doesn't add much value when using external authentication. Otherwise each single request triggers a authentication log entry.
+        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.log_auth" false
 
         echo "... CUSTOM_AUTH authentication enabled"
 
@@ -383,8 +386,9 @@ set_up_custom_auth() {
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_disable_logout" false
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_custom_password_reset"
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_custom_logout"
-        # Re-enable password confirmation if necessary
+        # Re-enable settings
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" true
+        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.log_auth" true
 
         echo "... CUSTOM_AUTH authentication disabled"
     fi
