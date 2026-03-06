@@ -7,6 +7,7 @@ sensitive_settings=(
     "Plugin.S3_aws_secret_key"
     "Security.encryption_key"
     "GnuPG.password"
+    "Security.salt"
 )
 
 # Check whether passed env variables are defined
@@ -61,12 +62,18 @@ enforce_env_settings() {
     for setting in $(jq -r 'keys[]' <<< $settings_json); do
         local default_value="$(jq -r '."'"$setting"'"["default_value"]' <<< $settings_json)"
         local command_args="$(jq -r '."'"$setting"'"["command_args"] // ""' <<< $settings_json)"
+	local blank_protection="$(jq -r '."'"$setting"'"["blank_protection"] // false' <<< $settings_json)"
         local print_value="$default_value"
         if [[ "$DISABLE_PRINTING_PLAINTEXT_CREDENTIALS" == "true" ]] && [[ " ${sensitive_settings[@]} " =~ " ${setting} " ]]; then
             print_value='<hidden>'
         fi
-        echo "Enforcing $description setting '$setting' to env var or default value '$print_value'..."
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q $command_args "$setting" "$default_value"
+
+	if [[ "$blank_protection" != "true" || -n "$default_value" ]]; then
+            echo "Enforcing $description setting '$setting' to env var or default value '$print_value'..."
+            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q $command_args "$setting" "$default_value"
+	else
+	    echo "Not enforcing $description setting '$setting' as value is blank..."
+	fi
     done
 }
 
