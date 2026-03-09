@@ -18,5 +18,10 @@
   "Security.encryption_key": {
     "default_value": "${ENCRYPTION_KEY}",
     "command_args": "-f"
+  },
+  "Security.salt": {
+    "default_value": "${SALT}",
+    "command_args": "-f",
+    "blank_protection": true
   }
 }
