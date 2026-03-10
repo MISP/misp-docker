@@ -20,27 +20,34 @@ spec:
       securityContext:
         # We want imported files to be owned by www-data group
         fsGroup: 33
+        runAsUser: 33
       containers:
         - name: nginx
           command:
-            - /kubernetes/entrypoint_nginx.sh
+            - /usr/bin/tini
+          args:
+            - nginx
+            - --
+            - -g
+            - daemon off;
           image: "ghcr.io/misp/misp-docker/misp-core:latest"
           imagePullPolicy: IfNotPresent
           readinessProbe:
             tcpSocket:
-              port: 443
+              port: 8080
             initialDelaySeconds: 1
             periodSeconds: 5
             timeoutSeconds: 5
             failureThreshold: 2
             successThreshold: 1
+
           env:
             # We only expose https anyway
             - name: DISABLE_SSL_REDIRECT
               value: "true"
           ports:
-            - name: misp-https
-              containerPort: 443
+            - name: misp-http
+              containerPort: 8080
               protocol: TCP
           resources:
             limits:
@@ -48,6 +55,19 @@ spec:
             requests:
               memory: 512Mi
               cpu: 50m
-
-
-
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+            - name: nginx-body
+              mountPath: /var/lib/nginx/
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: nginx-conf
+            items:
+              - key: nginx.conf
+                path: nginx.conf
+        - name: nginx-body
+          emptyDir:
+            sizeLimit: 50Mi
