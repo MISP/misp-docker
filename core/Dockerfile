@@ -27,6 +27,7 @@ RUN <<-EOF
                 gpg-agent \
                 mariadb-client \
                 rsync \
+                rsyslog \
                 php8.4 \
                 php8.4-curl \
                 php8.4-xml \
@@ -54,6 +55,7 @@ RUN <<-EOF
                 gpg-agent \
                 mariadb-client \
                 rsync \
+                rsyslog \
                 php8.4 \
                 php8.4-apcu \
                 php8.4-curl \
@@ -234,11 +236,9 @@ EOF
 
 FROM php-base
 
-# Disable kernel logging module - not available in containers
-RUN sed -i '/imklog/s/^/#/' /etc/rsyslog.conf
-
 # Redirect rsyslog output to stdout/stderr instead of files, to avoid
-# privileged socket/file access at runtime under an arbitrary UID
+# privileged socket/file access at runtime under an arbitrary UID.
+# imklog is omitted since the kernel log device is not available in containers.
 RUN <<-EOF
         cat > /etc/rsyslog.conf << 'RSYSLOG'
 # Minimal rsyslog config for container (stdout only)
@@ -285,7 +285,7 @@ EOF
 RUN rm /etc/nginx/sites-enabled/*; mkdir -p /run/php /etc/nginx/certs
 
 # Configure nginx to listen on unprivileged ports (8080/8443) for OpenShift.
-# Port numbers below 1024 are rejected by the kernel under restricted SCC.
+# Ports below 1024 are rejected by the kernel under restricted SCC.
 RUN <<-EOF
         find /etc/nginx -name '*.conf' -exec \
             sed -i -e 's/listen 80;/listen 8080;/g' \
@@ -305,9 +305,8 @@ RUN <<-EOF
         # All files and dirs must be owned by GID 0 and group-writable so the
         # arbitrary UID can read/write at runtime. Do NOT use www-data ownership.
         find /var/www/MISP \( ! -group 0 \) -exec chgrp 0 '{}' +
-        find /var/www/MISP -not -perm -g=r -type f -exec chmod g+r '{}' +
-        find /var/www/MISP -not -perm 770 -type d -exec chmod 0770 '{}' +
         find /var/www/MISP -type f -exec chmod g+r '{}' +
+        find /var/www/MISP -type d -exec chmod 0770 '{}' +
 
         # Diagnostics wants this file present and writable
         touch /var/www/MISP/.git/ORIG_HEAD
@@ -315,24 +314,22 @@ RUN <<-EOF
         chgrp 0 /var/www/MISP/.git/ORIG_HEAD
 
         # nginx needs to write pid file and temp dirs at runtime
-        chgrp -R 0 /var/log/nginx /var/lib/nginx /run/nginx* /etc/nginx 2>/dev/null || true
-        chmod -R g+rwX /var/log/nginx /var/lib/nginx /etc/nginx 2>/dev/null || true
-        mkdir -p /var/log/nginx /var/lib/nginx/body
-        chgrp -R 0 /var/log/nginx /var/lib/nginx
-        chmod -R g+rwX /var/log/nginx /var/lib/nginx
+        mkdir -p /var/log/nginx /var/lib/nginx/body /run/nginx
+        chgrp -R 0 /var/log/nginx /var/lib/nginx /run/nginx /etc/nginx
+        chmod -R g+rwX /var/log/nginx /var/lib/nginx /run/nginx /etc/nginx
 
         # PHP-FPM socket dir
-        chgrp -R 0 /run/php /var/log/php*8.4* 2>/dev/null || true
+        chgrp -R 0 /run/php
         chmod -R g+rwX /run/php
-
-        # nginx pid and cache
-        mkdir -p /run/nginx
-        chgrp 0 /run/nginx
-        chmod g+rwX /run/nginx
 
         # stunnel (non-slim): allow arbitrary UID to write config/pid
         chgrp -R 0 /etc/stunnel 2>/dev/null || true
         chmod -R g+rwX /etc/stunnel 2>/dev/null || true
+
+        # rsyslog needs to write its working dir
+        mkdir -p /var/spool/rsyslog
+        chgrp -R 0 /var/spool/rsyslog
+        chmod -R g+rwX /var/spool/rsyslog
 EOF
 
 # Copy all image-specific files to appropriate locations
