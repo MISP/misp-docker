@@ -55,7 +55,7 @@ GPGEOF
     else
         echo "... found pre-generated GPG key in ${GPG_DIR}"
     fi
-
+ 
     # Fix permissions
     ${GPG_DIR}
     find ${GPG_DIR} -type f -exec chmod 600 {} \;
