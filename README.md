@@ -218,12 +218,14 @@ LDAPAUTH_DEBUG=false
 LDAPAUTH_LDAPTLSCUSTOMCACERT=false
 LDAPAUTH_LDAPPROTOCOL=3
 LDAPAUTH_LDAPALLOWREFERRALS=false
-LDAPAUTH_STARTTLS=true
+LDAPAUTH_STARTTLS=false
 LDAPAUTH_MIXEDAUTH=true
 LDAPAUTH_LDAPTLSREQUIRECERT=LDAP_OPT_X_TLS_DEMAND
 LDAPAUTH_LDAPTLSCRLCHECK=LDAP_OPT_X_TLS_CRL_PEER
 LDAPAUTH_LDAPTLSPROTOCOLMIN=LDAP_OPT_X_TLS_PROTOCOL_TLS1_2
 ```
+
+I've made LDAPAUTH_STARTTLS set to false, while it doesn't cause an issue with logging in, it did for me throw an error that it was unable to use start TLS. Try to turn it on after you have your connection working if you don't see any errors.
 
 #### OIDC Authentication
 
