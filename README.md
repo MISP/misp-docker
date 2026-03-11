@@ -272,6 +272,28 @@ CUSTOM_AUTH_CUSTOM_LOGOUT=
 - If you need to automatically run additional steps each time the container starts, create a new file `files/customize_misp.sh`, and replace the variable `${CUSTOM_PATH}` inside `docker-compose.yml` with its parent path.
 - If you are interested in running streamlined versions of the images (fewer dependencies, easier approval from compliance), you might want to use the `latest-slim` tag. Just adjust the `docker-compose.yml` file, and run again `docker compose pull` and `docker compose up`.
 
+
+### High availability deployments
+
+If you want to deploy multiple `misp-core` containers behind a load balancer it is recommended that you set the following to static values in `.env` or otherwise inside the container environment as they are used in session handling, and if unset will randomly generate:
+
+- SALT
+- UUID
+
+If you don't do this you will likely get CSRF errors.
+
+The following environment variables should also be the same across `misp-core` containers for non-session reasons:
+
+- BASE_URL
+- ENCRYPTION_KEY
+- ADMIN_EMAIL
+- ADMIN_ORG
+- ADMIN_ORG_UUID
+- MISP_EMAIL
+- GPG_PASSPHRASE
+
+It is not recommended to share the `app/Config` directory as this image undertakes checks and changes each container start and may end up in a race condition that damages the shared `config.php` file. An individual `app/Config` per container is recommended.
+
 ### Build Options
 
 This project supports multiple build methods to suit different needs.
