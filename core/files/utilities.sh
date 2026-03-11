@@ -70,7 +70,7 @@ enforce_env_settings() {
 
         if [[ "$blank_protection" != "true" || -n "$default_value" ]]; then
             echo "Enforcing $description setting '$setting' to env var or default value '$print_value'..."
-            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q $command_args "$setting" "$default_value"
+            /var/www/MISP/app/Console/cake Admin setSetting -q $command_args "$setting" "$default_value"
         else
             echo "Not enforcing $description setting '$setting' as value is blank..."
         fi
@@ -89,7 +89,7 @@ set_safe_default() {
             print_value='<hidden>'
         fi
         echo "Updating unset $description setting '$setting' to '$print_value'..."
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q $command_args "$setting" "$default_value"
+        /var/www/MISP/app/Console/cake Admin setSetting -q $command_args "$setting" "$default_value"
     fi
 }
 

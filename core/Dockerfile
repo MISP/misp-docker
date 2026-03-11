@@ -21,14 +21,12 @@ RUN <<-EOF
                 tini \
                 gettext \
                 procps \
-                sudo \
                 nginx \
                 openssl \
                 gpg \
                 gpg-agent \
                 mariadb-client \
                 rsync \
-                rsyslog \
                 php8.4 \
                 php8.4-curl \
                 php8.4-xml \
@@ -50,14 +48,12 @@ RUN <<-EOF
                 tini \
                 gettext \
                 procps \
-                sudo \
                 nginx \
                 openssl \
                 gpg \
                 gpg-agent \
                 mariadb-client \
                 rsync \
-                rsyslog \
                 php8.4 \
                 php8.4-apcu \
                 php8.4-curl \
@@ -199,15 +195,6 @@ EOF
 RUN <<-EOF
         mkdir /wheels
 
-        # Add additional dependencies (container specific)
-        # The "set" line contains the list of modules we want to ensure are present.
-        # PYPI_MODULE_NAME_VERSION env vars can be set to specify the version desired,
-        # e.g. PYPI_SURICATA_VERSION="==2.0" to specify exactly version 2.0 for the suricata package
-        #
-        # 1. Check for presence of each module in requirements.txt
-        # 2. If missing, add it (with optional version from env (defaults to empty string))
-        # 3. If present, replace with our specified version if it exists, otherwise leave
-        #    the upstream version alone.
         set -- "redis" "lief" "pydeep2" "python-magic" "misp-lib-stix2" "maec" "mixbox" "cybox" "pymisp" "misp-stix" "taxii2-client" "setuptools" "supervisor"
         for mod in "$@"; do
             mod_version_var=$(echo "PYPI_${mod}_VERSION" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
@@ -247,28 +234,41 @@ EOF
 
 FROM php-base
 
-# Remove some defaults (kernel logging) and fix alternatives
+# Disable kernel logging module - not available in containers
 RUN sed -i '/imklog/s/^/#/' /etc/rsyslog.conf
+
+# Redirect rsyslog output to stdout/stderr instead of files, to avoid
+# privileged socket/file access at runtime under an arbitrary UID
+RUN <<-EOF
+        cat > /etc/rsyslog.conf << 'RSYSLOG'
+# Minimal rsyslog config for container (stdout only)
+global(processInternalMessages="on")
+module(load="imuxsock")
+*.* /proc/1/fd/1
+RSYSLOG
+EOF
+
 RUN update-alternatives --set php /usr/bin/php8.4
 RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Install python modules
 COPY --from=python-build /wheels /wheels
 RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
-# PHP: install prebuilt libraries, then install the app's PHP deps
+
+# PHP: install prebuilt libraries
 COPY --from=php-build /pecl_libs.tar.gz /
 RUN tar -xzf /pecl_libs.tar.gz && rm /pecl_libs.tar.gz
 
 # Do an early chown to limit image size
-COPY --from=python-build --chown=www-data:www-data --chmod=0550 /var/www/MISP /var/www/MISP
-COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/composer.lock /var/www/MISP/app/composer.lock
-COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/Vendor /var/www/MISP/app/Vendor
-COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/Plugin /var/www/MISP/app/Plugin
+COPY --from=python-build --chown=0:0 --chmod=0550 /var/www/MISP /var/www/MISP
+COPY --from=composer-build --chown=0:0 --chmod=0550 /tmp/composer.lock /var/www/MISP/app/composer.lock
+COPY --from=composer-build --chown=0:0 --chmod=0550 /tmp/Vendor /var/www/MISP/app/Vendor
+COPY --from=composer-build --chown=0:0 --chmod=0550 /tmp/Plugin /var/www/MISP/app/Plugin
 
-# Gather these in one layer, only act on actual directories under /etc/php/
+# Load PHP extensions
 RUN <<-EOF
         if [ "${CORE_FLAVOR}" = "slim" ]; then
-            set -- 
+            set --
         else
             set -- "ssdeep" "rdkafka" "brotli" "simdjson" "zstd"
         fi
@@ -281,30 +281,70 @@ RUN <<-EOF
         phpenmod redis
 EOF
 
-# nginx
+# nginx: remove default site, create required dirs
 RUN rm /etc/nginx/sites-enabled/*; mkdir -p /run/php /etc/nginx/certs
 
+# Configure nginx to listen on unprivileged ports (8080/8443) for OpenShift.
+# Port numbers below 1024 are rejected by the kernel under restricted SCC.
+RUN <<-EOF
+        find /etc/nginx -name '*.conf' -exec \
+            sed -i -e 's/listen 80;/listen 8080;/g' \
+                   -e 's/listen 443/listen 8443/g' \
+                   -e 's/listen \[::\]:80/listen [::]:8080/g' \
+                   -e 's/listen \[::\]:443/listen [::]:8443/g' {} +
+EOF
+
 # Make a copy of the file and configuration stores, so we can sync from it
-
-# The spirit of the upstream dockerization is to make:
-#   1) User and group aligned in terms of permissions
-#   2) Files executable and read only, because of some rogue scripts like 'cake'
-#   3) Directories writable, because sometimes MISP add new files
-
 RUN <<-EOF
         cp -R /var/www/MISP/app/files /var/www/MISP/app/files.dist
         echo "${CORE_COMMIT:-${CORE_TAG}}" > /var/www/MISP/app/files/VERSION
         cp -R /var/www/MISP/app/Config /var/www/MISP/app/Config.dist
-        find /var/www/MISP \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data '{}' +;
-        find /var/www/MISP -not -perm 550 -type f -exec chmod 0550 '{}' +;
-        find /var/www/MISP -not -perm 770 -type d -exec chmod 0770 '{}' +;
-        # Diagnostics wants this file to be present and writable even if we do not use git in docker land
-        touch /var/www/MISP/.git/ORIG_HEAD && chmod 0600 /var/www/MISP/.git/ORIG_HEAD && chown www-data:www-data /var/www/MISP/.git/ORIG_HEAD
+
+        # OpenShift rootless/restricted SCC compatibility:
+        # OpenShift runs containers as a random arbitrary UID with GID 0 (root group).
+        # All files and dirs must be owned by GID 0 and group-writable so the
+        # arbitrary UID can read/write at runtime. Do NOT use www-data ownership.
+        find /var/www/MISP \( ! -group 0 \) -exec chgrp 0 '{}' +
+        find /var/www/MISP -not -perm -g=r -type f -exec chmod g+r '{}' +
+        find /var/www/MISP -not -perm 770 -type d -exec chmod 0770 '{}' +
+        find /var/www/MISP -type f -exec chmod g+r '{}' +
+
+        # Diagnostics wants this file present and writable
+        touch /var/www/MISP/.git/ORIG_HEAD
+        chmod 0640 /var/www/MISP/.git/ORIG_HEAD
+        chgrp 0 /var/www/MISP/.git/ORIG_HEAD
+
+        # nginx needs to write pid file and temp dirs at runtime
+        chgrp -R 0 /var/log/nginx /var/lib/nginx /run/nginx* /etc/nginx 2>/dev/null || true
+        chmod -R g+rwX /var/log/nginx /var/lib/nginx /etc/nginx 2>/dev/null || true
+        mkdir -p /var/log/nginx /var/lib/nginx/body
+        chgrp -R 0 /var/log/nginx /var/lib/nginx
+        chmod -R g+rwX /var/log/nginx /var/lib/nginx
+
+        # PHP-FPM socket dir
+        chgrp -R 0 /run/php /var/log/php*8.4* 2>/dev/null || true
+        chmod -R g+rwX /run/php
+
+        # nginx pid and cache
+        mkdir -p /run/nginx
+        chgrp 0 /run/nginx
+        chmod g+rwX /run/nginx
+
+        # stunnel (non-slim): allow arbitrary UID to write config/pid
+        chgrp -R 0 /etc/stunnel 2>/dev/null || true
+        chmod -R g+rwX /etc/stunnel 2>/dev/null || true
 EOF
 
-# Copy all our image specific files to appropriate locations
+# Copy all image-specific files to appropriate locations
 COPY files/ /
+
+# Run as a non-root, non-www-data UID. GID 0 provides group access to all
+# group-writable paths prepared above. OpenShift will override this UID with
+# its own arbitrary value at runtime, but the GID 0 supplemental group remains.
+USER 1001
+
+EXPOSE 8080 8443
+
 ENTRYPOINT [ "/entrypoint.sh" ]
 
-# Change Workdirectory
 WORKDIR /var/www/MISP
