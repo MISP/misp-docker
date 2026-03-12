@@ -265,16 +265,12 @@ enforce_misp_data_permissions(){
         echo "... local files/ match distribution version, skipping data permissions in files/"
     else
         echo "find & change ... chown -R www-data:www-data /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
-        # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
-        echo "find & change ... chmod -R 0550 files /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp -type f ! -perm 0550 -exec chmod 0550 {} +
-        # Directories are also writable, because there seems to be a requirement to add new files every once in a while
-        echo "find & change ... chmod -R 0770 directories /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp -type d ! -perm 0770 -exec chmod 0770 {} +
+        # Enforce 0770 on all files and dirs - app/tmp contains a mix of cache, exports and temp files that all need to be writable by www-data
+        echo "find & change... chmod -R 0770 /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp ! -perm 0770 -exec chmod 0770 {} +
         
         echo "find & change ... chown -R www-data:www-data /var/www/MISP/app/files" && find /var/www/MISP/app/files \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
-        # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
-        echo "find & change ... chmod -R 0550 files /var/www/MISP/app/files" && find /var/www/MISP/app/files -type f ! -perm 0550 -exec chmod 0550 {} +
-        # Directories are also writable, because there seems to be a requirement to add new files every once in a while
-        echo "find & change ... chmod -R 0770 directories /var/www/MISP/app/files" && find /var/www/MISP/app/files -type d ! -perm 0770 -exec chmod 0770 {} +
+        # Enforce 0770 on all files and dirs - app/files contains a mix of scripts and user data
+        echo "find & change ... chmod -R 0770 /var/www/MISP/app/files" && find /var/www/MISP/app/files ! -perm 0770 -exec chmod 0770 {} +
     fi
 
     echo "... chown -R www-data:www-data /var/www/MISP/app/Config" && find /var/www/MISP/app/Config \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
