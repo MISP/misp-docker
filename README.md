@@ -192,7 +192,8 @@ The following configuration to use LdapAuth plugin with your ldap/AD server has 
 
 This example expects that you mounted the rootca under `/usr/local/share/ca-certificates/rootca.crt` into your pod, which is automatically added to the `/etc/ssl/certs/ca-certificates.crt` and `/etc/ssl/certs/ca-certificates.crt` bundle.
 
-The use of `memberOf:1.2.840.113556.1.4.1941:=` makes the group `MIPS-ALLOW-IN` which is a <u>member of</u> security-role group, allows the <u>members</u> in the security-role to be authorized (RBAC).
+The use of `memberOf:1.2.840.113556.1.4.1941:=` is meant to recursively look for nested members in a group.
+For example, if we have a group object named `MIPS-ALLOW-IN`, which we grant access to the MISP. And we make this group a member of a different group named: ` Applications Admins`. Then all members/users in `Applications Admins` are granted access aswell. This methode of assigining permission is called RBAC.
 
 This example uses `userPrincipalName` attribute as the username the user logs into, and `mail` to send emails to when the user has logged in.
 
@@ -225,7 +226,9 @@ LDAPAUTH_LDAPTLSCRLCHECK=LDAP_OPT_X_TLS_CRL_PEER
 LDAPAUTH_LDAPTLSPROTOCOLMIN=LDAP_OPT_X_TLS_PROTOCOL_TLS1_2
 ```
 
-I've made LDAPAUTH_STARTTLS set to false, while it doesn't cause an issue with logging in, it did for me throw an error that it was unable to use start TLS. Try to turn it on after you have your connection working if you don't see any errors.
+STARTTLS is set to false as it's meant to upgrade an unencrypted connection (LDAP) to a secure one if possible automatically (LDAPS).
+As we use LDAPS (hardcoded) or no connection at all, this isn't desired.
+
 
 #### OIDC Authentication
 
