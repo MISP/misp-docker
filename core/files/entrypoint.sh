@@ -89,7 +89,8 @@ export PHP_SESSION_CHECK_AGENT=${PHP_SESSION_CHECK_AGENT:-false}
 export PHP_SESSION_COOKIE_SECURE=${PHP_SESSION_COOKIE_SECURE:-true}
 export PHP_SESSION_COOKIE_DOMAIN=${PHP_SESSION_COOKIE_DOMAIN}
 export PHP_SESSION_COOKIE_SAMESITE=${PHP_SESSION_COOKIE_SAMESITE:-Lax}
-export PHP_TIMEZONE=${PHP_TIMEZONE:-UTC}
+
+export TZ=${TZ:-UTC}
 
 export NGINX_X_FORWARDED_FOR=${NGINX_X_FORWARDED_FOR:-false}
 export NGINX_SET_REAL_IP_FROM=${NGINX_SET_REAL_IP_FROM}
@@ -101,6 +102,11 @@ export STUNNEL_CONFIG=${STUNNEL_CONFIG}
 export SUPERVISOR_HOST=${SUPERVISOR_HOST:-127.0.0.1}
 export SUPERVISOR_USERNAME=${SUPERVISOR_USERNAME:-supervisor}
 export SUPERVISOR_PASSWORD=${SUPERVISOR_PASSWORD:-supervisor}
+
+# Setting Timezone for supervisord
+update-alternatives --install /etc/localtime localtime /usr/share/zoneinfo/${TZ} 0
+# Also set /etc/timezone for broader compatibility
+echo "${TZ}" > /etc/timezone
 
 # Hinders further execution when sourced from other scripts
 if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
