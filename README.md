@@ -188,6 +188,48 @@ You can configure LDAP authentication in MISP using 2 methods:
 
 LdapAuth is recommended over ApacheSecureAuth because it doesn't require rproxy apache with the ldap module.
 
+The following configuration to use LdapAuth plugin with your ldap/AD server has been tested and hardend.
+
+This example expects that you mounted the rootca under `/usr/local/share/ca-certificates/rootca.crt` into your pod, which is automatically added to the `/etc/ssl/certs/ca-certificates.crt` and `/etc/ssl/certs/ca-certificates.crt` bundle.
+
+The use of `memberOf:1.2.840.113556.1.4.1941:=` is meant to recursively look for nested members in a group.
+For example, if we have a group object named `MIPS-ALLOW-IN`, which we grant access to the MISP. And we make this group a member of a different group named: ` Applications Admins`. Then all members/users in `Applications Admins` are granted access aswell. This methode of assigining permission is called RBAC.
+
+This example uses `userPrincipalName` attribute as the username the user logs into, and `mail` to send emails to when the user has logged in.
+
+You don't need to use any quote's, double quote's, escape or double escape, the /configure_misp.sh script makes sure to single quote what needs quote's into `/var/www/MISP/app/Config/config.php`.
+
+Make sure to have this defined into the `instance-secrets.env`.
+
+```bash
+BASE_URL=https://misp.apps.openshift.domain.local
+LDAPAUTH_ENABLE=true
+LDAPAUTH_LDAPSERVER=ldaps://domain.local
+LDAPAUTH_LDAPDN=OU=Company,OU=Management,DC=domain,DC=local
+LDAPAUTH_LDAPREADERUSER=CN=ldap-account,OU=Accounts LDAP,OU=Management,DC=domain,DC=local
+LDAPAUTH_LDAPREADERPASSWORD=YoucanType4nythingH3r3Even1'Are3scaped!
+LDAPAUTH_LDAPSEARCHFILTER=(&(objectCategory=person)(objectClass=user)(memberOf:1.2.840.113556.1.4.1941:=CN=MIPS-ALLOW-IN,OU=Groups Applications,OU=Groups,DC=domain,DC=local))
+LDAPAUTH_LDAPSEARCHATTRIBUTE=userPrincipalName
+LDAPAUTH_LDAPEMAILFIELD=mail
+LDAPAUTH_LDAPNETWORKTIMEOUT=-1
+LDAPAUTH_UPDATEUSER=true
+LDAPAUTH_LDAPDEFAULTORGID=1
+LDAPAUTH_LDAPDEFAULTROLEID=3
+LDAPAUTH_DEBUG=false
+LDAPAUTH_LDAPTLSCUSTOMCACERT=false
+LDAPAUTH_LDAPPROTOCOL=3
+LDAPAUTH_LDAPALLOWREFERRALS=false
+LDAPAUTH_STARTTLS=false
+LDAPAUTH_MIXEDAUTH=true
+LDAPAUTH_LDAPTLSREQUIRECERT=LDAP_OPT_X_TLS_DEMAND
+LDAPAUTH_LDAPTLSCRLCHECK=LDAP_OPT_X_TLS_CRL_PEER
+LDAPAUTH_LDAPTLSPROTOCOLMIN=LDAP_OPT_X_TLS_PROTOCOL_TLS1_2
+```
+
+STARTTLS is set to false as it's meant to upgrade an unencrypted connection (LDAP) to a secure one if possible automatically (LDAPS).
+As we use LDAPS (hardcoded) or no connection at all, this isn't desired.
+
+
 #### OIDC Authentication
 
 OIDC Auth is implemented through the MISP OidcAuth plugin.
