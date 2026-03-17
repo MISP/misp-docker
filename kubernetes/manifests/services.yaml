@@ -12,7 +12,7 @@ spec:
       protocol: TCP
       name: misp-modules
   selector:
-    app.kubernetes.io/name: misp
+    app.kubernetes.io/name: misp-modules
 ---
 apiVersion: v1
 kind: Service
