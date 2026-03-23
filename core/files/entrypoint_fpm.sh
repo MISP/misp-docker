@@ -83,8 +83,13 @@ change_php_vars() {
             sed -i -E "s/^pm.status_listen =/;pm.status_listen =/" "$FILE"
         fi
         if [[ -n "$PHP_LISTEN_FPM" ]]; then
-            echo "Configure PHP | Setting 'listen' to [::]:9002"
-            sed -i "/^listen =/s@=.*@= [::]:9002@" "$FILE"
+            if [[ "$DISABLE_IPV6" = "true" ]]; then
+                echo "Configure PHP | Setting 'listen' to 0.0.0.0:9002"
+                sed -i "/^listen =/s@=.*@= 0.0.0.0:9002@" "$FILE"
+            else
+                echo "Configure PHP | Setting 'listen' to [::]:9002"
+                sed -i "/^listen =/s@=.*@= [::]:9002@" "$FILE"
+            fi
         fi
 
     done
