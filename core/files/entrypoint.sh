@@ -105,8 +105,6 @@ export SUPERVISOR_PASSWORD=${SUPERVISOR_PASSWORD:-supervisor}
 
 # Setting Timezone for supervisord
 update-alternatives --install /etc/localtime localtime /usr/share/zoneinfo/${TZ} 0
-# Also set /etc/timezone for broader compatibility
-echo "${TZ}" > /etc/timezone
 
 # Hinders further execution when sourced from other scripts
 if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
