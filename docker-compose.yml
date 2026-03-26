@@ -23,16 +23,22 @@ services:
     restart: always
     command: |
       sh -c '
-        if [ "$${ENABLE_REDIS_EMPTY_PASSWORD:-false}" = "true" ]; then
-          exec valkey-server
+        if [ "$${ENABLE_REDIS_SNAPSHOT}" = "false" ] ; then
+            redis_snapshot="--save \"\""
         else
-          exec valkey-server --requirepass "$${REDIS_PASSWORD:-redispassword}"
+            redis_snapshot=""
+        fi
+        if [ "$${ENABLE_REDIS_EMPTY_PASSWORD:-false}" = "true" ]; then
+          exec valkey-server $${redis_snapshot}
+        else
+          exec valkey-server --requirepass "$${REDIS_PASSWORD:-redispassword}" $${redis_snapshot}
         fi
       '
     environment:
       - "ENABLE_REDIS_EMPTY_PASSWORD=${ENABLE_REDIS_EMPTY_PASSWORD:-false}"
       - "REDIS_PASSWORD=${REDIS_PASSWORD:-redispassword}"
       - "TZ=${TZ:-UTC}"
+      - "ENABLE_REDIS_SNAPSHOT=${ENABLE_REDIS_SNAPSHOT:-true}"
     healthcheck:
       test: |
         sh -c '
