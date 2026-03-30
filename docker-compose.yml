@@ -23,7 +23,7 @@ services:
     restart: always
     command: |
       sh -c '
-        if [ "$${ENABLE_REDIS_SNAPSHOT}" = "false" ] ; then
+        if [ "$${DISABLE_REDIS_SNAPSHOT}" = "true" ] ; then
             redis_snapshot="--save \"\""
         else
             redis_snapshot=""
@@ -38,7 +38,7 @@ services:
       - "ENABLE_REDIS_EMPTY_PASSWORD=${ENABLE_REDIS_EMPTY_PASSWORD:-false}"
       - "REDIS_PASSWORD=${REDIS_PASSWORD:-redispassword}"
       - "TZ=${TZ:-UTC}"
-      - "ENABLE_REDIS_SNAPSHOT=${ENABLE_REDIS_SNAPSHOT:-true}"
+      - "DISABLE_REDIS_SNAPSHOT=${DISABLE_REDIS_SNAPSHOT:-false}"
     healthcheck:
       test: |
         sh -c '
