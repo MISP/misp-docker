@@ -28,14 +28,23 @@ init_workers() {
 
 set_misp_settings() {
     if [ -f "${MISP_SETTINGS_FILE}" ]; then
-        jq -c 'to_entries[]' "${MISP_SETTINGS_FILE}" | while read -r entry; do
+        # Validate that the settings file contains a JSON object before processing.
+        if ! jq -e 'type == "object"' "${MISP_SETTINGS_FILE}" >/dev/null 2>&1; then
+            echo "Error: ${MISP_SETTINGS_FILE} must contain a JSON object with key/value settings."
+            return 1
+        fi
+
+        # Capture jq output while checking its exit status so parse failures are not masked.
+        settings_entries=$(jq -c 'to_entries[]' "${MISP_SETTINGS_FILE}") || return 1
+
+        while IFS= read -r entry; do
             key=$(echo "$entry" | jq -r '.key')
             value=$(echo "$entry" | jq -r '.value')
 
             echo "Setting $key to $value"
 
             sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "$key" "$value"
-        done
+        done <<< "$settings_entries"
     fi
 }
 
