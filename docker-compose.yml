@@ -166,6 +166,7 @@ services:
       - "ATTACHMENTS_DIR=${ATTACHMENTS_DIR}"
       - "TZ=${TZ:-UTC}"
       - "ENABLE_THEMES=${ENABLE_THEMES}"
+      - "CURL_REQUEST_TIMEOUT=${CURL_REQUEST_TIMEOUT}"
       # OIDC authentication settings
       - "OIDC_ENABLE=${OIDC_ENABLE}"
       - "OIDC_PROVIDER_URL=${OIDC_PROVIDER_URL}"
@@ -357,7 +358,7 @@ services:
       - "./custom/expansion/:/custom/expansion/:Z"
       - "./custom/export_mod/:/custom/export_mod/:Z"
       - "./custom/import_mod/:/custom/import_mod/:Z"
-    environment:  
+    environment:
       - "TZ=${TZ:-UTC}"
 
   misp-guard:

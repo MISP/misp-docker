@@ -2,6 +2,9 @@
   "MISP.enable_themes": {
     "default_value": "${ENABLE_THEMES}"
   },
+  "MISP.curl_request_timeout": {
+    "default_value": "${CURL_REQUEST_TIMEOUT}"
+  },
   "Plugin.Enrichment_services_url": {
     "default_value": "${MISP_MODULES_FQDN}"
   },
