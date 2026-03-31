@@ -26,6 +26,19 @@ init_workers() {
     stdbuf -oL supervisorctl start misp-workers:*
 }
 
+set_misp_settings() {
+    if [ -f "${MISP_SETTINGS_FILE}" ]; then
+        jq -c 'to_entries[]' "${MISP_SETTINGS_FILE}" | while read -r entry; do
+            key=$(echo "$entry" | jq -r '.key')
+            value=$(echo "$entry" | jq -r '.value')
+
+            echo "Setting $key to $value"
+
+            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "$key" "$value"
+        done
+    fi
+}
+
 configure_gnupg() {
     if [ "$AUTOCONF_GPG" != "true" ]; then
         echo "... GPG auto configuration disabled"
@@ -715,6 +728,8 @@ echo "MISP | Initialize workers ..." && init_workers
 echo "MISP | Apply DB updates ..." && apply_updates
 
 echo "MISP | Configure GPG key ..." && configure_gnupg
+
+echo "MISP | Set MISP settings ..." && set_misp_settings
 
 echo "MISP | Init default user and organization ..." && init_user
 

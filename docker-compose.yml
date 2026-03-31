@@ -136,6 +136,8 @@ services:
       - "./ssl/:/etc/nginx/certs/:Z"
       - "./gnupg/:/var/www/MISP/.gnupg/:Z"
       - "misp_guard_ca:/usr/local/share/ca-certificates/misp_guard:Z"
+      # custom MISP settings to be set on each boot, If changing the default path, be sure to also set MISP_SETTINGS_FILE
+      # - "./settings.json:/settings.json:ro"
     # customize by replacing ${CUSTOM_PATH} with a path containing 'files/customize_misp.sh'
     # - "${CUSTOM_PATH}/:/custom/:Z"
     # mount custom ca root certificates
@@ -334,6 +336,8 @@ services:
       - "CONTENT_SECURITY_POLICY=${CONTENT_SECURITY_POLICY}"
       # compose profiles
       - "COMPOSE_PROFILES=${COMPOSE_PROFILES}"
+      # MISP settings
+      - "MISP_SETTINGS_FILE=${MISP_SETTINGS_FILE:-/settings.json}"
 
   misp-modules:
     image: ${REGISTRY_MIRROR_URL:-}ghcr.io/misp/misp-docker/misp-modules:${MODULES_RUNNING_TAG:-latest}
@@ -357,7 +361,7 @@ services:
       - "./custom/expansion/:/custom/expansion/:Z"
       - "./custom/export_mod/:/custom/export_mod/:Z"
       - "./custom/import_mod/:/custom/import_mod/:Z"
-    environment:  
+    environment:
       - "TZ=${TZ:-UTC}"
 
   misp-guard:

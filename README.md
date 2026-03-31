@@ -99,6 +99,23 @@ If you push a change to add or remove an environment variable, please look in "c
 
 The misp-core container has definitions for minimum safe default settings which are set if needed each time the container starts. They will only be set if there is no existing entry in the config.php file or database for these settings. If you specify a custom value for any of these settings it will be respected. See the definitions of these in "core/files/etc/misp-docker" where the filenames contain the word "defaults".
 
+#### Setting custom settings
+
+If you want to set custom MISP settings on startup please take the following steps:
+
+- create a `settings.json` file in the project root
+- uncomment the `settings.json` mountpoint in the `misp-core` image in `docker-compose.yml`
+- if you change the default mount path, be sure to update `MISP_SETTINGS_FILE` in your `.env` file
+- add the settings to your json
+
+##### Example
+
+```json
+{
+  "MISP.curl_request_timeout": "600"
+}
+```
+
 #### Storing system settings in the DB
 
 This container includes the "ENABLE_DB_SETTINGS" environment variable, which can be used to set "MISP.system_setting_db" to true or false. This changes the behaviour of where MISP chooses to store operator made settings changes; in config.php or in the system_settings database table. By default this is set to false.
@@ -229,7 +246,6 @@ LDAPAUTH_LDAPTLSPROTOCOLMIN=LDAP_OPT_X_TLS_PROTOCOL_TLS1_2
 STARTTLS is set to false as it's meant to upgrade an unencrypted connection (LDAP) to a secure one if possible automatically (LDAPS).
 As we use LDAPS (hardcoded) or no connection at all, this isn't desired.
 
-
 #### OIDC Authentication
 
 OIDC Auth is implemented through the MISP OidcAuth plugin.
@@ -313,7 +329,6 @@ CUSTOM_AUTH_CUSTOM_LOGOUT=
   - `./gnupg`: `/var/www/MISP/.gnupg/`
 - If you need to automatically run additional steps each time the container starts, create a new file `files/customize_misp.sh`, and replace the variable `${CUSTOM_PATH}` inside `docker-compose.yml` with its parent path.
 - If you are interested in running streamlined versions of the images (fewer dependencies, easier approval from compliance), you might want to use the `latest-slim` tag. Just adjust the `docker-compose.yml` file, and run again `docker compose pull` and `docker compose up`.
-
 
 ### High availability deployments
 
