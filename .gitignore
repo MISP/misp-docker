@@ -12,3 +12,4 @@ docker-compose.override.yml
 .DS_Store
 .AppleDouble
 .LSOverride
+settings.json
