@@ -247,6 +247,8 @@ EOF
 
 FROM php-base
 
+ENV PATH="/var/www/MISP/app/Console:${PATH}"
+
 # Remove some defaults (kernel logging) and fix alternatives
 RUN sed -i '/imklog/s/^/#/' /etc/rsyslog.conf
 RUN update-alternatives --set php /usr/bin/php8.4
