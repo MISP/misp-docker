@@ -1,0 +1,33 @@
+{{- if .Values.misp.autoscaling.enabled }}
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ include "misp.fullname" . }}
+  labels:
+    {{- include "misp.labels" . | nindent 4 }}
+  {{- with .Values.misp.autoscaling.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "misp.fullname" . }}
+  minReplicas: {{ .Values.misp.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.misp.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.misp.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: {{ .Values.misp.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.misp.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        targetAverageUtilization: {{ .Values.misp.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}

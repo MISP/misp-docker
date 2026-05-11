@@ -33,6 +33,10 @@
   "MISP.menu_custom_right_link_html": {
     "default_value": ""
   },
+  "MISP.uuid": {
+    "default_value": "",
+    "command_args": "-f"
+  },
   "Plugin.ZeroMQ_enable": {
     "default_value": false
   },

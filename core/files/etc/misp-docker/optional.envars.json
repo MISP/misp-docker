@@ -1,4 +1,7 @@
 {
+  "MISP.enable_themes": {
+    "default_value": "${ENABLE_THEMES}"
+  },
   "Plugin.Enrichment_services_url": {
     "default_value": "${MISP_MODULES_FQDN}"
   },

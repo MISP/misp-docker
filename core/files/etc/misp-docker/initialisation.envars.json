@@ -15,8 +15,17 @@
   "MISP.attachments_dir": {
     "default_value": "${ATTACHMENTS_DIR}"
   },
+  "MISP.uuid": {
+    "default_value": "${UUID}",
+    "blank_protection": true
+  },
   "Security.encryption_key": {
     "default_value": "${ENCRYPTION_KEY}",
     "command_args": "-f"
+  },
+  "Security.salt": {
+    "default_value": "${SALT}",
+    "command_args": "-f",
+    "blank_protection": true
   }
 }

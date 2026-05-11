@@ -7,6 +7,8 @@ resources:
 - ./manifests/redis.yaml
 - ./manifests/mysql.yaml
 - ./manifests/services.yaml
+- ./manifests/ingress.yaml
+- ./manifests/nginx-cm.yaml
 - ./manifests/cronjobs/cache-all-feeds.yaml
 - ./manifests/cronjobs/fetch-all-feeds.yaml
 - ./manifests/cronjobs/pull-all-servers.yaml

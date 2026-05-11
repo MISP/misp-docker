@@ -141,6 +141,7 @@ target "misp-modules-slim" {
     "MODULES_FLAVOR": "slim",
     "DOCKER_HUB_PROXY" : "${DOCKER_HUB_PROXY}",
   }
+  platforms = "${PLATFORMS}"
 }
 
 target "misp-core" {
@@ -167,6 +168,7 @@ target "misp-core" {
     "PYPI_SUPERVISOR_VERSION": "${PYPI_SUPERVISOR_VERSION}",
     "DOCKER_HUB_PROXY" : "${DOCKER_HUB_PROXY}",
   }
+  platforms = "${PLATFORMS}"
 }
 
 target "misp-core-slim" {
@@ -192,6 +194,7 @@ target "misp-core-slim" {
     "PYPI_SUPERVISOR_VERSION": "${PYPI_SUPERVISOR_VERSION}",
     "DOCKER_HUB_PROXY" : "${DOCKER_HUB_PROXY}",
   }
+  platforms = "${PLATFORMS}"
 }
 
 target "misp-guard" {

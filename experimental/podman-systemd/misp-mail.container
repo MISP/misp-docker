@@ -6,7 +6,7 @@ After=local-fs.target
 AutoUpdate=registry
 HostName=mail
 ContainerName=misp-mail
-Image=docker.io/ixdotai/smtp
+Image=ghcr.io/egos-tech/smtp
 Network=misp.network
 EnvironmentFile=misp.env
 

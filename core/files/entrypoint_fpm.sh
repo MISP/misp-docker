@@ -46,8 +46,8 @@ change_php_vars() {
         fi
         sed -i "s/session.sid_length = .*/session.sid_length = 64/" "$FILE"
         sed -i "s/session.use_strict_mode = .*/session.use_strict_mode = 1/" "$FILE"
-        echo "Configure PHP | Setting 'date.timezone = ${PHP_TIMEZONE}'"
-        sed -i "s/;?date.timezone = .*/date.timezone = ${PHP_TIMEZONE}/" "$FILE"
+        echo "Configure PHP | Setting 'date.timezone = ${TZ}'"
+        sed -i "s|^;date.timezone =.*|date.timezone = ${TZ}|" "$FILE"
     done
 
     for FILE in /etc/php/*/fpm/pool.d/www.conf
@@ -69,8 +69,13 @@ change_php_vars() {
         if [[ "$FASTCGI_STATUS_LISTEN" != "" ]]; then
             echo "Configure PHP | Setting 'pm.status_path = /status'"
             sed -i -E "s/;?pm.status_path = .*/pm.status_path = \/status/" "$FILE"
-            echo "Configure PHP | Setting 'pm.status_path = /run/php/php-fpm-status.sock'"
-            sed -i -E "s/;?pm.status_listen = .*/pm.status_listen = \/run\/php\/php-fpm-status.sock/" "$FILE"
+            if [[ -n "$PHP_LISTEN_FPM" ]]; then
+                echo "Configure PHP | Setting 'pm.status_listen' to [::]:9003"
+                sed -i -E "s/;?pm.status_listen = .*/pm.status_listen = [::]:9003/" "$FILE"
+            else
+                echo "Configure PHP | Setting 'pm.status_listen = /run/php/php-fpm-status.sock'"
+                sed -i -E "s/;?pm.status_listen = .*/pm.status_listen = \/run\/php\/php-fpm-status.sock/" "$FILE"
+            fi
         else
             echo "Configure PHP | Disabling 'pm.status_path'"
             sed -i -E "s/^pm.status_path = /;pm.status_path = /" "$FILE"
@@ -78,8 +83,13 @@ change_php_vars() {
             sed -i -E "s/^pm.status_listen =/;pm.status_listen =/" "$FILE"
         fi
         if [[ -n "$PHP_LISTEN_FPM" ]]; then
-            echo "Configure PHP | Setting 'listen' to [::]:9002"
-            sed -i "/^listen =/s@=.*@= [::]:9002@" "$FILE"
+            if [[ "$DISABLE_IPV6" = "true" ]]; then
+                echo "Configure PHP | Setting 'listen' to 0.0.0.0:9002"
+                sed -i "/^listen =/s@=.*@= 0.0.0.0:9002@" "$FILE"
+            else
+                echo "Configure PHP | Setting 'listen' to [::]:9002"
+                sed -i "/^listen =/s@=.*@= [::]:9002@" "$FILE"
+            fi
         fi
 
     done

@@ -2,7 +2,7 @@ services:
   # This is capable to relay via gmail, Amazon SES, or generic relays
   # See: https://gitlab.com/egos-tech/smtp
   mail:
-    image: ghcr.io/egos-tech/smtp:1.1.3
+    image: ${REGISTRY_MIRROR_URL:-}ghcr.io/egos-tech/smtp:1.1.3
     restart: always
     environment:
       # For use with Amazon SES relay
@@ -16,21 +16,29 @@ services:
       - "SMARTHOST_USER=${SMARTHOST_USER}"
       - "SMARTHOST_PASSWORD=${SMARTHOST_PASSWORD}"
       - "SMARTHOST_ALIASES=${SMARTHOST_ALIASES}"
+      - "TZ=${TZ:-UTC}"
 
   redis:
-    image: valkey/valkey:7.2
+    image: ${REGISTRY_MIRROR_URL:-}valkey/valkey:7.2
     restart: always
     command: |
       sh -c '
-        if [ "$${ENABLE_REDIS_EMPTY_PASSWORD:-false}" = "true" ]; then
-          exec valkey-server
+        if [ "$${DISABLE_REDIS_SNAPSHOT}" = "true" ] ; then
+            redis_snapshot="--save \"\""
         else
-          exec valkey-server --requirepass "$${REDIS_PASSWORD:-redispassword}"
+            redis_snapshot=""
+        fi
+        if [ "$${ENABLE_REDIS_EMPTY_PASSWORD:-false}" = "true" ]; then
+          exec valkey-server $${redis_snapshot}
+        else
+          exec valkey-server --requirepass "$${REDIS_PASSWORD:-redispassword}" $${redis_snapshot}
         fi
       '
     environment:
       - "ENABLE_REDIS_EMPTY_PASSWORD=${ENABLE_REDIS_EMPTY_PASSWORD:-false}"
       - "REDIS_PASSWORD=${REDIS_PASSWORD:-redispassword}"
+      - "TZ=${TZ:-UTC}"
+      - "DISABLE_REDIS_SNAPSHOT=${DISABLE_REDIS_SNAPSHOT:-false}"
     healthcheck:
       test: |
         sh -c '
@@ -50,13 +58,14 @@ services:
 
   db:
     # We use MariaDB because it supports ARM and has the expected collations
-    image: mariadb:10.11
+    image: ${REGISTRY_MIRROR_URL:-}mariadb:10.11
     restart: always
     environment:
       - "MYSQL_USER=${MYSQL_USER:-misp}"
       - "MYSQL_PASSWORD=${MYSQL_PASSWORD:-example}"
       - "MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-password}"
       - "MYSQL_DATABASE=${MYSQL_DATABASE:-misp}"
+      - "TZ=${TZ:-UTC}"
     command: "\
       --innodb-buffer-pool-size=${INNODB_BUFFER_POOL_SIZE:-2048M} \
       --innodb-change-buffering=${INNODB_CHANGE_BUFFERING:-none} \
@@ -79,7 +88,7 @@ services:
       start_interval: 5s
 
   misp-core:
-    image: ghcr.io/misp/misp-docker/misp-core:${CORE_RUNNING_TAG:-latest}
+    image: ${REGISTRY_MIRROR_URL:-}ghcr.io/misp/misp-docker/misp-core:${CORE_RUNNING_TAG:-latest}
     restart: always
     cap_add:
       - AUDIT_WRITE
@@ -126,6 +135,7 @@ services:
       - "./files/:/var/www/MISP/app/files/:Z"
       - "./ssl/:/etc/nginx/certs/:Z"
       - "./gnupg/:/var/www/MISP/.gnupg/:Z"
+      - "misp_guard_ca:/usr/local/share/ca-certificates/misp_guard:Z"
     # customize by replacing ${CUSTOM_PATH} with a path containing 'files/customize_misp.sh'
     # - "${CUSTOM_PATH}/:/custom/:Z"
     # mount custom ca root certificates
@@ -140,6 +150,8 @@ services:
       - "ENABLE_DB_SETTINGS=${ENABLE_DB_SETTINGS}"
       - "ENABLE_BACKGROUND_UPDATES=${ENABLE_BACKGROUND_UPDATES}"
       - "ENCRYPTION_KEY=${ENCRYPTION_KEY}"
+      - "SALT=${SALT}"
+      - "UUID=${UUID}"
       - "DISABLE_CA_REFRESH=${DISABLE_CA_REFRESH}"
       - "DISABLE_PRINTING_PLAINTEXT_CREDENTIALS=${DISABLE_PRINTING_PLAINTEXT_CREDENTIALS}"
       # standard settings
@@ -152,6 +164,8 @@ services:
       - "ADMIN_ORG_UUID=${ADMIN_ORG_UUID}"
       - "GPG_PASSPHRASE=${GPG_PASSPHRASE}"
       - "ATTACHMENTS_DIR=${ATTACHMENTS_DIR}"
+      - "TZ=${TZ:-UTC}"
+      - "ENABLE_THEMES=${ENABLE_THEMES}"
       # OIDC authentication settings
       - "OIDC_ENABLE=${OIDC_ENABLE}"
       - "OIDC_PROVIDER_URL=${OIDC_PROVIDER_URL}"
@@ -167,6 +181,8 @@ services:
       - "OIDC_REDIRECT_URI=${OIDC_REDIRECT_URI}"
       - "OIDC_SCOPES=${OIDC_SCOPES}"
       - "OIDC_LOGOUT_URL=${OIDC_LOGOUT_URL}"
+      - "OIDC_DISABLE_REQUEST_OBJECT=${OIDC_DISABLE_REQUEST_OBJECT}"
+      - "OIDC_SKIP_PROXY=${OIDC_SKIP_PROXY}"
       # APACHESECUREAUTH authentication settings
       - "APACHESECUREAUTH_LDAP_OLD_VAR_DETECT=${LDAP_ENABLE}"
       - "APACHESECUREAUTH_LDAP_ENABLE=${APACHESECUREAUTH_LDAP_ENABLE:-${LDAP_ENABLE}}"
@@ -219,6 +235,17 @@ services:
       - "AAD_MISP_ORGADMIN=${AAD_MISP_ORGADMIN}"
       - "AAD_MISP_SITEADMIN=${AAD_MISP_SITEADMIN}"
       - "AAD_CHECK_GROUPS=${AAD_CHECK_GROUPS}"
+      # Custom Auth Plugin settings
+      - "CUSTOM_AUTH_ENABLE=${CUSTOM_AUTH_ENABLE}"
+      - "CUSTOM_AUTH_HEADER=${CUSTOM_AUTH_HEADER}"
+      - "CUSTOM_AUTH_USE_HEADER_NAMESPACE=${CUSTOM_AUTH_USE_HEADER_NAMESPACE}"
+      - "CUSTOM_AUTH_REQUIRED=${CUSTOM_AUTH_REQUIRED}"
+      - "CUSTOM_AUTH_HEADER_NAMESPACE=${CUSTOM_AUTH_HEADER_NAMESPACE}"
+      - "CUSTOM_AUTH_ONLY_ALLOW_SOURCE=${CUSTOM_AUTH_ONLY_ALLOW_SOURCE}"
+      - "CUSTOM_AUTH_NAME=${CUSTOM_AUTH_NAME}"
+      - "CUSTOM_AUTH_DISABLE_LOGOUT=${CUSTOM_AUTH_DISABLE_LOGOUT}"
+      - "CUSTOM_AUTH_CUSTOM_PASSWORD_RESET=${CUSTOM_AUTH_CUSTOM_PASSWORD_RESET}"
+      - "CUSTOM_AUTH_CUSTOM_LOGOUT=${CUSTOM_AUTH_CUSTOM_LOGOUT}"
       # nginx settings
       - "NGINX_X_FORWARDED_FOR=${NGINX_X_FORWARDED_FOR}"
       - "NGINX_SET_REAL_IP_FROM=${NGINX_SET_REAL_IP_FROM}"
@@ -235,6 +262,9 @@ services:
       - "S3_ENDPOINT=${S3_ENDPOINT}"
       - "S3_ACCESS_KEY=${S3_ACCESS_KEY}"
       - "S3_SECRET_KEY=${S3_SECRET_KEY}"
+      # stunnel settings
+      - "STUNNEL=${STUNNEL}"
+      - "STUNNEL_CONFIG=${STUNNEL_CONFIG}"
       # supervisor settings
       - "SUPERVISOR_HOST=${SUPERVISOR_HOST}"
       - "SUPERVISOR_USERNAME=${SUPERVISOR_USERNAME}"
@@ -298,14 +328,15 @@ services:
       - "PHP_SESSION_COOKIE_SECURE=${PHP_SESSION_COOKIE_SECURE:-true}"
       - "PHP_SESSION_COOKIE_DOMAIN=${PHP_SESSION_COOKIE_DOMAIN}"
       - "PHP_SESSION_COOKIE_SAMESITE=${PHP_SESSION_COOKIE_SAMESITE:-Lax}"
-      - "PHP_TIMEZONE=${PHP_TIMEZONE:-UTC}"
       # security settings
       - "HSTS_MAX_AGE=${HSTS_MAX_AGE}"
       - "X_FRAME_OPTIONS=${X_FRAME_OPTIONS}"
       - "CONTENT_SECURITY_POLICY=${CONTENT_SECURITY_POLICY}"
+      # compose profiles
+      - "COMPOSE_PROFILES=${COMPOSE_PROFILES}"
 
   misp-modules:
-    image: ghcr.io/misp/misp-docker/misp-modules:${MODULES_RUNNING_TAG:-latest}
+    image: ${REGISTRY_MIRROR_URL:-}ghcr.io/misp/misp-docker/misp-modules:${MODULES_RUNNING_TAG:-latest}
     restart: always
     build:
       context: modules/.
@@ -326,12 +357,14 @@ services:
       - "./custom/expansion/:/custom/expansion/:Z"
       - "./custom/export_mod/:/custom/export_mod/:Z"
       - "./custom/import_mod/:/custom/import_mod/:Z"
+    environment:  
+      - "TZ=${TZ:-UTC}"
 
   misp-guard:
     profiles:
       - misp-guard
     restart: always
-    image: ghcr.io/misp/misp-docker/misp-guard:${GUARD_RUNNING_TAG:-latest}
+    image: ${REGISTRY_MIRROR_URL:-}ghcr.io/misp/misp-docker/misp-guard:${GUARD_RUNNING_TAG:-latest}
     build:
       context: guard/.
       args:
@@ -344,8 +377,10 @@ services:
     environment:
       - "GUARD_PORT=${GUARD_PORT:-8888}"
       - "GUARD_ARGS=${GUARD_ARGS}"
+      - "TZ=${TZ:-UTC}"
     volumes:
       - ./guard/config.json:/config.json:ro
+      - misp_guard_ca:/misp_guard_ca
     healthcheck:
       test: "/bin/bash -c '</dev/tcp/localhost/${GUARD_PORT:-8888}'"
       interval: 2m
@@ -356,3 +391,4 @@ services:
 volumes:
   mysql_data:
   cache_data:
+  misp_guard_ca:

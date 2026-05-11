@@ -1,0 +1,16 @@
+{{- range .Values.misp.volumesForReadOnly }}
+{{- if .persistent }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ printf "%s-%s" .name $.Release.Name }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ $.Values.misp.mispConfig.persistence.size | default "10Gi" }}
+  storageClassName: {{ $.Values.misp.mispConfig.persistence.spec.storageClassName | default "local-path" }}
+{{- end }}
+{{- end }}

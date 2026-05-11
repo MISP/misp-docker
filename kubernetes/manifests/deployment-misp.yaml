@@ -4,6 +4,7 @@ metadata:
   name: misp
   labels:
     app.kubernetes.io/name: misp
+    app.kubernetes.io/part-of: misp
 spec:
   strategy:
     type: Recreate
@@ -22,7 +23,7 @@ spec:
         fsGroup: 33
       containers:
         - name: misp
-          command: 
+          command:
             - /kubernetes/entrypoint_fpm.sh
           image: "ghcr.io/misp/misp-docker/misp-core:latest"
           imagePullPolicy: IfNotPresent
@@ -55,9 +56,11 @@ spec:
             - name: PYTHONUNBUFFERED
               value: "1"
             - name: MISP_MODULES_FQDN
-              value: http://localhost
+              value: http://misp-modules
             - name: MYSQL_HOST
               value: misp-mysql
+            - name: ENABLE_DB_SETTINGS
+              value: "true"
           envFrom:
             - secretRef:
                 name: mysql-credentials
@@ -70,6 +73,38 @@ spec:
             # Non-S3 persistence for attachment data
             #- mountPath: /var/www/MISP/app/files
             #  name: misp-files
+      volumes:
+        - emptyDir:
+            sizeLimit: 300Mi
+          name: shared-logs
+      #- name: misp-files
+      #  persistentVolumeClaim:
+      #    claimName: misp-files
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: misp-modules
+  labels:
+    app.kubernetes.io/name: misp-modules
+    app.kubernetes.io/part-of: misp
+spec:
+  strategy:
+    type: Recreate
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: misp-modules
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: misp-modules
+    spec:
+      enableServiceLinks: false
+      securityContext:
+        # We want imported files to be owned by www-data group
+        fsGroup: 33
+      containers:
         - name: misp-modules
           resources:
             limits:
@@ -91,11 +126,3 @@ spec:
             - name: misp-modules
               containerPort: 6666
               protocol: TCP
-      volumes:
-      - emptyDir:
-          sizeLimit: 300Mi
-        name: shared-logs
-      #- name: misp-files
-      #  persistentVolumeClaim:
-      #    claimName: misp-files
-

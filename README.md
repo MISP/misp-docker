@@ -18,7 +18,7 @@ Notable features:
 - Fix enforcement of permissions
 - Fix MISP modules loading of faup library
 - Fix MISP modules loading of gl library
-- Authentication using LDAP or OIDC
+- Authentication using LDAP, OIDC or CustomAuth
 - Add support for new background job [system](https://github.com/MISP/MISP/blob/2.4/docs/background-jobs-migration-guide.md)
 - Add support for building specific MISP and MISP-modules commits
 - Add automatic configuration of syncservers (see `configure_misp.sh`)
@@ -26,6 +26,7 @@ Notable features:
 - Add direct push of docker images to GitHub Packages
 - Consolidated `docker-compose.yml` file
 - Workaround VirtioFS bug when running Docker Desktop for Mac
+- stunnel service for TLS wrapping of plaintext services, such as Redis
 - ... and many others
 
 The underlying spirit of this project is to allow "repeatable deployments", and all pull requests in this direction will be merged post-haste.
@@ -37,7 +38,7 @@ The underlying spirit of this project is to allow "repeatable deployments", and 
 Make sure the following tools are installed and up to date before you begin. Older
 releases are a common source of build and runtime issues.
 
-- Docker Engine **20.10+** or Podman **4.0+**
+- Docker Engine **25+** or Podman **4.9+**
 - Docker Compose plugin **2.17+** (or Podman Compose when using Podman)
 - Access to pull container images from `ghcr.io`
 - Access to [Docker Hub](https://hub.docker.com) for pulling dependencies and base images
@@ -121,7 +122,7 @@ If it is a setting controlled by an environment variable which is meant to overr
 
 ### MISP-Guard (optional)
 
-[MISP-Guard](https://github.com/MISP/misp-guard) is a mitmproxy add-on designed to apply configurable filters that prevent the unintentional leakage of sensitive threat intelligence data while facilitating controlled information sharing.  
+[MISP-Guard](https://github.com/MISP/misp-guard) is a mitmproxy add-on designed to apply configurable filters that prevent the unintentional leakage of sensitive threat intelligence data while facilitating controlled information sharing.
 
 It is disabled by default, but can be enabled using compose profiles.
 
@@ -151,11 +152,11 @@ The following format is required to target the misp-core, the IP is replaced wit
 
 ```json
 {
-    "instances": {
-        "misp_container": {
-            "ip": "placeholder"
-         }
+  "instances": {
+    "misp_container": {
+      "ip": "placeholder"
     }
+  }
 }
 ```
 
@@ -187,6 +188,48 @@ You can configure LDAP authentication in MISP using 2 methods:
 
 LdapAuth is recommended over ApacheSecureAuth because it doesn't require rproxy apache with the ldap module.
 
+The following configuration to use LdapAuth plugin with your ldap/AD server has been tested and hardend.
+
+This example expects that you mounted the rootca under `/usr/local/share/ca-certificates/rootca.crt` into your pod, which is automatically added to the `/etc/ssl/certs/ca-certificates.crt` and `/etc/ssl/certs/ca-certificates.crt` bundle.
+
+The use of `memberOf:1.2.840.113556.1.4.1941:=` is meant to recursively look for nested members in a group.
+For example, if we have a group object named `MIPS-ALLOW-IN`, which we grant access to the MISP. And we make this group a member of a different group named: ` Applications Admins`. Then all members/users in `Applications Admins` are granted access aswell. This methode of assigining permission is called RBAC.
+
+This example uses `userPrincipalName` attribute as the username the user logs into, and `mail` to send emails to when the user has logged in.
+
+You don't need to use any quote's, double quote's, escape or double escape, the /configure_misp.sh script makes sure to single quote what needs quote's into `/var/www/MISP/app/Config/config.php`.
+
+Make sure to have this defined into the `instance-secrets.env`.
+
+```bash
+BASE_URL=https://misp.apps.openshift.domain.local
+LDAPAUTH_ENABLE=true
+LDAPAUTH_LDAPSERVER=ldaps://domain.local
+LDAPAUTH_LDAPDN=OU=Company,OU=Management,DC=domain,DC=local
+LDAPAUTH_LDAPREADERUSER=CN=ldap-account,OU=Accounts LDAP,OU=Management,DC=domain,DC=local
+LDAPAUTH_LDAPREADERPASSWORD=YoucanType4nythingH3r3Even1'Are3scaped!
+LDAPAUTH_LDAPSEARCHFILTER=(&(objectCategory=person)(objectClass=user)(memberOf:1.2.840.113556.1.4.1941:=CN=MIPS-ALLOW-IN,OU=Groups Applications,OU=Groups,DC=domain,DC=local))
+LDAPAUTH_LDAPSEARCHATTRIBUTE=userPrincipalName
+LDAPAUTH_LDAPEMAILFIELD=mail
+LDAPAUTH_LDAPNETWORKTIMEOUT=-1
+LDAPAUTH_UPDATEUSER=true
+LDAPAUTH_LDAPDEFAULTORGID=1
+LDAPAUTH_LDAPDEFAULTROLEID=3
+LDAPAUTH_DEBUG=false
+LDAPAUTH_LDAPTLSCUSTOMCACERT=false
+LDAPAUTH_LDAPPROTOCOL=3
+LDAPAUTH_LDAPALLOWREFERRALS=false
+LDAPAUTH_STARTTLS=false
+LDAPAUTH_MIXEDAUTH=true
+LDAPAUTH_LDAPTLSREQUIRECERT=LDAP_OPT_X_TLS_DEMAND
+LDAPAUTH_LDAPTLSCRLCHECK=LDAP_OPT_X_TLS_CRL_PEER
+LDAPAUTH_LDAPTLSPROTOCOLMIN=LDAP_OPT_X_TLS_PROTOCOL_TLS1_2
+```
+
+STARTTLS is set to false as it's meant to upgrade an unencrypted connection (LDAP) to a secure one if possible automatically (LDAPS).
+As we use LDAPS (hardcoded) or no connection at all, this isn't desired.
+
+
 #### OIDC Authentication
 
 OIDC Auth is implemented through the MISP OidcAuth plugin.
@@ -194,34 +237,67 @@ OIDC Auth is implemented through the MISP OidcAuth plugin.
 For example configuration using KeyCloak, see [MISP Keycloak 26.1.x Basic Integration Guide](docs/keycloak-integration-guide.md)
 
 For Okta, create a new application integration:
-  - Applications -> Applications -> Create App Integration
-  - Select Sign-in method "OIDC - OpenID Connect" and Application type "Web Application"
-  - In Client Authentication, select "Client secret"
-  - Set the Sign-in redirect URI to: "https://<MISP_URL>/users/login"
-  - Under the Sign-in tab, add a group claim called "roles" and an appropriate filter
-  - In MISP docker `.env` file, set the following variables:
-      ```
-      OIDC_ENABLE=true
-      OIDC_PROVIDER_URL=https://<OKTA_ORG_URL>/.well-known/openid-configuration
-      OIDC_ISSUER=https://<OKTA_ORG_URL>
-      OIDC_CLIENT_ID=[client_id]
-      OIDC_CLIENT_SECRET=[client_secret]
-      OIDC_ROLES_PROPERTY="roles" 
-      OIDC_ROLES_MAPPING="{\"Okta group - MISP Admin\": 1}"  # 
-      OIDC_DEFAULT_ORG="[Your default org in MISP]"
-      #OIDC_LOGOUT_URL= 
-      OIDC_SCOPES="[\"profile\", \"email\", \"groups\"]"
-      OIDC_MIXEDAUTH=true  # (Set this to false if you want to disable password login, make sure OIDC is working first)
-      OIDC_CODE_CHALLENGE_METHOD=S256
-      OIDC_AUTH_METHOD="client_secret_post"  
-      OIDC_REDIRECT_URI="https://<MISP_URL>/users/login" # (same value set in Okta)
-      ``` 
- Valid options for OIDC_AUTH_METHOD are:
-   - client_secret_post: tested
-   - client_secret_basic: the default if variable is not set, but seems broken with Okta. It will return the following error: _"Error 'invalid_request' received from IdP: Cannot supply multiple client credentials"_.
-   - client_secret_jwt: *not tested* 
-   - private_key_jwt: *not tested* 
 
+- Applications -> Applications -> Create App Integration
+- Select Sign-in method "OIDC - OpenID Connect" and Application type "Web Application"
+- In Client Authentication, select "Client secret"
+- Set the Sign-in redirect URI to: "https://<MISP_URL>/users/login"
+- Under the Sign-in tab, add a group claim called "roles" and an appropriate filter
+- In MISP docker `.env` file, set the following variables:
+
+```
+OIDC_ENABLE=true
+OIDC_PROVIDER_URL=https://<OKTA_ORG_URL>/.well-known/openid-configuration
+OIDC_ISSUER=https://<OKTA_ORG_URL>
+OIDC_CLIENT_ID=[client_id]
+OIDC_CLIENT_SECRET=[client_secret]
+OIDC_ROLES_PROPERTY="roles"
+OIDC_ROLES_MAPPING="{\"Okta group - MISP Admin\": 1}"  #
+OIDC_DEFAULT_ORG="[Your default org in MISP]"
+#OIDC_LOGOUT_URL=
+OIDC_SCOPES="[\"profile\", \"email\", \"groups\"]"
+OIDC_MIXEDAUTH=true  # (Set this to false if you want to disable password login, make sure OIDC is working first)
+OIDC_CODE_CHALLENGE_METHOD=S256
+OIDC_AUTH_METHOD="client_secret_post"
+OIDC_REDIRECT_URI="https://<MISP_URL>/users/login" # (same value set in Okta)
+OIDC_DISABLE_REQUEST_OBJECT=false
+OIDC_SKIP_PROXY=true
+```
+
+Valid options for `OIDC_AUTH_METHOD` are:
+
+- `client_secret_post`: tested
+- `client_secret_basic`: the default if variable is not set, but seems broken with Okta. It will return the following error: `"Error 'invalid_request' received from IdP: Cannot supply multiple client credentials"`.
+- `client_secret_jwt`: _not tested_
+- `private_key_jwt`: _not tested_
+
+#### CustomAuth
+
+You can add authentication using the `Plugin.CustomAuth` plugin as described here https://www.circl.lu/doc/misp/appendices/#appendix-a-external-authentication. It will use a user provided http header to authenticate the user. This is useful where MISP runs behind an authenticating reverse proxy server.
+
+```
+# Enable this functionality if you would like to handle the authentication via an external tool and authenticate with MISP using a custom header.
+CUSTOM_AUTH_ENABLE=true
+# Set the header that MISP should look for here. If left empty it will default to the Authorization header.
+# This needs to be in all uppercase and all `-` replaced with `_`
+CUSTOM_AUTH_HEADER="X_CUSTOM_AUTH"
+# Use a header namespace for the auth header - default setting is enabled
+CUSTOM_AUTH_USE_HEADER_NAMESPACE=true
+# The default header namespace for the auth header - default setting is HTTP_
+CUSTOM_AUTH_HEADER_NAMESPACE="HTTP_"
+# If this setting is enabled then the only way to authenticate will be using the custom header. Alternatively, you can run in mixed mode that will log users in via the header if found, otherwise users will be redirected to the normal login page.
+CUSTOM_AUTH_REQUIRED=false
+# If you are using an external tool to authenticate with MISP and would like to only allow the tool's url as a valid point of entry then set this field.
+CUSTOM_AUTH_ONLY_ALLOW_SOURCE=
+# The name of the authentication method, this is cosmetic only and will be shown on the user creation page and logs.
+CUSTOM_AUTH_NAME="External Authentication"
+# Disable the logout button for users authenticated with the external auth mechanism.
+CUSTOM_AUTH_DISABLE_LOGOUT=false
+# Provide your custom authentication users with an external URL to the authentication system to reset their passwords.
+CUSTOM_AUTH_CUSTOM_PASSWORD_RESET=
+# Provide a custom logout URL for your users that will log them out using the authentication system you use.
+CUSTOM_AUTH_CUSTOM_LOGOUT=
+```
 
 ### Production
 
@@ -238,6 +314,28 @@ For Okta, create a new application integration:
 - If you need to automatically run additional steps each time the container starts, create a new file `files/customize_misp.sh`, and replace the variable `${CUSTOM_PATH}` inside `docker-compose.yml` with its parent path.
 - If you are interested in running streamlined versions of the images (fewer dependencies, easier approval from compliance), you might want to use the `latest-slim` tag. Just adjust the `docker-compose.yml` file, and run again `docker compose pull` and `docker compose up`.
 
+
+### High availability deployments
+
+If you want to deploy multiple `misp-core` containers behind a load balancer it is recommended that you set the following to static values in `.env` or otherwise inside the container environment as they are used in session handling, and if unset will randomly generate:
+
+- SALT
+- UUID
+
+If you don't do this you will likely get CSRF errors.
+
+The following environment variables should also be the same across `misp-core` containers for non-session reasons:
+
+- BASE_URL
+- ENCRYPTION_KEY
+- ADMIN_EMAIL
+- ADMIN_ORG
+- ADMIN_ORG_UUID
+- MISP_EMAIL
+- GPG_PASSPHRASE
+
+It is not recommended to share the `app/Config` directory as this image undertakes checks and changes each container start and may end up in a race condition that damages the shared `config.php` file. An individual `app/Config` per container is recommended.
+
 ### Build Options
 
 This project supports multiple build methods to suit different needs.
@@ -245,6 +343,7 @@ This project supports multiple build methods to suit different needs.
 #### Using Docker Compose (Standard Method)
 
 For most users, the standard Docker Compose build is recommended:
+
 ```bash
 docker compose build
 ```
@@ -254,10 +353,12 @@ docker compose build
 Docker Buildx bake provides advanced build capabilities including multi-platform builds and parallel building of multiple targets. This method uses the `docker-bake.hcl` configuration file.
 
 **Prerequisites:**
+
 - Docker Buildx plugin installed and enabled
 - `template.env` file in the project root
 
 **Build full-featured images:**
+
 ```bash
 export NAMESPACE=local
 export COMMIT_HASH=`git rev-parse --short HEAD`
@@ -268,6 +369,7 @@ docker buildx bake -f docker-bake.hcl -f env.hcl --provenance false debian
 This builds `misp-core`, `misp-modules`, and `misp-guard` with all features included.
 
 **Build slim images:**
+
 ```bash
 export NAMESPACE=local
 export COMMIT_HASH=`git rev-parse --short HEAD`
@@ -278,6 +380,7 @@ docker buildx bake -f docker-bake.hcl -f env.hcl --provenance false debian-slim
 This builds lightweight versions of `misp-core-slim`, `misp-modules-slim`, and `misp-guard` with reduced dependencies.
 
 **Available bake targets:**
+
 - `standard` - Full-featured images (misp-core, misp-modules, misp-guard)
 - `slim` - Lightweight images (misp-core-slim, misp-modules-slim, misp-guard)
 - `default` - Builds all variants (both standard and slim)
@@ -287,9 +390,11 @@ This builds lightweight versions of `misp-core-slim`, `misp-modules-slim`, and `
 **After building with buildx bake:**
 
 You can still use Docker Compose to run the services:
+
 ```bash
 docker compose up
 ```
+
 #### Using slow disks as volume mounts
 
 Using a slow disk as the mounted volume or a volume with high latency like NFS, EFS or S3 might significantly increase the startup time and downgrade the performance of the service. To address this we will mount the bare minimum that needs to be persisted.
@@ -315,24 +420,24 @@ Custom root CA certificates can be mounted under `/usr/local/share/ca-certificat
 **Note:** It is important to have the .crt extension on the file, otherwise it will not be processed.
 
 ```yaml
-  misp-core:
-    # ...
-    volumes:
-      - "./configs/:/var/www/MISP/app/Config/"
-      - "./logs/:/var/www/MISP/app/tmp/logs/"
-      - "./files/:/var/www/MISP/app/files/"
-      - "./ssl/:/etc/nginx/certs/"
-      - "./gnupg/:/var/www/MISP/.gnupg/"
-      # customize by replacing ${CUSTOM_PATH} with a path containing 'files/customize_misp.sh'
-      # - "${CUSTOM_PATH}/:/custom/"
-      # mount custom ca root certificates
-      - "./rootca.pem:/usr/local/share/ca-certificates/rootca.crt"
+misp-core:
+  # ...
+  volumes:
+    - "./configs/:/var/www/MISP/app/Config/"
+    - "./logs/:/var/www/MISP/app/tmp/logs/"
+    - "./files/:/var/www/MISP/app/files/"
+    - "./ssl/:/etc/nginx/certs/"
+    - "./gnupg/:/var/www/MISP/.gnupg/"
+    # customize by replacing ${CUSTOM_PATH} with a path containing 'files/customize_misp.sh'
+    # - "${CUSTOM_PATH}/:/custom/"
+    # mount custom ca root certificates
+    - "./rootca.pem:/usr/local/share/ca-certificates/rootca.crt"
 ```
 
 ## Database Management
 
 It is possible to backup and restore the underlying database using volume archiving.
-The process is *NOT* battle-tested, so it is *NOT* to be followed uncritically.
+The process is _NOT_ battle-tested, so it is _NOT_ to be followed uncritically.
 
 ### Backup
 
@@ -373,6 +478,10 @@ The process is *NOT* battle-tested, so it is *NOT* to be followed uncritically.
    ```bash
    docker compose up
    ```
+
+## stunnel service
+
+See [here](/docs/stunnel-guide.md)
 
 ## Troubleshooting
 

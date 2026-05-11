@@ -1,0 +1,113 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-conf
+data:
+  nginx.conf: |
+    user www-data;
+    worker_processes auto;
+    worker_cpu_affinity auto;
+    pid /tmp/nginx.pid;
+    error_log stderr warn;
+
+    events {
+            worker_connections 768;
+            # multi_accept on;
+    }
+
+    http {
+
+            ##
+            # Basic Settings
+            ##
+
+            sendfile on;
+            tcp_nopush on;
+            types_hash_max_size 2048;
+            server_tokens off; # Recommended practice is to turn this off
+
+            # server_names_hash_bucket_size 64;
+            # server_name_in_redirect off;
+
+            include /etc/nginx/mime.types;
+            default_type application/octet-stream;
+
+            ##
+            # SSL Settings
+            ##
+
+            ssl_protocols TLSv1.2 TLSv1.3; # Dropping SSLv3 (POODLE), TLS 1.0, 1.1
+            ssl_prefer_server_ciphers off; # Don't force server cipher order.
+
+            ##
+            # Logging Settings
+            ##
+
+            access_log /var/log/nginx/access.log;
+
+            ##
+            # Gzip Settings
+            ##
+
+            gzip on;
+
+            # gzip_vary on;
+            # gzip_proxied any;
+            # gzip_comp_level 6;
+            # gzip_buffers 16 8k;
+            # gzip_http_version 1.1;
+            # gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+
+            ##
+            # Virtual Host Configs
+            ##
+
+            include /etc/nginx/conf.d/*.conf;
+            include /etc/nginx/sites-enabled/*;
+            
+            server {
+                listen 8080 default_server;
+                listen [::]:8080 default_server;
+
+                # disable access logs
+                access_log off;
+                log_not_found off;
+                error_log  /dev/stderr error;
+
+      
+                # define the root dir
+                root /var/www/MISP/app/webroot;
+                index index.php;
+
+                # incrase the maximum body size
+                client_max_body_size 50M;
+
+                # added headers for hardening browser security
+                add_header X-Content-Type-Options "nosniff" always;
+                add_header X-Download-Options "noopen" always;
+                add_header X-Frame-Options "SAMEORIGIN" always;
+                add_header X-Permitted-Cross-Domain-Policies "none" always;
+                add_header X-Robots-Tag "none" always;
+
+                # remove X-Powered-By and nginx version, which is an information leak
+                fastcgi_hide_header X-Powered-By;
+                server_tokens off;
+
+                location / {
+                    try_files $uri $uri/ /index.php$is_args$query_string;
+                }
+
+                location ~ ^/[^/]+\.php(/|$) {
+                    include snippets/fastcgi-php.conf;
+                    fastcgi_pass misp-php:9002;
+                    fastcgi_read_timeout 300s;
+                    fastcgi_send_timeout 300s;
+                    fastcgi_connect_timeout 300s;
+                    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+                    set $path_info $fastcgi_path_info;
+                    fastcgi_param PATH_INFO $path_info;
+                }
+
+                # return 301 https://$host$request_uri;
+            }
+    }

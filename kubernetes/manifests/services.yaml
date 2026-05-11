@@ -12,7 +12,7 @@ spec:
       protocol: TCP
       name: misp-modules
   selector:
-    app.kubernetes.io/name: misp
+    app.kubernetes.io/name: misp-modules
 ---
 apiVersion: v1
 kind: Service
@@ -39,10 +39,10 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - port: 443
-      targetPort: misp-https
+    - port: 8080
+      targetPort: misp-http
       protocol: TCP
-      name: misp-https
+      name: misp-http
   selector:
     app.kubernetes.io/name: nginx
 ---
