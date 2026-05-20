@@ -49,6 +49,13 @@ change_php_vars() {
         echo "Configure PHP | Setting 'date.timezone = ${TZ}'"
         sed -i "s|^;date.timezone =.*|date.timezone = ${TZ}|" "$FILE"
     done
+    
+    for FILE in /etc/php/*/cli/php.ini
+    do
+        [[ -e $FILE ]] || break
+        echo "Configure PHP (CLI) | Setting 'date.timezone = ${TZ}'"
+        sed -i "s|^;date.timezone =.*|date.timezone = ${TZ}|" "$FILE"
+    done
 
     for FILE in /etc/php/*/fpm/pool.d/www.conf
     do
