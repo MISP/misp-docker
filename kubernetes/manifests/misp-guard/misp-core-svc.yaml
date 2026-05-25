@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: misp-core
+  labels:
+    app.kubernetes.io/name: misp-core
+    app.kubernetes.io/part-of: misp
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 443
+      targetPort: misp-http
+      protocol: TCP
+      name: misp-https
+  selector:
+    app.kubernetes.io/name: misp

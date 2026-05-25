@@ -4,6 +4,7 @@ metadata:
   name: nginx
   labels:
     app.kubernetes.io/name: nginx
+
 spec:
   strategy:
     type: Recreate

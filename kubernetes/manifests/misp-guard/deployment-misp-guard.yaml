@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: misp-guard
+  labels:
+    app.kubernetes.io/name: misp-guard
+
+spec:
+  strategy:
+    type: Recreate
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: misp-guard
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: misp-guard
+        app.kubernetes.io/part-of: misp
+    spec:
+      containers:
+        - name: misp-guard
+          image: "ghcr.io/misp/misp-docker/misp-guard:latest"
+          imagePullPolicy: IfNotPresent
+          readinessProbe:
+            tcpSocket:
+              port: 8888
+            initialDelaySeconds: 10
+            periodSeconds: 30
+
+          env:
+            - name: GUARD_PORT
+              value: "8888"
+          ports:
+            - containerPort: 8888
+          resources:
+            limits:
+              memory: 2048Mi
+            requests:
+              memory: 512Mi
+              cpu: 50m 
+          volumeMounts:
+            - name: misp-guard-config
+              mountPath: /config.json
+              subPath: misp-guard-config.json
+            - name: misp-guard-ca
+              mountPath: /misp_guard_ca
+
+      volumes:
+        - name: misp-guard-config
+          configMap:
+            name: misp-guard-config
+            items:
+              - key: misp-guard-config.json
+                path: misp-guard-config.json
+        - name: misp-guard-ca
+          emptyDir: {}
