@@ -9,9 +9,9 @@ spec:
   type: ClusterIP
   clusterIP: None
   ports:
-    - port: 443
-      targetPort: misp-http
+    - port: 9002
+      targetPort: misp-php
       protocol: TCP
-      name: misp-https
+      name: misp-php
   selector:
     app.kubernetes.io/name: misp

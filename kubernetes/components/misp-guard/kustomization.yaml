@@ -8,10 +8,8 @@ resources:
   - misp-guard-svc.yaml
 
 configMapGenerator:
-  - name: misp-config
+  - name: misp-guard-proxy
     literals:
       - PROXY_ENABLE=true
       - PROXY_HOST=misp-guard
       - PROXY_PORT=8888
-    behavior: merge
-    

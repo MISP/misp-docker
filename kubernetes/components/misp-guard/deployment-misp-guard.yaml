@@ -4,7 +4,6 @@ metadata:
   name: misp-guard
   labels:
     app.kubernetes.io/name: misp-guard
-
 spec:
   strategy:
     type: Recreate
@@ -16,23 +15,37 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: misp-guard
-        app.kubernetes.io/part-of: misp
     spec:
+      enableServiceLinks: false
       containers:
         - name: misp-guard
           image: "ghcr.io/misp/misp-docker/misp-guard:latest"
           imagePullPolicy: IfNotPresent
+          livenessProbe:
+            exec:
+              # Check if the misp-core IP still matches what's in the running config
+              # This is just precautionary incase the misp-core pod is restarted and the guard is not
+              command:
+                - sh
+                - -c
+                - 'getent hosts misp-core | grep -qF "$(jq -r .instances.misp_container.ip /srv/misp-guard/src/config.json)"'
+            periodSeconds: 30
+            failureThreshold: 1
           readinessProbe:
             tcpSocket:
               port: 8888
             initialDelaySeconds: 10
             periodSeconds: 30
-
+            timeoutSeconds: 5
+            failureThreshold: 2
+            successThreshold: 1
           env:
             - name: GUARD_PORT
               value: "8888"
           ports:
-            - containerPort: 8888
+            - name: misp-guard
+              protocol: TCP
+              containerPort: 8888
           resources:
             limits:
               memory: 2048Mi
@@ -53,5 +66,6 @@ spec:
             items:
               - key: misp-guard-config.json
                 path: misp-guard-config.json
+        # TODO: replace with a shared volume to distribute the mitmproxy CA to misp-core (same purpose as the misp_guard_ca compose volume)
         - name: misp-guard-ca
           emptyDir: {}
