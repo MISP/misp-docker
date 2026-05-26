@@ -30,7 +30,7 @@ spec:
                 - -c
                 - 'getent hosts misp-core | grep -qF "$(jq -r .instances.misp_container.ip /srv/misp-guard/src/config.json)"'
             periodSeconds: 30
-            failureThreshold: 1
+            failureThreshold: 3
           readinessProbe:
             tcpSocket:
               port: 8888
