@@ -17,6 +17,20 @@ spec:
         app.kubernetes.io/name: misp-guard
     spec:
       enableServiceLinks: false
+      # Ensure we can resolve the misp-core ClusterIP before starting MISP-Guard
+      # If the IP is not resolved first MISP-Guard will fail
+      initContainers:
+        - name: wait-for-misp-core
+          image: "ghcr.io/misp/misp-docker/misp-guard:latest"
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              until getent hosts misp-core; do
+                echo "waiting for misp-core DNS to resolve"
+                sleep 5
+              done
       containers:
         - name: misp-guard
           image: "ghcr.io/misp/misp-docker/misp-guard:latest"
