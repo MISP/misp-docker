@@ -52,6 +52,18 @@ update_database_tls_config() {
     rm -f "$tmp"
 }
 
+# safe_sed_i avoids sed -i which creates temp files alongside the target,
+# broken on VirtioFS (Docker Desktop for Mac). Uses mktemp + cat pattern.
+safe_sed_i() {
+    local file="${@: -1}"
+    local tmp
+    tmp="$(mktemp)"
+    if sed "${@:1:$(($#-1))}" "$file" > "$tmp" && [[ -s "$tmp" ]]; then
+        cat "$tmp" > "$file"
+    fi
+    rm -f "$tmp"
+}
+
 init_mysql(){
     # Test when MySQL is ready....
     # wait for Database come ready
@@ -90,32 +102,26 @@ init_misp_data_files(){
     # Init config (shared with host)
     echo "... initialize configuration files"
     MISP_APP_CONFIG_PATH=/var/www/MISP/app/Config
-    # workaround for https://forums.docker.com/t/sed-couldnt-open-temporary-file-xyz-permission-denied-when-using-virtiofs/125473
-    # [ -f $MISP_APP_CONFIG_PATH/bootstrap.php ] || cp $MISP_APP_CONFIG_PATH.dist/bootstrap.default.php $MISP_APP_CONFIG_PATH/bootstrap.php
-    # [ -f $MISP_APP_CONFIG_PATH/database.php ] || cp $MISP_APP_CONFIG_PATH.dist/database.default.php $MISP_APP_CONFIG_PATH/database.php
-    # [ -f $MISP_APP_CONFIG_PATH/core.php ] || cp $MISP_APP_CONFIG_PATH.dist/core.default.php $MISP_APP_CONFIG_PATH/core.php
-    # [ -f $MISP_APP_CONFIG_PATH/config.php ] || cp $MISP_APP_CONFIG_PATH.dist/config.default.php $MISP_APP_CONFIG_PATH/config.php
-    # [ -f $MISP_APP_CONFIG_PATH/email.php ] || cp $MISP_APP_CONFIG_PATH.dist/email.php $MISP_APP_CONFIG_PATH/email.php
-    # [ -f $MISP_APP_CONFIG_PATH/routes.php ] || cp $MISP_APP_CONFIG_PATH.dist/routes.php $MISP_APP_CONFIG_PATH/routes.php
-    [ -s $MISP_APP_CONFIG_PATH/bootstrap.php ] || dd if=$MISP_APP_CONFIG_PATH.dist/bootstrap.default.php of=$MISP_APP_CONFIG_PATH/bootstrap.php
-    [ -s $MISP_APP_CONFIG_PATH/database.php ] || dd if=$MISP_APP_CONFIG_PATH.dist/database.default.php of=$MISP_APP_CONFIG_PATH/database.php
-    [ -s $MISP_APP_CONFIG_PATH/core.php ] || dd if=$MISP_APP_CONFIG_PATH.dist/core.default.php of=$MISP_APP_CONFIG_PATH/core.php
-    [ -s $MISP_APP_CONFIG_PATH/config.php.template ] || dd if=$MISP_APP_CONFIG_PATH.dist/config.default.php of=$MISP_APP_CONFIG_PATH/config.php.template
+    # Avoid cp/sed -i which create temp files alongside the target,
+    # broken on VirtioFS (Docker Desktop for Mac).
+    [ -s $MISP_APP_CONFIG_PATH/bootstrap.php ] || cat $MISP_APP_CONFIG_PATH.dist/bootstrap.default.php > $MISP_APP_CONFIG_PATH/bootstrap.php
+    [ -s $MISP_APP_CONFIG_PATH/database.php ] || cat $MISP_APP_CONFIG_PATH.dist/database.default.php > $MISP_APP_CONFIG_PATH/database.php
+    [ -s $MISP_APP_CONFIG_PATH/core.php ] || cat $MISP_APP_CONFIG_PATH.dist/core.default.php > $MISP_APP_CONFIG_PATH/core.php
+    [ -s $MISP_APP_CONFIG_PATH/config.php.template ] || cat $MISP_APP_CONFIG_PATH.dist/config.default.php > $MISP_APP_CONFIG_PATH/config.php.template
     [ -s $MISP_APP_CONFIG_PATH/config.php ] || echo -e "<?php\n\$config=array();\n?>" > $MISP_APP_CONFIG_PATH/config.php
-    [ -s $MISP_APP_CONFIG_PATH/email.php ] || dd if=$MISP_APP_CONFIG_PATH.dist/email.php of=$MISP_APP_CONFIG_PATH/email.php
-    [ -s $MISP_APP_CONFIG_PATH/routes.php ] || dd if=$MISP_APP_CONFIG_PATH.dist/routes.php of=$MISP_APP_CONFIG_PATH/routes.php
+    [ -s $MISP_APP_CONFIG_PATH/email.php ] || cat $MISP_APP_CONFIG_PATH.dist/email.php > $MISP_APP_CONFIG_PATH/email.php
+    [ -s $MISP_APP_CONFIG_PATH/routes.php ] || cat $MISP_APP_CONFIG_PATH.dist/routes.php > $MISP_APP_CONFIG_PATH/routes.php
 
     if ! grep -q "Detect what auth modules" "$MISP_APP_CONFIG_PATH/bootstrap.php"; then
         echo "... patch bootstrap.php settings"
         chmod +w $MISP_APP_CONFIG_PATH/bootstrap.php
-        # workaround for https://forums.docker.com/t/sed-couldnt-open-temporary-file-xyz-permission-denied-when-using-virtiofs/125473
-        sed -z "s|CakePlugin::loadAll(array(.*CakeResque.*));||g" $MISP_APP_CONFIG_PATH/bootstrap.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/bootstrap.php; rm tmp
-        sed "s|CakePlugin::load('AadAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/bootstrap.php; rm tmp
-        sed "s|CakePlugin::load('CertAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/bootstrap.php; rm tmp
-        sed "s|CakePlugin::load('LdapAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/bootstrap.php; rm tmp
-        sed "s|CakePlugin::load('LinOTPAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/bootstrap.php; rm tmp
-        sed "s|CakePlugin::load('OidcAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/bootstrap.php; rm tmp
-        sed "s|CakePlugin::load('ShibbAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/bootstrap.php; rm tmp
+        safe_sed_i -z "s|CakePlugin::loadAll(array(.*CakeResque.*));||g" $MISP_APP_CONFIG_PATH/bootstrap.php
+        safe_sed_i "s|CakePlugin::load('AadAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php
+        safe_sed_i "s|CakePlugin::load('CertAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php
+        safe_sed_i "s|CakePlugin::load('LdapAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php
+        safe_sed_i "s|CakePlugin::load('LinOTPAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php
+        safe_sed_i "s|CakePlugin::load('OidcAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php
+        safe_sed_i "s|CakePlugin::load('ShibbAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php
         cat <<EOT >> $MISP_APP_CONFIG_PATH/bootstrap.php
 
 /**
@@ -152,18 +158,14 @@ EOT
     fi
 
     echo "... initialize database.php settings"
-    # workaround for https://forums.docker.com/t/sed-couldnt-open-temporary-file-xyz-permission-denied-when-using-virtiofs/125473
-    # sed -i "s/localhost/$MYSQL_HOST/" $MISP_APP_CONFIG_PATH/database.php
-    # sed -i "s/db\s*login/$MYSQL_USER/" $MISP_APP_CONFIG_PATH/database.php
-    # sed -i "s/3306/$MYSQL_PORT/" $MISP_APP_CONFIG_PATH/database.php
-    # sed -i "s/db\s*password/$MYSQL_PASSWORD/" $MISP_APP_CONFIG_PATH/database.php
-    # sed -i "s/'database' => 'misp'/'database' => '$MYSQL_DATABASE'/" $MISP_APP_CONFIG_PATH/database.php
+    # Avoid sed -i which creates temp files alongside the target,
+    # broken on VirtioFS (Docker Desktop for Mac).
     chmod +w $MISP_APP_CONFIG_PATH/database.php
-    sed "s/localhost/$MYSQL_HOST/" $MISP_APP_CONFIG_PATH/database.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/database.php; rm tmp
-    sed "s/db\s*login/$MYSQL_USER/" $MISP_APP_CONFIG_PATH/database.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/database.php; rm tmp
-    sed "s/3306/$MYSQL_PORT/" $MISP_APP_CONFIG_PATH/database.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/database.php; rm tmp
-    sed "s/db\s*password/$MYSQL_PASSWORD/" $MISP_APP_CONFIG_PATH/database.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/database.php; rm tmp
-    sed "s/'database' => 'misp'/'database' => '$MYSQL_DATABASE'/" $MISP_APP_CONFIG_PATH/database.php > tmp; cat tmp > $MISP_APP_CONFIG_PATH/database.php; rm tmp
+    safe_sed_i "s/localhost/$MYSQL_HOST/" $MISP_APP_CONFIG_PATH/database.php
+    safe_sed_i "s/db\s*login/$MYSQL_USER/" $MISP_APP_CONFIG_PATH/database.php
+    safe_sed_i "s/3306/$MYSQL_PORT/" $MISP_APP_CONFIG_PATH/database.php
+    safe_sed_i "s/db\s*password/$MYSQL_PASSWORD/" $MISP_APP_CONFIG_PATH/database.php
+    safe_sed_i "s/'database' => 'misp'/'database' => '$MYSQL_DATABASE'/" $MISP_APP_CONFIG_PATH/database.php
 
     # Enable MySQL TLS immediately, as TLS requiring hosts like AWS RDS may banlist non-TLS connecting hosts
     # Conversely, this is also a good spot to disable it if required
