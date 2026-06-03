@@ -203,7 +203,7 @@ target "misp-guard" {
   tags = flatten(["${NAMESPACE}/misp-guard:latest", "${NAMESPACE}/misp-guard:${COMMIT_HASH}", GUARD_TAG != "" ? ["${NAMESPACE}/misp-guard:${GUARD_TAG}"] : []])
   args = {
     "GUARD_TAG": "${GUARD_TAG}",
-    "GUARD_COMMIT": "${GUARD_COMMIT}"
+    "GUARD_COMMIT": "${GUARD_COMMIT}",
     "DOCKER_HUB_PROXY" : "${DOCKER_HUB_PROXY}",
   }
   platforms = "${PLATFORMS}"
