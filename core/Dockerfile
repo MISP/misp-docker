@@ -6,6 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ARG CORE_TAG
 ARG CORE_COMMIT
 ARG PHP_VER
+ARG PHP_PACKAGE_VERSION=8.4
 ARG CORE_FLAVOR
 
 # Uncomment when building in corporate environments
@@ -29,15 +30,15 @@ RUN <<-EOF
                 mariadb-client \
                 rsync \
                 rsyslog \
-                php8.4 \
-                php8.4-curl \
-                php8.4-xml \
-                php8.4-mbstring \
-                php8.4-mysql \
-                php8.4-redis \
-                php8.4-gd \
-                php8.4-fpm \
-                php8.4-zip \
+                php${PHP_PACKAGE_VERSION} \
+                php${PHP_PACKAGE_VERSION}-curl \
+                php${PHP_PACKAGE_VERSION}-xml \
+                php${PHP_PACKAGE_VERSION}-mbstring \
+                php${PHP_PACKAGE_VERSION}-mysql \
+                php${PHP_PACKAGE_VERSION}-redis \
+                php${PHP_PACKAGE_VERSION}-gd \
+                php${PHP_PACKAGE_VERSION}-fpm \
+                php${PHP_PACKAGE_VERSION}-zip \
                 unzip \
                 zip \
                 curl \
@@ -58,19 +59,19 @@ RUN <<-EOF
                 mariadb-client \
                 rsync \
                 rsyslog \
-                php8.4 \
-                php8.4-apcu \
-                php8.4-curl \
-                php8.4-xml \
-                php8.4-intl \
-                php8.4-bcmath \
-                php8.4-mbstring \
-                php8.4-mysql \
-                php8.4-redis \
-                php8.4-gd \
-                php8.4-fpm \
-                php8.4-zip \
-                php8.4-ldap \
+                php${PHP_PACKAGE_VERSION} \
+                php${PHP_PACKAGE_VERSION}-apcu \
+                php${PHP_PACKAGE_VERSION}-curl \
+                php${PHP_PACKAGE_VERSION}-xml \
+                php${PHP_PACKAGE_VERSION}-intl \
+                php${PHP_PACKAGE_VERSION}-bcmath \
+                php${PHP_PACKAGE_VERSION}-mbstring \
+                php${PHP_PACKAGE_VERSION}-mysql \
+                php${PHP_PACKAGE_VERSION}-redis \
+                php${PHP_PACKAGE_VERSION}-gd \
+                php${PHP_PACKAGE_VERSION}-fpm \
+                php${PHP_PACKAGE_VERSION}-zip \
+                php${PHP_PACKAGE_VERSION}-ldap \
                 libmagic1 \
                 libldap-common \
                 librdkafka1 \
@@ -122,7 +123,7 @@ RUN <<-EOF
                 g++ \
                 git \
                 make \
-                php8.4-dev \
+                php${PHP_PACKAGE_VERSION}-dev \
                 php-pear
         else
             apt-get install -y --no-install-recommends \
@@ -130,7 +131,7 @@ RUN <<-EOF
                 g++ \
                 git \
                 make \
-                php8.4-dev \
+                php${PHP_PACKAGE_VERSION}-dev \
                 php-pear \
                 libbrotli-dev \
                 libfuzzy-dev \
@@ -141,9 +142,9 @@ RUN <<-EOF
         apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 EOF
 
-RUN update-alternatives --set php /usr/bin/php8.4
-RUN update-alternatives --set php-config /usr/bin/php-config8.4
-RUN update-alternatives --set phpize /usr/bin/phpize8.4
+RUN update-alternatives --set php /usr/bin/php${PHP_PACKAGE_VERSION}
+RUN update-alternatives --set php-config /usr/bin/php-config${PHP_PACKAGE_VERSION}
+RUN update-alternatives --set phpize /usr/bin/phpize${PHP_PACKAGE_VERSION}
 
 RUN <<-EOF
         pecl channel-update pecl.php.net
@@ -251,7 +252,8 @@ ENV PATH="/var/www/MISP/app/Console:${PATH}"
 
 # Remove some defaults (kernel logging) and fix alternatives
 RUN sed -i '/imklog/s/^/#/' /etc/rsyslog.conf
-RUN update-alternatives --set php /usr/bin/php8.4
+RUN update-alternatives --set php /usr/bin/php${PHP_PACKAGE_VERSION}
+RUN ln -sf /usr/sbin/php-fpm${PHP_PACKAGE_VERSION} /usr/local/sbin/php-fpm
 RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Install python modules
@@ -306,6 +308,8 @@ EOF
 
 # Copy all our image specific files to appropriate locations
 COPY files/ /
+# Template PHP version into nginx config
+RUN sed -i "s/@PHP_VERSION@/${PHP_PACKAGE_VERSION}/g" /etc/nginx/includes/misp
 ENTRYPOINT [ "/entrypoint.sh" ]
 
 # Change Workdirectory

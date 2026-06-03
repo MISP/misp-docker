@@ -99,6 +99,7 @@ services:
         - CORE_COMMIT=${CORE_COMMIT}
         - CORE_FLAVOR=${CORE_FLAVOR:-standard}
         - PHP_VER=${PHP_VER:?Missing or outdated .env file, see README.md for instructions}
+        - PHP_PACKAGE_VERSION=${PHP_PACKAGE_VERSION:-8.4}
         - PYPI_REDIS_VERSION=${PYPI_REDIS_VERSION}
         - PYPI_LIEF_VERSION=${PYPI_LIEF_VERSION}
         - PYPI_PYDEEP2_VERSION=${PYPI_PYDEEP2_VERSION}
