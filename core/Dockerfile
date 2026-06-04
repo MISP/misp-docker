@@ -1,7 +1,7 @@
 ARG DOCKER_HUB_PROXY=""
 
 
-FROM "${DOCKER_HUB_PROXY}python:3.12-slim-trixie" AS php-base
+FROM "${DOCKER_HUB_PROXY}python:3.14-slim-trixie" AS php-base
 ENV DEBIAN_FRONTEND=noninteractive
 ARG CORE_TAG
 ARG CORE_COMMIT
@@ -168,22 +168,25 @@ EOF
 
 
 FROM php-base AS python-build
-ARG PYPI_REDIS_VERSION
+ARG PYPI_JSONSCHEMA_VERSION
 ARG PYPI_LIEF_VERSION
-ARG PYPI_PYDEEP2_VERSION
-ARG PYPI_PYTHON_MAGIC_VERSION
-ARG PYPI_MISP_LIB_STIX2_VERSION
-ARG PYPI_MAEC_VERSION
-ARG PYPI_MIXBOX_VERSION
-ARG PYPI_CYBOX_VERSION
-ARG PYPI_PYMISP_VERSION
 ARG PYPI_MISP_STIX_VERSION
-ARG PYPI_TAXII2_CLIENT
+ARG PYPI_PLYARA_VERSION
+ARG PYPI_PYDEEP2_VERSION
+ARG PYPI_PYMISP_VERSION
+ARG PYPI_PYTHON_MAGIC_VERSION
+ARG PYPI_PYZMQ_VERSION
+ARG PYPI_REDIS_VERSION
+ARG PYPI_TAXII2_CLIENT_VERSION
 ARG PYPI_SETUPTOOLS_VERSION
 ARG PYPI_SUPERVISOR_VERSION
 
 RUN apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
     git \
+    make \
+    libfuzzy-dev \
     && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Download MISP using git in the /var/www/ directory. Remove unnecessary items.
@@ -208,7 +211,7 @@ RUN <<-EOF
         # 2. If missing, add it (with optional version from env (defaults to empty string))
         # 3. If present, replace with our specified version if it exists, otherwise leave
         #    the upstream version alone.
-        set -- "redis" "lief" "pydeep2" "python-magic" "misp-lib-stix2" "maec" "mixbox" "cybox" "pymisp" "misp-stix" "taxii2-client" "setuptools" "supervisor"
+        set -- "jsonschema" "lief" "misp-stix" "plyara" "pydeep2" "pymisp" "python-magic" "pyzmq" "redis" "taxii2-client" "setuptools" "supervisor"
         for mod in "$@"; do
             mod_version_var=$(echo "PYPI_${mod}_VERSION" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
             mod_version=$(eval "echo \"\$$mod_version_var\"")
