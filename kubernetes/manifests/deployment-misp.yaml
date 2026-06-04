@@ -66,6 +66,10 @@ spec:
                 name: mysql-credentials
             - secretRef:
                 name: instance-secrets
+            # Optional, injected by the misp-guard component
+            - configMapRef:
+                name: misp-guard-proxy
+                optional: true
           volumeMounts:
             # For centralised collection (e.g. tailing to stdout)
             - mountPath: /var/www/MISP/app/tmp/logs
