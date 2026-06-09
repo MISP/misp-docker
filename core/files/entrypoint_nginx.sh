@@ -307,6 +307,10 @@ flip_nginx() {
 }
 
 init_nginx() {
+    # Adjust global settings
+    echo "... adjusting mime types"
+    sed -i "s/\bjs;$/js mjs;/" /etc/nginx/mime.types
+
     # Adjust timeouts
     echo "... adjusting 'fastcgi_read_timeout' to ${FASTCGI_READ_TIMEOUT}"
     sed -i "s/fastcgi_read_timeout .*;/fastcgi_read_timeout ${FASTCGI_READ_TIMEOUT};/" /etc/nginx/includes/misp
