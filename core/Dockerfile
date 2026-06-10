@@ -93,6 +93,10 @@ EOF
 
 FROM php-base AS composer-build
 ENV COMPOSER_ALLOW_SUPERUSER=1
+ARG CORE_TAG
+ARG CORE_COMMIT
+ARG CORE_FLAVOR
+ARG PHP_API_VERSION
 
 WORKDIR /tmp
 RUN curl -o /tmp/composer.json https://raw.githubusercontent.com/MISP/MISP/${CORE_COMMIT:-${CORE_TAG}}/app/composer.json
@@ -117,6 +121,10 @@ EOF
 
 FROM php-base AS php-build
 ENV TZ=Etc/UTC
+ARG CORE_TAG
+ARG CORE_COMMIT
+ARG CORE_FLAVOR
+ARG PHP_API_VERSION
 
 RUN <<-EOF
         if [ "${CORE_FLAVOR}" = "slim" ]; then
@@ -171,6 +179,10 @@ EOF
 
 
 FROM php-base AS python-build
+ARG CORE_TAG
+ARG CORE_COMMIT
+ARG CORE_FLAVOR
+ARG PHP_API_VERSION
 
 RUN apt-get install -y --no-install-recommends \
     gcc \
@@ -254,6 +266,10 @@ EOF
 
 
 FROM php-base
+ARG CORE_TAG
+ARG CORE_COMMIT
+ARG CORE_FLAVOR
+ARG PHP_API_VERSION
 
 ENV PATH="/var/www/MISP/app/Console:${PATH}"
 
