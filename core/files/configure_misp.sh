@@ -103,6 +103,7 @@ set_up_oidc() {
                 \"authentication_method\": \"${OIDC_AUTH_METHOD}\",
                 \"redirect_uri\": \"${OIDC_REDIRECT_URI}\",
                 \"disable_request_object\": \"${OIDC_DISABLE_REQUEST_OBJECT}\",
+                \"disable_pushed_authorization_request\": \"${OIDC_DISABLE_PUSHED_AUTHORIZATION_REQUEST}\",
                 \"skipProxy\": ${OIDC_SKIP_PROXY},
                 \"allow_email_linking\": ${OIDC_ALLOW_EMAIL_LINKING},
                 \"require_email_verified\": ${OIDC_REQUIRE_EMAIL_VERIFIED}
