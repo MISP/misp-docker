@@ -393,7 +393,9 @@ set_up_custom_auth() {
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_name" "External Authentication"
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_disable_logout" false
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_custom_password_reset"
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_custom_logout"
+        if [[ "$OIDC_ENABLE" != "true" || -z "${OIDC_LOGOUT_URL:-}" ]]; then
+            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_custom_logout"
+        fi
         # Re-enable settings
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" true
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.log_auth" true
