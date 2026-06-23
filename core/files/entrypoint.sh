@@ -52,6 +52,7 @@ export GPG_PASSPHRASE=${GPG_PASSPHRASE:-passphrase}
 export MISP_MODULES_FQDN=${MISP_MODULES_FQDN:-http://misp-modules}
 export ATTACHMENTS_DIR=${ATTACHMENTS_DIR:-/var/www/MISP/app/files}
 
+export AUTH_ENFORCED=${AUTH_ENFORCED:-false}
 export AUTOCONF_GPG=${AUTOCONF_GPG:-true}
 export AUTOGEN_ADMIN_KEY=${AUTOGEN_ADMIN_KEY:-${AUTOCONF_ADMIN_KEY:-true}}
 export OIDC_ENABLE=${OIDC_ENABLE:-false}
