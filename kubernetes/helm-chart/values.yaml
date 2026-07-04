@@ -593,15 +593,6 @@ misp:
     ## @param extraEnvVars.PASSWORD_COMPLEXITY Password complexity regex.
     ## Specifies a regex pattern enforcing password complexity rules.
     PASSWORD_COMPLEXITY: "/^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d).{16,}$/"
-    ## @param extraEnvVars.NGINX_LIVE Enable live Nginx updates.
-    ## If `true`, Nginx will update configurations without restarting.
-    NGINX_LIVE: "false"
-    ## @param extraEnvVars.NGINX_RELOAD Force Nginx to reload configurations.
-    ## If `true`, Nginx will be reloaded after config changes.
-    NGINX_RELOAD: "false"
-    ## @param extraEnvVars.DISABLE_SSL_REDIRECT Disable automatic SSL redirection.
-    ## If `true`, HTTP traffic will not be automatically redirected to HTTPS.
-    DISABLE_SSL_REDIRECT: "true"
     ## @param extraEnvVars.BACKUP_COUNT Number of backups to retain.
     ## Defines how many backup versions are stored before older ones are deleted.
     BACKUP_COUNT: "90"
@@ -798,9 +789,6 @@ misp:
     - name: fpm
       mountPath: /etc/php/7.4/fpm
       rsync: true
-    - name: nginx
-      mountPath: /etc/nginx
-      rsync: true
     - name: log
       mountPath: /var/log
       rsync: true
@@ -809,9 +797,6 @@ misp:
       rsync: true
     - name: tmp
       mountPath: /tmp
-      rsync: false
-    - name: body
-      mountPath: /var/lib/nginx
       rsync: false
     - name: certs
       mountPath: /etc/ssl/certs
@@ -993,6 +978,94 @@ misp:
   ## This option is useful when you are not using any of the two options, but mount certificates manually
   ##
   updateCaCertificatesOnStart: false
+
+  nginx:
+    ## MISP image
+    ## @param image.registry [default: REGISTRY_NAME] MISP image registry
+    ## @param image.tag MISP image tag (immutable tags are recommended)
+    ## @param image.pullPolicy MISP image pull policy
+    ##
+    image:
+      repository: path/to/misp/image
+      pullPolicy: Always
+      tag: 2.5.27
+
+    ## @param extraEnvVars List with extra environment variables to add to backend containers
+    ## e.g:
+    ## extraEnvVars:
+    ##   - FOO: bar
+    ##
+    extraEnvVars:
+      FASTCGI_LISTEN: 127.0.0.1:9002
+      FASTCGI_READ_TIMEOUT: 300s
+      FASTCGI_SEND_TIMEOUT: 300s
+      FASTCGI_CONNECT_TIMEOUT: 300s
+      NGINX_CLIENT_MAX_BODY_SIZE: 100M
+      NGINX_X_FORWARDED_FOR: "true"
+      NGINX_SET_REAL_IP_FROM: 127.0.0.1
+      NGINX_X_FRAME_OPTIONS: SAMEORIGIN
+      NGINX_HSTS_MAX_AGE: "0"
+
+    # yamllint disable
+    ## @param resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
+    ## Example:
+    ## resources:
+    ##   requests:
+    ##     cpu: 2
+    ##     memory: 512Mi
+    ##   limits:
+    ##     cpu: 3
+    ##     memory: 1024Mi
+    ##
+    # yamllint enable
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "400m"
+      limits:
+        memory: "1024Mi"
+        cpu: "1"
+
+    ## Configure extra options for readiness probe
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
+    ## @param readinessProbe.enabled Enable readinessProbe
+    ## @param readinessProbe.initialDelaySeconds Initial delay seconds for readinessProbe
+    ## @param readinessProbe.periodSeconds Period seconds for readinessProbe
+    ## @param readinessProbe.timeoutSeconds Timeout seconds for readinessProbe
+    ## @param readinessProbe.failureThreshold Failure threshold for readinessProbe
+    ## @param readinessProbe.successThreshold Success threshold for readinessProbe
+    ##
+    readiness:
+      enabled: true
+      delay: 10
+      timeout: 1
+      period: 2
+      success: 1
+      failure: 3600
+
+    ## MISP nginx container security context
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container
+    ## @param containerSecurityContext.enabled MISP nginx container securityContext
+    ## @param containerSecurityContext.seLinuxOptions [object,nullable] Set SELinux options in container
+    ## @param containerSecurityContext.runAsUser User ID for the MISP container
+    ## @param containerSecurityContext.runAsGroup Group ID for the MISP container
+    ## @param containerSecurityContext.runAsNonRoot Set MISP container's Security Context runAsNonRoot
+    ## @param containerSecurityContext.allowPrivilegeEscalation Set container's privilege escalation
+    ## @param containerSecurityContext.capabilities.drop Set container's Security Context runAsNonRoot
+    ## @param containerSecurityContext.seccompProfile.type Set container's Security Context seccomp profile
+    ## @param containerSecurityContext.readOnlyRootFilesystem Set container's Security Context read-only root filesystem
+    # yamllint enable
+    securityContext:
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      seccompProfile:
+        type: RuntimeDefault
+      runAsNonRoot: true
+      runAsUser: 101
+      runAsGroup: 101
+      capabilities:
+        drop:
+          - ALL
 
 ##
 valkey:

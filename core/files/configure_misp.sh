@@ -11,7 +11,7 @@ export SETTING_CONTACT="${MISP_CONTACT}"
 export SETTING_EMAIL="${MISP_EMAIL}"
 
 init_minimum_config() {
-    # Temporarily disable DB to apply config file settings, reenable after if needed 
+    # Temporarily disable DB to apply config file settings, reenable after if needed
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.system_setting_db" false
     init_settings "minimum_config"
 }
@@ -33,7 +33,7 @@ configure_gnupg() {
     fi
 
     export GPG_DIR=/var/www/MISP/.gnupg
-    GPG_ASC=/var/www/MISP/app/webroot/gpg.asc
+    GPG_ASC=$GPG_DIR/gpg.asc
     GPG_TMP=/tmp/gpg.tmp
 
     if [ ! -f "${GPG_DIR}/trustdb.gpg" ]; then
@@ -64,6 +64,9 @@ GPGEOF
     if [ ! -f ${GPG_ASC} ]; then
         echo "... exporting GPG key"
         sudo -u www-data gpg --homedir ${GPG_DIR} --export --armor ${MISP_EMAIL} > ${GPG_ASC}
+
+        # misp looks for hardcoded webroot path to show link in footer template
+        sudo -u www-data ln -s ${GPG_ASC} /var/www/MISP/app/webroot/gpg.asc
     else
         echo "... found exported key ${GPG_ASC}"
     fi
@@ -235,7 +238,7 @@ set_up_ldap() {
     # LDAPAUTH_LDAPSEARCHFILTER may be empty
     check_env_vars LDAPAUTH_LDAPSERVER LDAPAUTH_LDAPDN LDAPAUTH_LDAPREADERUSER LDAPAUTH_LDAPREADERPASSWORD LDAPAUTH_LDAPSEARCHATTRIBUTE LDAPAUTH_LDAPDEFAULTROLEID LDAPAUTH_LDAPDEFAULTORGID LDAPAUTH_LDAPEMAILFIELD LDAPAUTH_LDAPNETWORKTIMEOUT LDAPAUTH_LDAPPROTOCOL LDAPAUTH_LDAPALLOWREFERRALS LDAPAUTH_STARTTLS LDAPAUTH_MIXEDAUTH LDAPAUTH_UPDATEUSER LDAPAUTH_DEBUG LDAPAUTH_LDAPTLSREQUIRECERT LDAPAUTH_LDAPTLSCUSTOMCACERT LDAPAUTH_LDAPTLSCRLCHECK LDAPAUTH_LDAPTLSPROTOCOLMIN
 
-    # This variable can be false or a string, but the value in the below json object handed to modify_config.php is unquoted, 
+    # This variable can be false or a string, but the value in the below json object handed to modify_config.php is unquoted,
     # so we quote the value if it's not true or false we to end up with a valid json object.
     if [[ ! "$LDAPAUTH_LDAPTLSCUSTOMCACERT" =~ ^(0|false|1|true)$ ]]; then
         LDAPAUTH_LDAPTLSCUSTOMCACERT="\"$LDAPAUTH_LDAPTLSCUSTOMCACERT\""
@@ -287,7 +290,7 @@ set_up_aad() {
     # Check required variables
     check_env_vars AAD_CLIENT_ID AAD_TENANT_ID AAD_CLIENT_SECRET AAD_REDIRECT_URI AAD_PROVIDER AAD_PROVIDER_USER AAD_MISP_ORGADMIN AAD_MISP_SITEADMIN AAD_CHECK_GROUPS
 
-    # Note: Not necessary to edit bootstrap.php to load AadAuth Cake plugin because 
+    # Note: Not necessary to edit bootstrap.php to load AadAuth Cake plugin because
     # existing loadAll() call in bootstrap.php already loads all available Cake plugins
 
     # Set auth mechanism to AAD in config.php file
@@ -452,11 +455,11 @@ set_up_proxy() {
 
 apply_updates() {
     # Disable 'ZeroMQ_enable' to get better logs when applying updates
-#    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" false
+    # sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" false
     # Run updates (strip colors since output might end up in a log)
     sudo -u www-data /var/www/MISP/app/Console/cake Admin runUpdates | stdbuf -oL sed -r "s/[[:cntrl:]]\[[0-9]{1,3}m//g"
     # Re-enable 'ZeroMQ_enable'
-#    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" true
+    # sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" true
 }
 
 init_user() {
@@ -768,4 +771,5 @@ echo "MISP | Create default Scheduled Tasks ..." && create_default_scheduled_tas
 echo "MISP | Configure misp-guard CA certificate ..." && configure_misp_guard_ca
 
 echo "MISP | Mark instance live" && print_version
+
 sudo -u www-data /var/www/MISP/app/Console/cake Admin live 1

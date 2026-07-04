@@ -8,6 +8,40 @@ term_proc() {
 
 trap term_proc SIGTERM
 
+init_mysql() {
+    # Test when MySQL is ready....
+    # wait for Database come ready
+    isDBup () {
+        echo "SHOW STATUS" | $MYSQL_CMD 1>/dev/null
+        echo $?
+    }
+
+    isDBinitDone () {
+        # Table attributes has existed since at least v2.1
+        echo "DESCRIBE attributes" | $MYSQL_CMD 1>/dev/null
+        echo $?
+    }
+
+    RETRY=100
+    until [ $(isDBup) -eq 0 ] || [ $RETRY -le 0 ] ; do
+        echo "... waiting for database to come up"
+        sleep 5
+        RETRY=$(( RETRY - 1))
+    done
+    if [ $RETRY -le 0 ]; then
+        >&2 echo "... error: Could not connect to Database on $MYSQL_HOST:$MYSQL_PORT"
+        exit 1
+    fi
+
+    if [ $(isDBinitDone) -eq 0 ]; then
+        echo "... database has already been initialized"
+        export DB_ALREADY_INITIALISED=true
+    else
+        echo "... database has not been initialized, importing MySQL scheme..."
+        $MYSQL_CMD < /var/www/MISP/INSTALL/MYSQL.sql
+    fi
+}
+
 redirect_logs() {
     tail -F /var/www/MISP/app/tmp/logs/error.log > /dev/stdout 2>/dev/null &
 }
@@ -49,7 +83,7 @@ change_php_vars() {
         echo "Configure PHP | Setting 'date.timezone = ${TZ}'"
         sed -i "s|^;date.timezone =.*|date.timezone = ${TZ}|" "$FILE"
     done
-    
+
     for FILE in /etc/php/*/cli/php.ini
     do
         [[ -e $FILE ]] || break
@@ -73,9 +107,9 @@ change_php_vars() {
         fi
         echo "Configure PHP | Setting 'pm.max_requests = ${PHP_FCGI_MAX_REQUESTS}'"
         sed -i -E "s/;?pm.max_requests = .*/pm.max_requests = ${PHP_FCGI_MAX_REQUESTS}/" "$FILE"
-        if [[ "$FASTCGI_STATUS_LISTEN" != "" ]]; then
-            echo "Configure PHP | Setting 'pm.status_path = /status'"
-            sed -i -E "s/;?pm.status_path = .*/pm.status_path = \/status/" "$FILE"
+        if [[ "$FASTCGI_LISTEN_STATUS" != "" ]]; then
+            echo "Configure PHP | Setting 'pm.status_path = /fpm-status'"
+            sed -i -E "s/;?pm.status_path = .*/pm.status_path = \/fpm-status/" "$FILE"
             if [[ -n "$PHP_LISTEN_FPM" ]]; then
                 echo "Configure PHP | Setting 'pm.status_listen' to [::]:9003"
                 sed -i -E "s/;?pm.status_listen = .*/pm.status_listen = [::]:9003/" "$FILE"
@@ -107,9 +141,30 @@ if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
     return
 fi
 
-echo "Configure PHP | Change PHP values ..." && change_php_vars
+echo "INIT | Loading environment and functions"
 
-echo "Configure PHP | Starting PHP FPM"
+# Initialize MySQL
+echo "INIT | Initialize MySQL ..."
+init_mysql
+
+echo "INIT | Change PHP values ..."
+change_php_vars
+
+# Initialize MISP
+echo "INIT | Initialize MISP installation ..."
+/init_misp.sh
+
+# Run configure MISP script
+echo "INIT | Configure MISP installation ..."
+/configure_misp.sh
+
+# Run customization scripts
+if [[ -x /custom/files/customize_misp.sh ]]; then
+    echo "INIT | Customize MISP installation ..."
+    /custom/files/customize_misp.sh
+fi
+
+echo "MISP | Starting PHP FPM"
 /usr/local/sbin/php-fpm -R -F & master_pid=$!
 
 # Wait for it

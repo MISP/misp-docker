@@ -90,8 +90,6 @@ services:
   misp-core:
     image: ${REGISTRY_MIRROR_URL:-}ghcr.io/misp/misp-docker/misp-core:${CORE_RUNNING_TAG:-latest}
     restart: always
-    cap_add:
-      - AUDIT_WRITE
     build:
       context: core/.
       args:
@@ -120,22 +118,22 @@ services:
       misp-modules:
         condition: service_healthy
     healthcheck:
-      test: curl -ks ${BASE_URL:-https://localhost}/users/heartbeat > /dev/null || exit 1
+      test: bash -c 'echo > /dev/tcp/127.0.0.1/9002' || exit 1
       interval: 2s
       timeout: 1s
       retries: 3
       start_period: 30s
       start_interval: 30s
-    ports:
-      - "${CORE_HTTP_PORT:-80}:80"
-      - "${CORE_HTTPS_PORT:-443}:443"
+    expose:
+      - 9002
     volumes:
       - "./configs/:/var/www/MISP/app/Config/:Z"
       - "./logs/:/var/www/MISP/app/tmp/logs/:Z"
       - "./files/:/var/www/MISP/app/files/:Z"
-      - "./ssl/:/etc/nginx/certs/:Z"
       - "./gnupg/:/var/www/MISP/.gnupg/:Z"
       - "misp_guard_ca:/usr/local/share/ca-certificates/misp_guard:Z"
+    cap_add:
+      - AUDIT_WRITE
     # customize by replacing ${CUSTOM_PATH} with a path containing 'files/customize_misp.sh'
     # - "${CUSTOM_PATH}/:/custom/:Z"
     # mount custom ca root certificates
@@ -252,10 +250,6 @@ services:
       - "CUSTOM_AUTH_DISABLE_LOGOUT=${CUSTOM_AUTH_DISABLE_LOGOUT}"
       - "CUSTOM_AUTH_CUSTOM_PASSWORD_RESET=${CUSTOM_AUTH_CUSTOM_PASSWORD_RESET}"
       - "CUSTOM_AUTH_CUSTOM_LOGOUT=${CUSTOM_AUTH_CUSTOM_LOGOUT}"
-      # nginx settings
-      - "NGINX_X_FORWARDED_FOR=${NGINX_X_FORWARDED_FOR}"
-      - "NGINX_SET_REAL_IP_FROM=${NGINX_SET_REAL_IP_FROM}"
-      - "NGINX_CLIENT_MAX_BODY_SIZE=${NGINX_CLIENT_MAX_BODY_SIZE:-50M}"
       # proxy settings
       - "PROXY_ENABLE=${PROXY_ENABLE}"
       - "PROXY_HOST=${PROXY_HOST}"
@@ -308,12 +302,9 @@ services:
       # SMTP setting
       - "SMTP_FQDN=${SMTP_FQDN}"
       - "SMTP_PORT=${SMTP_PORT:-25}"
-      # NGINX settings
-      - "FASTCGI_READ_TIMEOUT=${FASTCGI_READ_TIMEOUT:-300s}"
-      - "FASTCGI_SEND_TIMEOUT=${FASTCGI_SEND_TIMEOUT:-300s}"
-      - "FASTCGI_CONNECT_TIMEOUT=${FASTCGI_CONNECT_TIMEOUT:-300s}"
-      - "FASTCGI_STATUS_LISTEN=${FASTCGI_STATUS_LISTEN}"
       # PHP settings
+      - "FASTCGI_LISTEN_STATUS=${FASTCGI_LISTEN_STATUS:-misp-core:9003}"
+      - "PHP_LISTEN_FPM=${PHP_LISTEN_FPM:-true}"
       - "PHP_MEMORY_LIMIT=${PHP_MEMORY_LIMIT:-2048M}"
       - "PHP_MAX_EXECUTION_TIME=${PHP_MAX_EXECUTION_TIME:-300}"
       - "PHP_UPLOAD_MAX_FILESIZE=${PHP_UPLOAD_MAX_FILESIZE:-50M}"
@@ -334,12 +325,54 @@ services:
       - "PHP_SESSION_COOKIE_SECURE=${PHP_SESSION_COOKIE_SECURE:-true}"
       - "PHP_SESSION_COOKIE_DOMAIN=${PHP_SESSION_COOKIE_DOMAIN}"
       - "PHP_SESSION_COOKIE_SAMESITE=${PHP_SESSION_COOKIE_SAMESITE:-Lax}"
-      # security settings
-      - "HSTS_MAX_AGE=${HSTS_MAX_AGE}"
-      - "X_FRAME_OPTIONS=${X_FRAME_OPTIONS}"
-      - "CONTENT_SECURITY_POLICY=${CONTENT_SECURITY_POLICY}"
       # compose profiles
       - "COMPOSE_PROFILES=${COMPOSE_PROFILES}"
+
+  misp-nginx:
+    image: ${REGISTRY_MIRROR_URL:-}ghcr.io/misp/misp-docker/misp-nginx:${CORE_RUNNING_TAG:-latest}
+    restart: always
+    build:
+      context: nginx/.
+      args:
+        - CORE_TAG=${CORE_TAG:?Missing or outdated .env file, see README.md for instructions}
+        - CORE_COMMIT=${CORE_COMMIT}
+    depends_on:
+      misp-core:
+        condition: service_healthy
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:8080"
+      - "${NGINX_HTTPS_PORT:-443}:8443"
+    volumes:
+      - "./ssl:/etc/nginx/certs:ro"
+      - "./gnupg/:/var/www/MISP/.gnupg/:Z"
+    tmpfs:
+      - /var/www/MISP/cache:mode=0755,uid=101,gid=101
+      - /etc/nginx/conf.d:mode=0755,uid=101,gid=101
+      - /var/cache/nginx:mode=0755,uid=101,gid=101
+      - /tmp:mode=1777
+    user: nginx
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      - "TZ=${TZ}"
+      - "BASE_URL=${BASE_URL}"
+      - "DISABLE_IPV6=${DISABLE_IPV6}"
+      # NGINX settings
+      - "NGINX_X_FORWARDED_FOR=${NGINX_X_FORWARDED_FOR}"
+      - "NGINX_SET_REAL_IP_FROM=${NGINX_SET_REAL_IP_FROM}"
+      - "NGINX_CLIENT_MAX_BODY_SIZE=${NGINX_CLIENT_MAX_BODY_SIZE:-50M}"
+      - "FASTCGI_LISTEN=${FASTCGI_LISTEN:-misp-core:9002}"
+      - "FASTCGI_LISTEN_STATUS=${FASTCGI_LISTEN_STATUS:-misp-core:9003}"
+      - "FASTCGI_READ_TIMEOUT=${FASTCGI_READ_TIMEOUT:-300s}"
+      - "FASTCGI_SEND_TIMEOUT=${FASTCGI_SEND_TIMEOUT:-300s}"
+      - "FASTCGI_CONNECT_TIMEOUT=${FASTCGI_CONNECT_TIMEOUT:-300s}"
+      # security settings
+      - "NGINX_HSTS_MAX_AGE=${NGINX_HSTS_MAX_AGE}"
+      - "NGINX_X_FRAME_OPTIONS=${NGINX_X_FRAME_OPTIONS}"
+      - "NGINX_CONTENT_SECURITY_POLICY=${NGINX_CONTENT_SECURITY_POLICY}"
 
   misp-modules:
     image: ${REGISTRY_MIRROR_URL:-}ghcr.io/misp/misp-docker/misp-modules:${MODULES_RUNNING_TAG:-latest}
@@ -363,7 +396,7 @@ services:
       - "./custom/expansion/:/custom/expansion/:Z"
       - "./custom/export_mod/:/custom/export_mod/:Z"
       - "./custom/import_mod/:/custom/import_mod/:Z"
-    environment:  
+    environment:
       - "TZ=${TZ:-UTC}"
 
   misp-guard:
