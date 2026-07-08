@@ -78,7 +78,8 @@ RUN <<-EOF
 EOF
 
 RUN groupadd -g "${MISP_GID}" misp && \
-    useradd  -u "${MISP_UID}" -g "${MISP_GID}" -m -d /home/misp -s /usr/sbin/nologin misp
+    useradd  -u "${MISP_UID}" -g "${MISP_GID}" -m -d /home/misp -s /usr/sbin/nologin misp && \
+    usermod -aG 0 misp
 
 RUN --mount=type=bind,from=python-build,source=/wheels,target=/wheels \
     pip install --no-cache-dir /wheels/*.whl
@@ -88,7 +89,14 @@ RUN --mount=type=bind,from=python-build,source=/wheels,target=/wheels \
 RUN python -m pip uninstall --yes pip && \
     python -c 'import pathlib, shutil, sysconfig; shutil.rmtree(pathlib.Path(sysconfig.get_path("stdlib")) / "ensurepip")'
 
-RUN bash -c 'mkdir -p /custom/{action_mod,expansion,export_mod,import_mod} && chown -R misp:misp /custom'
+# Group-owned by 0 (not just misp's own gid) and setgid so the directories
+# stay writable when OpenShift runs this image under an arbitrary UID,
+# which is always paired with primary group 0 regardless of the image's
+# declared USER.
+RUN bash -c 'mkdir -p /custom/{action_mod,expansion,export_mod,import_mod} && \
+    chown -R misp:0 /custom /home/misp && \
+    chmod -R g=u /custom /home/misp && \
+    find /custom /home/misp -type d -exec chmod g+s {} +'
 
 USER misp
 

@@ -7,6 +7,12 @@ global:
   ## Example: A secret created for Harbor or Docker Hub authentication.
   imagePullSecrets:
     - name: gitlab-registry-secret
+  ## @param global.compatibility.openshift.adaptSecurityContext Bitnami-chart mechanism (mariadb/valkey subcharts)
+  ## that detects OpenShift and swaps in an SCC-compatible securityContext automatically, overriding the fixed
+  ## runAsUser/runAsGroup below. See the "bitnamilegacy" note in DEPLOYMENT.md for the tradeoffs of these subcharts.
+  compatibility:
+    openshift:
+      adaptSecurityContext: auto
 
 ## @section Common parameters
 commonAnnotations: {}
@@ -740,14 +746,18 @@ misp:
   ## @param containerSecurityContext.seccompProfile.type Set container's Security Context seccomp profile
   ## @param containerSecurityContext.readOnlyRootFilesystem Set container's Security Context read-only root filesystem
   # yamllint enable
+  # runAsUser/runAsGroup are deliberately omitted: the misp-core image
+  # supports running as an arbitrary UID (paired with group 0), which is
+  # required for OpenShift - its restricted SCC assigns its own UID and
+  # rejects pods that pin one outside the namespace's allowed range.
+  # Vanilla-k8s users who want a fixed UID can still set
+  # `--set misp.securityContext.runAsUser=33 --set misp.securityContext.runAsGroup=0`.
   securityContext:
     readOnlyRootFilesystem: true
     allowPrivilegeEscalation: false
     seccompProfile:
       type: RuntimeDefault
     runAsNonRoot: true
-    runAsUser: 33
-    runAsGroup: 33
     capabilities:
       drop:
         - ALL

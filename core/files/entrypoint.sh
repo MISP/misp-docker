@@ -119,8 +119,13 @@ check_deprecated_env() {
 
 check_deprecated_env
 
-# Setting Timezone for supervisord
-update-alternatives --install /etc/localtime localtime /usr/share/zoneinfo/${TZ} 0
+# Setting Timezone for supervisord. Symlinking /etc/localtime requires
+# root, which we no longer have; the $TZ export above is already
+# respected directly by bash/python/etc, and change_php_vars() sets PHP's
+# date.timezone explicitly, so this is only needed for legacy root use.
+if [[ "$(id -u)" -eq 0 ]]; then
+    update-alternatives --install /etc/localtime localtime /usr/share/zoneinfo/${TZ} 0
+fi
 
 # Hinders further execution when sourced from other scripts
 if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then

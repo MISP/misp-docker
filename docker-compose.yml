@@ -126,6 +126,9 @@ services:
       start_interval: 5s
     expose:
       - 9002
+    # misp-core runs as a non-root user (33:0) and can no longer chown
+    # these on its own - run `make init-dirs` once before first `up` (and
+    # after adding a new bind mount here).
     volumes:
       - "./configs/:/var/www/MISP/app/Config/:Z"
       - "./logs/:/var/www/MISP/app/tmp/logs/:Z"

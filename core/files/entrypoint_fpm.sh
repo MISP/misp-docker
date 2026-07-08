@@ -94,6 +94,15 @@ change_php_vars() {
     for FILE in /etc/php/*/fpm/pool.d/www.conf
     do
         [[ -e $FILE ]] || break
+        # Master never runs as root anymore, so it can't setuid/setgid to a
+        # different identity (e.g. the packaged default "www-data"). Point
+        # the pool at whatever identity we're already running as -
+        # setuid/setgid to yourself is always permitted, whether that's
+        # uid 33 (the default), an OpenShift-assigned arbitrary UID, or
+        # even root for anyone still running that way.
+        echo "Configure PHP | Setting pool 'user'/'group' to current identity ($(id -u):$(id -g))"
+        sed -i -E "s/^user = .*/user = $(id -u)/" "$FILE"
+        sed -i -E "s/^group = .*/group = $(id -g)/" "$FILE"
         echo "Configure PHP | Setting 'pm.max_children = ${PHP_FCGI_CHILDREN}'"
         sed -i -E "s/;?pm.max_children = .*/pm.max_children = ${PHP_FCGI_CHILDREN}/" "$FILE"
         echo "Configure PHP | Setting 'pm.start_servers = ${PHP_FCGI_START_SERVERS}'"
@@ -170,7 +179,7 @@ if [[ -x /custom/files/customize_misp.sh ]]; then
 fi
 
 echo "MISP | Starting PHP FPM"
-/usr/local/sbin/php-fpm -R -F & master_pid=$!
+/usr/local/sbin/php-fpm -F & master_pid=$!
 
 # Wait for it
 wait "$master_pid"

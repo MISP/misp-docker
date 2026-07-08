@@ -96,3 +96,26 @@ The `misp_container` IP is automatically resolved at runtime via the `misp-core-
 kustomize build . | kubectl apply -f -
 kubectl rollout restart deployment misp-guard
 ```
+
+## OpenShift
+
+`misp-core`, `misp-modules` and `misp-guard` all run as non-root and support
+being started under an arbitrary UID (always paired with primary group
+`0`), so they can be admitted by OpenShift's `restricted`/`restricted-v2`
+Security Context Constraint without any changes: don't set `runAsUser` or
+`fsGroup` and let OpenShift assign its own.
+
+These raw manifests are still a "minimum viable" quick-start, not the
+recommended path for OpenShift:
+
+- `mysql.yaml` uses the stock Docker Hub `mariadb` image, which needs to
+  run as root once to initialize a fresh/empty PVC datadir - something
+  OpenShift's restricted SCC does not allow. There's no in-place fix for
+  this without replacing the image.
+- Use the [Helm chart](./helm-chart/) instead for OpenShift: its
+  mariadb/valkey dependencies come from Bitnami's `bitnamilegacy`
+  registry, which already has working arbitrary-UID support baked in (see
+  [DEPLOYMENT.md](./helm-chart/DEPLOYMENT.md) for the tradeoffs of relying
+  on that registry).
+- `redis.yaml` (stock Docker Hub `redis` image, no persistent volume in
+  this manifest) already runs fine as an arbitrary non-root UID.
