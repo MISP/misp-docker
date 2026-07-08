@@ -69,6 +69,8 @@ spec:
             runAsNonRoot: true
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
+            seccompProfile:
+              type: RuntimeDefault
             capabilities:
               drop:
                 - ALL
@@ -211,8 +213,18 @@ spec:
               fi
 
               {{- if or .Values.misp.keycloakSecret.enabled (or .Values.misp.mispConfig.extraCerts.enabled .Values.misp.updateCaCertificatesOnStart) }}
-              update-ca-certificates --fresh --verbose
-              echo "CA Certificates updated."
+              # Updating the system-wide CA trust store requires root,
+              # which this container no longer runs as (nor does it have a
+              # writable root filesystem). This is only possible for
+              # anyone who has explicitly overridden misp.securityContext
+              # to run as root; otherwise, bake custom CAs into a custom
+              # misp-core image at build time instead.
+              if [ "$(id -u)" = "0" ]; then
+                update-ca-certificates --fresh --verbose
+                echo "CA Certificates updated."
+              else
+                echo "Skipping update-ca-certificates: not running as root."
+              fi
               {{- end }}
 
               exec /kubernetes/entrypoint_fpm.sh

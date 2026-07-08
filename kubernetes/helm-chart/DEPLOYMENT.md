@@ -340,6 +340,39 @@ misp:
       configMapFile: extra-certs.yaml
 ```
 
+> **Note:** enabling this (or `keycloakSecret`/`updateCaCertificatesOnStart`)
+> runs `update-ca-certificates` at container start to refresh the
+> system-wide trust store, which requires root. The `misp` container runs
+> as non-root by default, so this step is skipped with a log message
+> unless you've explicitly overridden `misp.securityContext` to run as
+> root. For a non-root deployment, bake any custom CAs into a custom
+> `misp-core` image at build time instead.
+
+## OpenShift
+
+`misp-core`, `misp-modules` and `misp-guard` all run as non-root and
+support being started under an arbitrary UID (always paired with primary
+group `0`), so they work under OpenShift's `restricted`/`restricted-v2`
+Security Context Constraint out of the box - `misp.securityContext` in
+`values.yaml` deliberately omits `runAsUser`/`runAsGroup`/`fsGroup` so
+OpenShift can assign its own.
+
+### The `bitnamilegacy` registry
+
+This chart's `mariadb` and `valkey` dependencies are Bitnami charts, which
+already have working OpenShift/arbitrary-UID support built in via
+`global.compatibility.openshift.adaptSecurityContext` (defaulted to `auto`
+here). However, their images are currently pulled from
+`registry-1.docker.io/bitnamilegacy/*` - Broadcom's frozen, no-longer
+actively maintained mirror, kept around after Bitnami's registry/licensing
+changes. This is a **known, accepted short-term tradeoff**: it's the
+fastest path to working OpenShift compatibility for the database/cache
+layer, but it means those two images won't receive further updates from
+upstream. The `ghcr.io/misp/misp-docker/*` images (core/modules/guard)
+are unaffected and remain the actively maintained source of truth for the
+Docker Compose deployment path. Migrating the mariadb/valkey dependencies
+to an actively maintained alternative should be tracked as follow-up work.
+
 ### Network Policies
 
 Enable network policies for enhanced security:

@@ -40,4 +40,4 @@ echo "Configure PHP | Change PHP values ..."
 change_php_vars
 
 echo "MISP | Starting PHP FPM"
-exec /usr/bin/tini -- /usr/local/sbin/php-fpm -R -F
+exec /usr/bin/tini -- /usr/local/sbin/php-fpm -F
