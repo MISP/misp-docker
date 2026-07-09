@@ -98,11 +98,17 @@ change_php_vars() {
         # different identity (e.g. the packaged default "www-data"). Point
         # the pool at whatever identity we're already running as -
         # setuid/setgid to yourself is always permitted, whether that's
-        # uid 33 (the default), an OpenShift-assigned arbitrary UID, or
-        # even root for anyone still running that way.
-        echo "Configure PHP | Setting pool 'user'/'group' to current identity ($(id -u):$(id -g))"
+        # uid 33 (the default) or an OpenShift-assigned arbitrary UID.
+        # listen.owner/listen.group are a *separate* pair of directives
+        # (Debian's default pool ships them hardcoded to www-data) that
+        # control an unconditional chown() of the unix socket - fix those
+        # too, or FPM tries to chown it to a uid/gid we don't have
+        # CAP_CHOWN to claim and fails to start entirely.
+        echo "Configure PHP | Setting pool 'user'/'group'/'listen.owner'/'listen.group' to current identity ($(id -u):$(id -g))"
         sed -i -E "s/^user = .*/user = $(id -u)/" "$FILE"
         sed -i -E "s/^group = .*/group = $(id -g)/" "$FILE"
+        sed -i -E "s/^listen.owner = .*/listen.owner = $(id -u)/" "$FILE"
+        sed -i -E "s/^listen.group = .*/listen.group = $(id -g)/" "$FILE"
         echo "Configure PHP | Setting 'pm.max_children = ${PHP_FCGI_CHILDREN}'"
         sed -i -E "s/;?pm.max_children = .*/pm.max_children = ${PHP_FCGI_CHILDREN}/" "$FILE"
         echo "Configure PHP | Setting 'pm.start_servers = ${PHP_FCGI_START_SERVERS}'"
