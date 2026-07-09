@@ -95,20 +95,22 @@ change_php_vars() {
     do
         [[ -e $FILE ]] || break
         # Master never runs as root anymore, so it can't setuid/setgid to a
-        # different identity (e.g. the packaged default "www-data"). Point
-        # the pool at whatever identity we're already running as -
-        # setuid/setgid to yourself is always permitted, whether that's
-        # uid 33 (the default) or an OpenShift-assigned arbitrary UID.
-        # listen.owner/listen.group are a *separate* pair of directives
-        # (Debian's default pool ships them hardcoded to www-data) that
-        # control an unconditional chown() of the unix socket - fix those
-        # too, or FPM tries to chown it to a uid/gid we don't have
-        # CAP_CHOWN to claim and fails to start entirely.
-        echo "Configure PHP | Setting pool 'user'/'group'/'listen.owner'/'listen.group' to current identity ($(id -u):$(id -g))"
-        sed -i -E "s/^user = .*/user = $(id -u)/" "$FILE"
-        sed -i -E "s/^group = .*/group = $(id -g)/" "$FILE"
-        sed -i -E "s/^listen.owner = .*/listen.owner = $(id -u)/" "$FILE"
-        sed -i -E "s/^listen.group = .*/listen.group = $(id -g)/" "$FILE"
+        # different identity (e.g. the packaged default "www-data") -
+        # user/group are only enforced when running as root anyway, php-fpm
+        # just uses its own identity otherwise. listen.owner/listen.group
+        # are a *separate* pair of directives (Debian's default pool ships
+        # all four hardcoded to www-data) that unconditionally chown() the
+        # unix socket if set at all, regardless of root - even pointing
+        # them at our own uid/gid isn't safe, since that still depends on
+        # the chown() call being treated as a same-owner no-op rather than
+        # actually requiring CAP_CHOWN. Comment all four out instead, so
+        # the socket is just left with the ownership it naturally gets
+        # from being created by us, and no chown() is attempted at all.
+        echo "Configure PHP | Disabling pool 'user'/'group'/'listen.owner'/'listen.group' directives"
+        sed -i -E "s/^user = .*/;&/" "$FILE"
+        sed -i -E "s/^group = .*/;&/" "$FILE"
+        sed -i -E "s/^listen\.owner = .*/;&/" "$FILE"
+        sed -i -E "s/^listen\.group = .*/;&/" "$FILE"
         echo "Configure PHP | Setting 'pm.max_children = ${PHP_FCGI_CHILDREN}'"
         sed -i -E "s/;?pm.max_children = .*/pm.max_children = ${PHP_FCGI_CHILDREN}/" "$FILE"
         echo "Configure PHP | Setting 'pm.start_servers = ${PHP_FCGI_START_SERVERS}'"
