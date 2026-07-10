@@ -241,6 +241,16 @@ spec:
                 secretKeyRef:
                   name: {{ include "misp.secretName" . }}
                   key: apikey
+            - name: SUPERVISOR_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ printf "%s-supervisor" (include "common.names.fullname" .) }}
+                  key: username
+            - name: SUPERVISOR_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ printf "%s-supervisor" (include "common.names.fullname" .) }}
+                  key: password
             {{- if .Values.misp.mispConfig.disableInitialAdmin.enabled }}
             - name: CONFIG_USERNAME
               value: {{ .Values.misp.mispConfig.disableInitialAdmin.username | quote }}
