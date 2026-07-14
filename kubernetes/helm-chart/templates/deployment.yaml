@@ -65,7 +65,6 @@ spec:
           {{- toYaml .Values.misp.initContainers.resources | nindent 12 }}
           {{- end }}
           securityContext:
-            runAsUser: 1337
             runAsNonRoot: true
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
