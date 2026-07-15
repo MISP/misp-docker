@@ -5,8 +5,8 @@ global:
   ## If your container images are stored in a private registry, you need to specify
   ## the corresponding Kubernetes secret that contains authentication credentials.
   ## Example: A secret created for Harbor or Docker Hub authentication.
-  imagePullSecrets:
-    - name: gitlab-registry-secret
+  imagePullSecrets: []
+
   ## @param global.compatibility.openshift.adaptSecurityContext Bitnami-chart mechanism (mariadb/valkey subcharts)
   ## that detects OpenShift and swaps in an SCC-compatible securityContext automatically, overriding the fixed
   ## runAsUser/runAsGroup below. See the "bitnamilegacy" note in DEPLOYMENT.md for the tradeoffs of these subcharts.
@@ -60,7 +60,7 @@ misp:
   image:
     repository: path/to/misp/image
     pullPolicy: Always
-    tag: 2.5.27
+    tag: 2.5.42
 
   initContainers:
     ## @param initContainers.image The image used for the initialization container.
@@ -70,10 +70,10 @@ misp:
     resources:
       limits:
         cpu: 250m
-        memory: 256Mi
+        memory: 512Mi
       requests:
         cpu: 100m
-        memory: 128Mi
+        memory: 256Mi
     waitForDbAndValkey:
       command:
         - /bin/sh
@@ -260,12 +260,14 @@ misp:
     restartPolicy: OnFailure
     ## @param mispConfig.image Docker image for the MISP configurator.
     ## This image is responsible for initializing and configuring MISP settings.
+    ## No need to have a specific image here. A simple busybox is sufficient to run the "customize_misp.sh" script
     image:
-      repository: path/to/image/misp-configurator
-      tag: 1.0.20
+      registry: docker.io
+      repository: busybox
+      tag: latest
       pullPolicy: Always
     ## @param mispConfig.initialAdminUsername Email address/username for the initial MISP admin user
-    initialAdminUsername: "admin@admin.test"
+    initialAdminUsername: "admin@misp.devlab.local"
     ## @param mispConfig.emergencyUser.enabled Enable creation of an emergency user account
     ## Emergency user can be used for system recovery when primary admin account is locked
     emergencyUser:
@@ -729,7 +731,7 @@ misp:
       rsync: true
       persistent: true
     - name: fpm
-      mountPath: /etc/php/7.4/fpm
+      mountPath: /etc/php/8.4/fpm
       rsync: true
     - name: log
       mountPath: /var/log
@@ -1030,7 +1032,7 @@ valkey:
   ## ref: https://github.com/bitnami/containers/tree/main/bitnami/valkey#setting-the-server-password-on-first-run
   ##
   auth:
-    enabled: false
+    enabled: true
     ## NOTE: ignored unless `auth.existingSecret` parameter is set
     existingSecretPasswordKey: password
     ## NOTE: When it's set, the previous `auth.password` parameter is ignored
@@ -1071,8 +1073,6 @@ valkey:
         secret:
           secretName: {{ printf "%s-valkey" .Release.Name }}
     containerSecurityContext: &valkeyContainerSecurityContext
-      runAsUser: 1001
-      runAsGroup: 1001
       runAsNonRoot: true
       allowPrivilegeEscalation: false
       readOnlyRootFilesystem: true
@@ -1385,8 +1385,6 @@ mariadb:
         emptyDir: {}
 
     containerSecurityContext: &mariadbContainerSecurityContext
-      runAsUser: 1001
-      runAsGroup: 1001
       runAsNonRoot: true
       allowPrivilegeEscalation: false
       readOnlyRootFilesystem: true
