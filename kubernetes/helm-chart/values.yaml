@@ -740,8 +740,12 @@ misp:
       mountPath: /var/www/MISP
       rsync: true
       persistent: true
-    - name: fpm
-      mountPath: /etc/php/8.4/fpm
+    - name: php
+      # Covers both fpm (pool config edited by entrypoint_fpm.sh) and cli
+      # (date.timezone edited by the same script) - mounting only the fpm
+      # subdirectory left /etc/php/8.4/cli read-only, so php.ini edits
+      # there failed with "Read-only file system".
+      mountPath: /etc/php/8.4
       rsync: true
     - name: log
       mountPath: /var/log
