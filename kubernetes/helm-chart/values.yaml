@@ -51,6 +51,16 @@ misp:
   ##
   replicaCount: 1
 
+  ## @param updateStrategy.type MISP deployment update strategy
+  ## Defaults to `Recreate` because MISP's persistent volume is ReadWriteOnce:
+  ## a `RollingUpdate` schedules the replacement pod before the old one
+  ## releases the volume, so it gets stuck unable to mount it (particularly
+  ## visible on OpenShift). Only safe to change to `RollingUpdate` if using
+  ## a ReadWriteMany storage class or persistence is disabled.
+  ##
+  updateStrategy:
+    type: Recreate
+
 
   ## MISP image
   ## @param image.registry [default: REGISTRY_NAME] MISP image registry

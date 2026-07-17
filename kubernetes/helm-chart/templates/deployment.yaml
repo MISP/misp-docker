@@ -20,6 +20,10 @@ spec:
   {{- if not .Values.misp.autoscaling.enabled }}
   replicas: {{ .Values.misp.replicaCount }}
   {{- end }}
+  {{- with .Values.misp.updateStrategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "misp.selectorLabels" . | nindent 6 }}
