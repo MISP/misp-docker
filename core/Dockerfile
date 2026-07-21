@@ -199,7 +199,7 @@ RUN <<-EOF
         else
             git clone --branch "${CORE_TAG}" --depth 1 https://github.com/MISP/MISP.git /var/www/MISP
         fi
-        cd /var/www/MISP || exit; git submodule update --init --recursive .
+        cd /var/www/MISP || exit; git submodule update --init --recursive --depth 1 .
 EOF
 
 ARG PYPI_SETUPTOOLS_VERSION
