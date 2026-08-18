@@ -224,6 +224,14 @@ set_up_ldap() {
         LDAPAUTH_LDAPTLSCUSTOMCACERT="\"$LDAPAUTH_LDAPTLSCUSTOMCACERT\""
     fi
 
+    # The LdapAuth plugin hands these three values straight to ldap_set_option(), which expects the
+    # integer value of the PHP constant. A constant name written as a string is silently coerced to 0
+    # (LDAP_OPT_X_TLS_NEVER / LDAP_OPT_X_TLS_CRL_NONE / no minimum protocol), so resolve the names to
+    # their integer values here and emit them unquoted below.
+    LDAPAUTH_LDAPTLSREQUIRECERT=$(resolve_php_constant "$LDAPAUTH_LDAPTLSREQUIRECERT") || exit 1
+    LDAPAUTH_LDAPTLSCRLCHECK=$(resolve_php_constant "$LDAPAUTH_LDAPTLSCRLCHECK") || exit 1
+    LDAPAUTH_LDAPTLSPROTOCOLMIN=$(resolve_php_constant "$LDAPAUTH_LDAPTLSPROTOCOLMIN") || exit 1
+
     sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
         \"LdapAuth\": {
           \"ldapServer\": \"${LDAPAUTH_LDAPSERVER}\",
@@ -242,10 +250,10 @@ set_up_ldap() {
           \"ldapDefaultRoleId\": ${LDAPAUTH_LDAPDEFAULTROLEID},
           \"updateUser\": ${LDAPAUTH_UPDATEUSER},
           \"debug\": ${LDAPAUTH_DEBUG},
-          \"ldapTlsRequireCert\": \"${LDAPAUTH_LDAPTLSREQUIRECERT}\",
+          \"ldapTlsRequireCert\": ${LDAPAUTH_LDAPTLSREQUIRECERT},
           \"ldapTlsCustomCaCert\": ${LDAPAUTH_LDAPTLSCUSTOMCACERT},
-          \"ldapTlsCrlCheck\": \"${LDAPAUTH_LDAPTLSCRLCHECK}\",
-          \"ldapTlsProtocolMin\": \"${LDAPAUTH_LDAPTLSPROTOCOLMIN}\"
+          \"ldapTlsCrlCheck\": ${LDAPAUTH_LDAPTLSCRLCHECK},
+          \"ldapTlsProtocolMin\": ${LDAPAUTH_LDAPTLSPROTOCOLMIN}
        }
     }" > /dev/null
 
