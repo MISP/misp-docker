@@ -272,9 +272,9 @@ services:
       - "STUNNEL=${STUNNEL}"
       - "STUNNEL_CONFIG=${STUNNEL_CONFIG}"
       # supervisor settings
-      - "SUPERVISOR_HOST=${SUPERVISOR_HOST}"
-      - "SUPERVISOR_USERNAME=${SUPERVISOR_USERNAME}"
-      - "SUPERVISOR_PASSWORD=${SUPERVISOR_PASSWORD}"
+      - "SUPERVISOR_HOST=${SUPERVISOR_HOST:-127.0.0.1}"
+      - "SUPERVISOR_USERNAME=${SUPERVISOR_USERNAME:-supervisor}"
+      - "SUPERVISOR_PASSWORD=${SUPERVISOR_PASSWORD:-supervisor}"
       # sync server settings (see https://www.misp-project.org/openapi/#tag/Servers for more options)
       - "SYNCSERVERS=${SYNCSERVERS}"
       - |
