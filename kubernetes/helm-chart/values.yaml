@@ -51,16 +51,6 @@ misp:
   ##
   replicaCount: 1
 
-  ## @param updateStrategy.type MISP deployment update strategy
-  ## Defaults to `Recreate` because MISP's persistent volume is ReadWriteOnce:
-  ## a `RollingUpdate` schedules the replacement pod before the old one
-  ## releases the volume, so it gets stuck unable to mount it (particularly
-  ## visible on OpenShift). Only safe to change to `RollingUpdate` if using
-  ## a ReadWriteMany storage class or persistence is disabled.
-  ##
-  updateStrategy:
-    type: Recreate
-
 
   ## MISP image
   ## @param image.registry [default: REGISTRY_NAME] MISP image registry
@@ -740,12 +730,8 @@ misp:
       mountPath: /var/www/MISP
       rsync: true
       persistent: true
-    - name: php
-      # Covers both fpm (pool config edited by entrypoint_fpm.sh) and cli
-      # (date.timezone edited by the same script) - mounting only the fpm
-      # subdirectory left /etc/php/8.4/cli read-only, so php.ini edits
-      # there failed with "Read-only file system".
-      mountPath: /etc/php/8.4
+    - name: fpm
+      mountPath: /etc/php/8.4/fpm
       rsync: true
     - name: nginx
       mountPath: /etc/nginx

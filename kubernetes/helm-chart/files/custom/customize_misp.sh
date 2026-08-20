@@ -9,28 +9,42 @@ set -e
 
 echo "Starting custom MISP configuration..."
 
-# Wait for MISP to be fully ready using the same method as the Kubernetes
-# readiness probe (httpGet against nginx on its local port). BASE_URL
-# points at the external ingress hostname, which may not be resolvable or
-# routable from inside the pod itself, and nginx here only ever listens on
-# 8080/8443 (never the default 80/443) - so check localhost:8080 directly
-# instead.
+# Wait for MISP to be fully ready using the same method as readiness probe
 echo "Waiting for MISP to be ready..."
 
-while ! curl -s "http://localhost:8080/users/heartbeat" > /dev/null; do
+# First check basic HTTP response
+while ! curl -s -k "${BASE_URL:-https://localhost}/users/heartbeat" > /dev/null; do
     echo "Waiting for MISP HTTP response..."
     sleep 10
 done
 echo "✓ MISP HTTP is responding"
 
-echo "MISP is ready, applying custom configurations..."
+# Then wait for the cake CLI itself to be usable, since that's what this script
+# actually depends on (HTTP responding does not guarantee the console bootstrap,
+# DB migrations, and app config are fully ready)
+echo "Waiting for MISP cake CLI to be ready..."
+max_readiness_wait=60  # 10 minutes max wait
+readiness_wait=0
 
 # Ensure we're in the right directory for cake commands
 cd /var/www/MISP
 
-# Additional wait for cake commands to be fully available
-echo "Allowing extra time for cake commands to be ready..."
-sleep 10
+while [ $readiness_wait -lt $max_readiness_wait ]; do
+    if ./app/Console/cake Admin getSetting "MISP.live" >/dev/null 2>&1; then
+        echo "✓ MISP cake CLI confirmed ready"
+        break
+    else
+        echo "Waiting for MISP cake CLI to be ready... ($readiness_wait/$max_readiness_wait)"
+        sleep 10
+        readiness_wait=$((readiness_wait + 1))
+    fi
+done
+
+if [ $readiness_wait -eq $max_readiness_wait ]; then
+    echo "⚠️ Warning: Timeout waiting for cake CLI readiness, proceeding anyway..."
+fi
+
+echo "MISP is ready, applying custom configurations..."
 
 # Example: Set custom MISP settings using the cake command
 # Replace these examples with your actual configuration needs

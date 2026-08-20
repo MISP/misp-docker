@@ -20,10 +20,6 @@ spec:
   {{- if not .Values.misp.autoscaling.enabled }}
   replicas: {{ .Values.misp.replicaCount }}
   {{- end }}
-  {{- with .Values.misp.updateStrategy }}
-  strategy:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
   selector:
     matchLabels:
       {{- include "misp.selectorLabels" . | nindent 6 }}
@@ -69,6 +65,7 @@ spec:
           {{- toYaml .Values.misp.initContainers.resources | nindent 12 }}
           {{- end }}
           securityContext:
+            runAsUser: 1337
             runAsNonRoot: true
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -214,18 +211,8 @@ spec:
               fi
 
               {{- if or .Values.misp.keycloakSecret.enabled (or .Values.misp.mispConfig.extraCerts.enabled .Values.misp.updateCaCertificatesOnStart) }}
-              # Updating the system-wide CA trust store requires root,
-              # which this container no longer runs as (nor does it have a
-              # writable root filesystem). This is only possible for
-              # anyone who has explicitly overridden misp.securityContext
-              # to run as root; otherwise, bake custom CAs into a custom
-              # misp-core image at build time instead.
-              if [ "$(id -u)" = "0" ]; then
-                update-ca-certificates --fresh --verbose
-                echo "CA Certificates updated."
-              else
-                echo "Skipping update-ca-certificates: not running as root."
-              fi
+              update-ca-certificates --fresh --verbose
+              echo "CA Certificates updated."
               {{- end }}
 
               exec /entrypoint.sh
@@ -243,16 +230,6 @@ spec:
                 secretKeyRef:
                   name: {{ include "misp.secretName" . }}
                   key: apikey
-            - name: SUPERVISOR_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: {{ printf "%s-supervisor" (include "common.names.fullname" .) }}
-                  key: username
-            - name: SUPERVISOR_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ printf "%s-supervisor" (include "common.names.fullname" .) }}
-                  key: password
             {{- if .Values.misp.mispConfig.disableInitialAdmin.enabled }}
             - name: CONFIG_USERNAME
               value: {{ .Values.misp.mispConfig.disableInitialAdmin.username | quote }}
@@ -284,11 +261,8 @@ spec:
             # Valkey Connection Details
             - name: REDIS_HOST
               value: {{ .Values.misp.valkey.host | default (printf "%s-valkey-master" .Release.Name) | quote }}
-            - name: REDIS_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ printf "%s-valkey" (include "common.names.fullname" .) }}
-                  key: password
+            - name: REDIS_PASSWORD_FILE
+              value: /vault/valkey/password
             # MySQL Connection Details
             - name: MYSQL_HOST
               value: {{ .Values.misp.mariadb.host | default (printf "%s-mariadb" .Release.Name) | quote }}
@@ -296,11 +270,10 @@ spec:
               value: {{ .Values.misp.mariadb.database | default .Values.mariadb.auth.database | quote }}
             - name: MYSQL_USER
               value: {{ .Values.misp.mariadb.user | default .Values.mariadb.auth.username | quote }}
-            - name: MYSQL_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ printf "%s-mariadb" (include "common.names.fullname" .) }}
-                  key: mariadb-password
+            - name: MYSQL_PASSWORD_FILE
+              value: /vault/mariadb/mariadb-password
+            - name: MYSQL_PASSWORD_FILE_BACKUP
+              value: /vault/mariadb/mariadb-backup-password
             # MISP Related Environment Variables
             - name: BASE_URL
             {{- if and .Values.misp.ingress.enabled .Values.misp.ingress.hosts }}
@@ -353,11 +326,6 @@ spec:
               port: 8080
           {{- end }}
           {{- if .Values.misp.readiness.enabled }}
-          # Previously an exec probe grepping /misp/readiness/ready.log for
-          # "MISP is ready" - nothing in the image or this chart ever wrote
-          # that file, so the probe could never succeed. httpGet against
-          # nginx (same check as livenessProbe/startupProbe above) actually
-          # reflects whether MISP is serving requests.
           readinessProbe:
             failureThreshold: {{ .Values.misp.readiness.failure }}
             initialDelaySeconds: {{ .Values.misp.readiness.delay }}
@@ -365,7 +333,7 @@ spec:
             successThreshold: {{ .Values.misp.readiness.success }}
             timeoutSeconds: {{ .Values.misp.readiness.timeout }}
             httpGet:
-              path: /
+              path: /users/heartbeat
               port: 8080
           {{- end }}
           {{- if .Values.misp.startup.enabled }}
@@ -415,8 +383,6 @@ spec:
             - name: extra-certs
               mountPath: /usr/local/share/ca-certificates/extra
             {{- end }}
-            - name: readiness
-              mountPath: /misp/readiness
             {{- if .Values.misp.extraVolumeMounts }}
             {{- include "common.tplvalues.render" (dict "value" .Values.misp.extraVolumeMounts "context" $) | nindent 12 }}
             {{- end }}
@@ -472,8 +438,6 @@ spec:
           configMap:
             name: {{ .Release.Name }}-objects-schema-override
         {{- end}}
-        - name: readiness
-          emptyDir: {}
         {{- if .Values.misp.extraVolumes }}
         {{- include "common.tplvalues.render" (dict "value" .Values.misp.extraVolumes "context" $) | nindent 8 }}
         {{- end }}
