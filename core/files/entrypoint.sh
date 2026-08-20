@@ -1,5 +1,21 @@
 #!/bin/bash
 
+# Resolve "_FILE"-suffixed variants (Docker/Kubernetes secret-file convention)
+# into their plain counterpart before anything below reads it, e.g.
+# MYSQL_PASSWORD_FILE=/vault/secrets/db-password -> MYSQL_PASSWORD=<contents>.
+# Without this, a *_FILE-only deployment (no plain var set) silently falls
+# through to the "backward compatible" defaults below instead of erroring.
+file_env() {
+    local var="$1"
+    local fileVar="${var}_FILE"
+    if [ -n "${!fileVar:-}" ] && [ -z "${!var:-}" ]; then
+        export "$var"="$(cat "${!fileVar}")"
+    fi
+}
+
+file_env MYSQL_PASSWORD
+file_env REDIS_PASSWORD
+
 # export env variables again so they are not mandatory in docker-compose.yml in a backward compatible manner
 export NUM_WORKERS_DEFAULT=${NUM_WORKERS_DEFAULT:-${WORKERS:-5}}
 export NUM_WORKERS_PRIO=${NUM_WORKERS_PRIO:-${WORKERS:-5}}
