@@ -301,6 +301,16 @@ RUN <<-EOF
             phpenmod "${mod}"
         done;
         phpenmod redis
+        # phpredis defaults session locking to off, so concurrent requests
+        # from the same browser (MISP's UI fires plenty in parallel) race
+        # to write the same Redis/Valkey-backed session key - the last
+        # writer wins and can silently clobber a CSRF token another
+        # response already sent to the browser, tripping CSRF protection
+        # on the next form submit. lock_expire is a safety net so a worker
+        # that dies mid-request can't wedge the lock forever.
+        for dir in /etc/php/*/conf.d/; do
+            printf 'redis.session.locking_enabled = 1\nredis.session.lock_expire = 5000\n' > "${dir}26-redis-session.ini"
+        done
 EOF
 
 # nginx
