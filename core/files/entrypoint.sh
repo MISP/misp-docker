@@ -113,27 +113,33 @@ export PHP_SESSION_COOKIE_SAMESITE=${PHP_SESSION_COOKIE_SAMESITE:-Lax}
 export TZ=${TZ:-UTC}
 
 # OpenShift (and similar platforms) start the container under an
-# arbitrary UID with no matching /etc/passwd entry, and their default
-# restricted SCC also runs it with a read-only root filesystem, so we
-# can't just append to /etc/passwd the way a writable Docker/Compose root
-# would allow. Besides being generally surprising to anything that
-# resolves the current user by uid, MISP's own `cake Admin runUpdates`
-# refuses to run (breaking all DB schema updates on startup) unless PHP's
-# posix_getpwuid() resolves the running uid to a name it recognises -
-# "www-data" being one of them, the same identity Docker/Compose already
-# runs as by default. Work around both constraints with nss_wrapper:
-# preload a shim NSS module backed by passwd/group files under /tmp
-# (writable regardless of root filesystem mode), seeded from the real
-# /etc/passwd plus a synthetic "www-data" entry for our own uid.
-if ! whoami &>/dev/null; then
+# arbitrary UID. Their container runtime (e.g. CRI-O) auto-registers that
+# UID in /etc/passwd itself when the file is group-writable - which ours
+# is, for unrelated arbitrary-UID reasons - but names the entry after the
+# raw UID, not any name MISP recognises. Besides being generally
+# surprising to anything that resolves the current user by uid, MISP's
+# own `cake Admin runUpdates` refuses to run (breaking all DB schema
+# updates on startup) unless PHP's posix_getpwuid() resolves the running
+# uid to a name it recognises - "www-data" being one of them, the same
+# identity Docker/Compose already runs as by default. So checking merely
+# "is some name resolvable" (e.g. via `whoami`) isn't enough - CRI-O's
+# auto-registered entry already makes that succeed, under the wrong name,
+# which silently defeated this workaround until an already-fresh install
+# still failed cake's os-user check. Check for the specific name instead,
+# and work around it with nss_wrapper: preload a shim NSS module backed
+# by passwd/group files under /tmp (writable regardless of root
+# filesystem mode), seeded from the real /etc/passwd - minus any
+# pre-existing entry for our own uid, so it doesn't shadow the one below -
+# plus a synthetic "www-data" entry for our own uid.
+if [ "$(id -un)" != "www-data" ]; then
     if ldconfig -p 2>/dev/null | grep -q libnss_wrapper.so && mkdir -p /tmp/nss_wrapper 2>/dev/null; then
-        cp /etc/passwd /tmp/nss_wrapper/passwd
+        grep -v ":$(id -u):" /etc/passwd > /tmp/nss_wrapper/passwd
         echo "www-data:x:$(id -u):0:www-data user:/var/www/MISP:/sbin/nologin" >> /tmp/nss_wrapper/passwd
         export NSS_WRAPPER_PASSWD=/tmp/nss_wrapper/passwd
         export NSS_WRAPPER_GROUP=/etc/group
         export LD_PRELOAD=libnss_wrapper.so
     else
-        echo "WARNING: nss_wrapper unavailable, cannot register the current UID $(id -u) as a known user. MISP commands requiring a resolvable OS user (e.g. 'cake Admin runUpdates') will fail." >&2
+        echo "WARNING: nss_wrapper unavailable, cannot register the current UID $(id -u) as 'www-data'. MISP commands requiring a resolvable OS user (e.g. 'cake Admin runUpdates') will fail." >&2
     fi
 fi
 
