@@ -7,7 +7,6 @@ These are minimum viable kubernetes manifests for
 - MySQL [statefulset](./manifests/mysql.yaml)
 - Redis [deployment](./manifests/redis.yaml)
 - Associated [services](./manifests/services.yaml)
-- [CronJobs](./manifests/cronjobs/) for various housekeeping tasks
 
 There is also an [example network policy](./manifests/policy-cilium.yaml) (Cilium specific) that assumes the use of ingress-nginx in the ingress-nginx namespace to expose MISP.
 
@@ -55,6 +54,23 @@ This will then override or add the SUPERVISOR_HOST, while keeping everything els
 By default these manifests assume the use of S3 based attachment storage (see `S3_*` keys in [instance-secrets.env](./instance-secrets.env)).
 
 If these variables are not all supplied, the default is for MISP to store attachment data in `/var/www/MISP/app/files/`. This should be backed by a persistentVolumeClaim of your preferred storageclass named `misp-files`.
+
+### Scheduled tasks
+
+Housekeeping tasks (feed fetch and cache, server pull and push, galaxy,
+taxonomy, warninglist, noticelist and object template updates) are executed by
+the MISP scheduler worker running inside the MISP pod. They are seeded into the
+`scheduled_tasks` table on startup and can be reviewed and edited under
+`Administration -> Scheduled Tasks` in the UI.
+
+Their intervals are set through the `CRON_*`, `FETCH_FEED_INTERVAL` and
+`CACHE_FEED_INTERVAL` variables documented in [template.env](../template.env),
+either in [deployment-misp.yaml](./manifests/deployment-misp.yaml) or in
+[instance-secrets.env](./instance-secrets.env).
+
+The scheduler is one of the MISP workers, so keep the MISP deployment at a
+single replica: every additional replica starts its own scheduler and would run
+each task again.
 
 ## MISP-Guard
 
