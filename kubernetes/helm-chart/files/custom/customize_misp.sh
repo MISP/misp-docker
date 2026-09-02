@@ -19,34 +19,32 @@ while ! curl -s -k "${BASE_URL:-https://localhost}/users/heartbeat" > /dev/null;
 done
 echo "✓ MISP HTTP is responding"
 
-# Then wait for the readiness log confirmation (same as Kubernetes readiness probe)
-echo "Waiting for MISP readiness confirmation..."
+# Then wait for the cake CLI itself to be usable, since that's what this script
+# actually depends on (HTTP responding does not guarantee the console bootstrap,
+# DB migrations, and app config are fully ready)
+echo "Waiting for MISP cake CLI to be ready..."
 max_readiness_wait=60  # 10 minutes max wait
 readiness_wait=0
 
+# Ensure we're in the right directory for cake commands
+cd /var/www/MISP
+
 while [ $readiness_wait -lt $max_readiness_wait ]; do
-    if grep -i 'MISP is ready' /misp/readiness/ready.log >/dev/null 2>&1; then
-        echo "✓ MISP readiness confirmed via ready.log"
+    if ./app/Console/cake Admin getSetting "MISP.live" >/dev/null 2>&1; then
+        echo "✓ MISP cake CLI confirmed ready"
         break
     else
-        echo "Waiting for MISP readiness confirmation... ($readiness_wait/$max_readiness_wait)"
+        echo "Waiting for MISP cake CLI to be ready... ($readiness_wait/$max_readiness_wait)"
         sleep 10
         readiness_wait=$((readiness_wait + 1))
     fi
 done
 
 if [ $readiness_wait -eq $max_readiness_wait ]; then
-    echo "⚠️ Warning: Timeout waiting for readiness confirmation, proceeding anyway..."
+    echo "⚠️ Warning: Timeout waiting for cake CLI readiness, proceeding anyway..."
 fi
 
 echo "MISP is ready, applying custom configurations..."
-
-# Ensure we're in the right directory for cake commands
-cd /var/www/MISP
-
-# Additional wait for cake commands to be fully available
-echo "Allowing extra time for cake commands to be ready..."
-sleep 10
 
 # Example: Set custom MISP settings using the cake command
 # Replace these examples with your actual configuration needs

@@ -17,10 +17,12 @@ spec:
         app.kubernetes.io/name: nginx
     spec:
       enableServiceLinks: false
+      # No fixed runAsUser/fsGroup - see the misp Deployment in
+      # deployment-misp.yaml for why (arbitrary-UID/group-0 support).
       securityContext:
-        # We want imported files to be owned by www-data group
-        fsGroup: 33
-        runAsUser: 33
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: nginx
           command:
@@ -32,6 +34,11 @@ spec:
             - daemon off;
           image: "ghcr.io/misp/misp-docker/misp-core:latest"
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           readinessProbe:
             tcpSocket:
               port: 8080

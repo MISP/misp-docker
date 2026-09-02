@@ -103,18 +103,22 @@ init_misp_data_files(){
     echo "... initialize configuration files"
     MISP_APP_CONFIG_PATH=/var/www/MISP/app/Config
     # Avoid cp/sed -i which create temp files alongside the target,
-    # broken on VirtioFS (Docker Desktop for Mac).
-    [ -s $MISP_APP_CONFIG_PATH/bootstrap.php ] || cat $MISP_APP_CONFIG_PATH.dist/bootstrap.default.php > $MISP_APP_CONFIG_PATH/bootstrap.php
-    [ -s $MISP_APP_CONFIG_PATH/database.php ] || cat $MISP_APP_CONFIG_PATH.dist/database.default.php > $MISP_APP_CONFIG_PATH/database.php
-    [ -s $MISP_APP_CONFIG_PATH/core.php ] || cat $MISP_APP_CONFIG_PATH.dist/core.default.php > $MISP_APP_CONFIG_PATH/core.php
-    [ -s $MISP_APP_CONFIG_PATH/config.php.template ] || cat $MISP_APP_CONFIG_PATH.dist/config.default.php > $MISP_APP_CONFIG_PATH/config.php.template
-    [ -s $MISP_APP_CONFIG_PATH/config.php ] || echo -e "<?php\n\$config=array();\n?>" > $MISP_APP_CONFIG_PATH/config.php
-    [ -s $MISP_APP_CONFIG_PATH/email.php ] || cat $MISP_APP_CONFIG_PATH.dist/email.php > $MISP_APP_CONFIG_PATH/email.php
-    [ -s $MISP_APP_CONFIG_PATH/routes.php ] || cat $MISP_APP_CONFIG_PATH.dist/routes.php > $MISP_APP_CONFIG_PATH/routes.php
+    # broken on VirtioFS (Docker Desktop for Mac). rm -f first: an existing
+    # baked-in placeholder (owned by the image's default www-data user)
+    # can't be truncate-written by a different arbitrary UID, but removing
+    # and recreating it only needs write access to the containing
+    # directory, which our group-0 permissions already grant.
+    [ -s $MISP_APP_CONFIG_PATH/bootstrap.php ] || { rm -f $MISP_APP_CONFIG_PATH/bootstrap.php; cat $MISP_APP_CONFIG_PATH.dist/bootstrap.default.php > $MISP_APP_CONFIG_PATH/bootstrap.php; }
+    [ -s $MISP_APP_CONFIG_PATH/database.php ] || { rm -f $MISP_APP_CONFIG_PATH/database.php; cat $MISP_APP_CONFIG_PATH.dist/database.default.php > $MISP_APP_CONFIG_PATH/database.php; }
+    [ -s $MISP_APP_CONFIG_PATH/core.php ] || { rm -f $MISP_APP_CONFIG_PATH/core.php; cat $MISP_APP_CONFIG_PATH.dist/core.default.php > $MISP_APP_CONFIG_PATH/core.php; }
+    [ -s $MISP_APP_CONFIG_PATH/config.php.template ] || { rm -f $MISP_APP_CONFIG_PATH/config.php.template; cat $MISP_APP_CONFIG_PATH.dist/config.default.php > $MISP_APP_CONFIG_PATH/config.php.template; }
+    [ -s $MISP_APP_CONFIG_PATH/config.php ] || { rm -f $MISP_APP_CONFIG_PATH/config.php; echo -e "<?php\n\$config=array();\n?>" > $MISP_APP_CONFIG_PATH/config.php; }
+    [ -s $MISP_APP_CONFIG_PATH/email.php ] || { rm -f $MISP_APP_CONFIG_PATH/email.php; cat $MISP_APP_CONFIG_PATH.dist/email.php > $MISP_APP_CONFIG_PATH/email.php; }
+    [ -s $MISP_APP_CONFIG_PATH/routes.php ] || { rm -f $MISP_APP_CONFIG_PATH/routes.php; cat $MISP_APP_CONFIG_PATH.dist/routes.php > $MISP_APP_CONFIG_PATH/routes.php; }
 
     if ! grep -q "Detect what auth modules" "$MISP_APP_CONFIG_PATH/bootstrap.php"; then
         echo "... patch bootstrap.php settings"
-        chmod +w $MISP_APP_CONFIG_PATH/bootstrap.php
+        cp $MISP_APP_CONFIG_PATH/bootstrap.php $MISP_APP_CONFIG_PATH/bootstrap.php.rewrite && mv $MISP_APP_CONFIG_PATH/bootstrap.php.rewrite $MISP_APP_CONFIG_PATH/bootstrap.php && chmod +w $MISP_APP_CONFIG_PATH/bootstrap.php
         safe_sed_i -z "s|CakePlugin::loadAll(array(.*CakeResque.*));||g" $MISP_APP_CONFIG_PATH/bootstrap.php
         safe_sed_i "s|CakePlugin::load('AadAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php
         safe_sed_i "s|CakePlugin::load('CertAuth');||g" $MISP_APP_CONFIG_PATH/bootstrap.php
@@ -160,7 +164,7 @@ EOT
     echo "... initialize database.php settings"
     # Avoid sed -i which creates temp files alongside the target,
     # broken on VirtioFS (Docker Desktop for Mac).
-    chmod +w $MISP_APP_CONFIG_PATH/database.php
+    cp $MISP_APP_CONFIG_PATH/database.php $MISP_APP_CONFIG_PATH/database.php.rewrite && mv $MISP_APP_CONFIG_PATH/database.php.rewrite $MISP_APP_CONFIG_PATH/database.php && chmod +w $MISP_APP_CONFIG_PATH/database.php
     safe_sed_i "s/localhost/$MYSQL_HOST/" $MISP_APP_CONFIG_PATH/database.php
     safe_sed_i "s/db\s*login/$MYSQL_USER/" $MISP_APP_CONFIG_PATH/database.php
     safe_sed_i "s/3306/$MYSQL_PORT/" $MISP_APP_CONFIG_PATH/database.php
@@ -175,7 +179,7 @@ EOT
     update_database_tls_config ssl_key "$MYSQL_TLS_KEY" "$MISP_APP_CONFIG_PATH/database.php" "$MYSQL_TLS"
 
     echo "... initialize email.php settings"
-    chmod +w $MISP_APP_CONFIG_PATH/email.php
+    cp $MISP_APP_CONFIG_PATH/email.php $MISP_APP_CONFIG_PATH/email.php.rewrite && mv $MISP_APP_CONFIG_PATH/email.php.rewrite $MISP_APP_CONFIG_PATH/email.php && chmod +w $MISP_APP_CONFIG_PATH/email.php
     tee $MISP_APP_CONFIG_PATH/email.php > /dev/null <<EOT
 <?php
 class EmailConfig {
@@ -230,7 +234,11 @@ EOT
     echo "... initialize app files"
     MISP_APP_FILES_PATH=/var/www/MISP/app/files
     if [ ! -f ${MISP_APP_FILES_PATH}/INIT ]; then
-        cp -R ${MISP_APP_FILES_PATH}.dist/* ${MISP_APP_FILES_PATH}
+        # -f: files.dist/* and files/* start out identical (baked at build
+        # time) and owned by the image's default user, so plain cp can't
+        # overwrite them under a different arbitrary UID; -f makes cp
+        # unlink-and-recreate instead (directory write access only).
+        cp -Rf ${MISP_APP_FILES_PATH}.dist/* ${MISP_APP_FILES_PATH}
         touch ${MISP_APP_FILES_PATH}/INIT
     fi
 }
@@ -266,20 +274,33 @@ enforce_misp_data_permissions(){
     if [ -f "${MISP_APP_FILES_PATH}/VERSION" ] && [ "$(cat ${MISP_APP_FILES_PATH}/VERSION)" = "${CORE_COMMIT:-$(jq -r '"v\(.major).\(.minor).\(.hotfix)"' /var/www/MISP/VERSION.json)}" ]; then
         echo "... local files/ match distribution version, skipping data permissions in files/"
     else
-        echo "find & change ... chown -R www-data:www-data /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
+        # chown requires root (we can't change a file's owner to someone
+        # else without it); a no-op everywhere else, since build-time
+        # ownership plus group-0/setgid perms already cover it, and
+        # freshly-mounted volumes are expected to already be owned
+        # appropriately (see README).
+        if [[ "$(id -u)" -eq 0 ]]; then
+            echo "find & change ... chown -R www-data:www-data /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
+            echo "find & change ... chown -R www-data:www-data /var/www/MISP/app/files" && find /var/www/MISP/app/files \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
+        fi
         # Enforce 0770 on all files and dirs - app/tmp contains a mix of cache, exports and temp files that all need to be writable by www-data
-        echo "find & change... chmod -R 0770 /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp ! -perm 0770 -exec chmod 0770 {} +
-        
-        echo "find & change ... chown -R www-data:www-data /var/www/MISP/app/files" && find /var/www/MISP/app/files \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
+        # -perm -0770 (note the leading "-"): matches if AT LEAST those
+        # bits are set, so our baked 2770 dirs (0770 plus setgid) already
+        # satisfy it and are left alone - chmod on a directory we don't
+        # own (build-time www-data, not our runtime arbitrary UID) would
+        # otherwise fail, and would also strip the setgid bit we rely on.
+        echo "find & change... chmod -R 0770 /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp ! -perm -0770 -exec chmod 0770 {} +
         # Enforce 0770 on all files and dirs - app/files contains a mix of scripts and user data
-        echo "find & change ... chmod -R 0770 /var/www/MISP/app/files" && find /var/www/MISP/app/files ! -perm 0770 -exec chmod 0770 {} +
+        echo "find & change ... chmod -R 0770 /var/www/MISP/app/files" && find /var/www/MISP/app/files ! -perm -0770 -exec chmod 0770 {} +
     fi
 
-    echo "... chown -R www-data:www-data /var/www/MISP/app/Config" && find /var/www/MISP/app/Config \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
+    if [[ "$(id -u)" -eq 0 ]]; then
+        echo "... chown -R www-data:www-data /var/www/MISP/app/Config" && find /var/www/MISP/app/Config \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
+    fi
     # Files are also executable and read only, because we have some rogue scripts like 'cake' and we can not do a full inventory
-    echo "find & change ... chmod -R 0550 files /var/www/MISP/app/Config ..." && find /var/www/MISP/app/Config -type f ! -perm 0550 -exec chmod 0550 {} +
+    echo "find & change ... chmod -R 0550 files /var/www/MISP/app/Config ..." && find /var/www/MISP/app/Config -type f ! -perm -0550 -exec chmod 0550 {} +
     # Directories are also writable, because there seems to be a requirement to add new files every once in a while
-    echo "find & change ... chmod -R 0770 directories /var/www/MISP/app/Config" && find /var/www/MISP/app/Config -type d ! -perm 0770 -exec chmod 0770 {} +
+    echo "find & change ... chmod -R 0770 directories /var/www/MISP/app/Config" && find /var/www/MISP/app/Config -type d ! -perm -0770 -exec chmod 0770 {} +
     # We make configuration files read only
     echo "... chmod 600 /var/www/MISP/app/Config/{config,database,email}.php" && chmod 600 /var/www/MISP/app/Config/{bootstrap,config,database,email}.php
 }
@@ -386,16 +407,16 @@ init_nginx() {
 
     # Testing for files also test for links, and generalize better to mounted files
     if [[ ! -f "/etc/nginx/sites-enabled/misp80" ]]; then
-        echo "... enabling port 80 redirect"
+        echo "... enabling port 8080 redirect"
         ln -s /etc/nginx/sites-available/misp80 /etc/nginx/sites-enabled/misp80
     else
-        echo "... port 80 already enabled"
+        echo "... port 8080 already enabled"
     fi
     if [[ "$DISABLE_IPV6" = "true" ]]; then
-        echo "... disabling IPv6 on port 80"
+        echo "... disabling IPv6 on port 8080"
         sed -i "s/[^#] listen \[/  # listen \[/" /etc/nginx/sites-enabled/misp80
     else
-        echo "... enabling IPv6 on port 80"
+        echo "... enabling IPv6 on port 8080"
         sed -i "s/# listen \[/listen \[/" /etc/nginx/sites-enabled/misp80
     fi
     if [[ "$DISABLE_SSL_REDIRECT" = "true" ]]; then
@@ -410,16 +431,16 @@ init_nginx() {
 
     # Testing for files also test for links, and generalize better to mounted files
     if [[ ! -f "/etc/nginx/sites-enabled/misp443" ]]; then
-        echo "... enabling port 443"
+        echo "... enabling port 8443"
         ln -s /etc/nginx/sites-available/misp443 /etc/nginx/sites-enabled/misp443
     else
-        echo "... port 443 already enabled"
+        echo "... port 8443 already enabled"
     fi
     if [[ "$DISABLE_IPV6" = "true" ]]; then
-        echo "... disabling IPv6 on port 443"
+        echo "... disabling IPv6 on port 8443"
         sed -i "s/[^#] listen \[/  # listen \[/" /etc/nginx/sites-enabled/misp443
     else
-        echo "... enabling IPv6 on port 443"
+        echo "... enabling IPv6 on port 8443"
         sed -i "s/# listen \[/listen \[/" /etc/nginx/sites-enabled/misp443
     fi
 

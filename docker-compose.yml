@@ -90,8 +90,6 @@ services:
   misp-core:
     image: ${REGISTRY_MIRROR_URL:-}ghcr.io/misp/misp-docker/misp-core:${CORE_RUNNING_TAG:-latest}
     restart: always
-    cap_add:
-      - AUDIT_WRITE
     build:
       context: core/.
       args:
@@ -120,15 +118,18 @@ services:
       misp-modules:
         condition: service_healthy
     healthcheck:
-      test: curl -ks ${BASE_URL:-https://localhost}/users/heartbeat > /dev/null || exit 1
+      test: curl -ks ${BASE_URL:-https://localhost:8443}/users/heartbeat > /dev/null || exit 1
       interval: 2s
       timeout: 1s
       retries: 3
       start_period: 30s
       start_interval: 30s
     ports:
-      - "${CORE_HTTP_PORT:-80}:80"
-      - "${CORE_HTTPS_PORT:-443}:443"
+      - "${CORE_HTTP_PORT:-80}:8080"
+      - "${CORE_HTTPS_PORT:-443}:8443"
+    # misp-core runs as a non-root user (33:0) and can no longer chown
+    # these on its own - run `make init-dirs` once before first `up` (and
+    # after adding a new bind mount here).
     volumes:
       - "./configs/:/var/www/MISP/app/Config/:Z"
       - "./logs/:/var/www/MISP/app/tmp/logs/:Z"

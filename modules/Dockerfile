@@ -78,11 +78,19 @@ RUN <<-EOF
 EOF
 
 RUN groupadd -g "${MISP_GID}" misp && \
-    useradd  -u "${MISP_UID}" -g "${MISP_GID}" -m -d /home/misp -s /usr/sbin/nologin misp
+    useradd  -u "${MISP_UID}" -g "${MISP_GID}" -m -d /home/misp -s /usr/sbin/nologin misp && \
+    usermod -aG 0 misp
 
 COPY --from=python-build /wheels /wheels
 RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
-RUN bash -c 'mkdir -p /custom/{action_mod,expansion,export_mod,import_mod} && chown -R misp:misp /custom'
+# Group-owned by 0 (not just misp's own gid) and setgid so the directories
+# stay writable when OpenShift runs this image under an arbitrary UID,
+# which is always paired with primary group 0 regardless of the image's
+# declared USER.
+RUN bash -c 'mkdir -p /custom/{action_mod,expansion,export_mod,import_mod} && \
+    chown -R misp:0 /custom /home/misp && \
+    chmod -R g=u /custom /home/misp && \
+    find /custom /home/misp -type d -exec chmod g+s {} +'
 
 USER misp
 

@@ -60,6 +60,23 @@ change_php_vars() {
     for FILE in /etc/php/*/fpm/pool.d/www.conf
     do
         [[ -e $FILE ]] || break
+        # Master never runs as root anymore, so it can't setuid/setgid to a
+        # different identity (e.g. the packaged default "www-data") -
+        # user/group are only enforced when running as root anyway, php-fpm
+        # just uses its own identity otherwise. listen.owner/listen.group
+        # are a *separate* pair of directives (Debian's default pool ships
+        # all four hardcoded to www-data) that unconditionally chown() the
+        # unix socket if set at all, regardless of root - even pointing
+        # them at our own uid/gid isn't safe, since that still depends on
+        # the chown() call being treated as a same-owner no-op rather than
+        # actually requiring CAP_CHOWN. Comment all four out instead, so
+        # the socket is just left with the ownership it naturally gets
+        # from being created by us, and no chown() is attempted at all.
+        echo "Configure PHP | Disabling pool 'user'/'group'/'listen.owner'/'listen.group' directives"
+        sed -i -E "s/^user = .*/;&/" "$FILE"
+        sed -i -E "s/^group = .*/;&/" "$FILE"
+        sed -i -E "s/^listen\.owner = .*/;&/" "$FILE"
+        sed -i -E "s/^listen\.group = .*/;&/" "$FILE"
         echo "Configure PHP | Setting 'pm.max_children = ${PHP_FCGI_CHILDREN}'"
         sed -i -E "s/;?pm.max_children = .*/pm.max_children = ${PHP_FCGI_CHILDREN}/" "$FILE"
         echo "Configure PHP | Setting 'pm.start_servers = ${PHP_FCGI_START_SERVERS}'"
@@ -110,7 +127,7 @@ fi
 echo "Configure PHP | Change PHP values ..." && change_php_vars
 
 echo "Configure PHP | Starting PHP FPM"
-/usr/local/sbin/php-fpm -R -F & master_pid=$!
+/usr/local/sbin/php-fpm -F & master_pid=$!
 
 # Wait for it
 wait "$master_pid"

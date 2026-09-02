@@ -54,6 +54,7 @@ docker compose version
 
 1. Copy the `template.env` file to `.env` in the project root.
 2. Customize `.env` according to your requirements (optional but recommended).
+3. `make init-dirs` (or manually `mkdir -p configs logs files ssl gnupg && chown -R 33:0 configs logs files ssl gnupg`) - `misp-core` runs as a non-root user and can no longer `chown` these bind-mounted host directories itself on first start.
 
 ### Run
 

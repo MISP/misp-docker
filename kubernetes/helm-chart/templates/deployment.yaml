@@ -65,7 +65,6 @@ spec:
           {{- toYaml .Values.misp.initContainers.resources | nindent 12 }}
           {{- end }}
           securityContext:
-            runAsUser: 1337
             runAsNonRoot: true
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -332,11 +331,9 @@ spec:
             periodSeconds: {{ .Values.misp.readiness.period }}
             successThreshold: {{ .Values.misp.readiness.success }}
             timeoutSeconds: {{ .Values.misp.readiness.timeout }}
-            exec:
-              command:
-                - "/bin/sh"
-                - "-c"
-                - "grep -i 'MISP is ready' /misp/readiness/ready.log"
+            httpGet:
+              path: /users/heartbeat
+              port: 8080
           {{- end }}
           {{- if .Values.misp.startup.enabled }}
           startupProbe:
@@ -385,8 +382,6 @@ spec:
             - name: extra-certs
               mountPath: /usr/local/share/ca-certificates/extra
             {{- end }}
-            - name: readiness
-              mountPath: /misp/readiness
             {{- if .Values.misp.extraVolumeMounts }}
             {{- include "common.tplvalues.render" (dict "value" .Values.misp.extraVolumeMounts "context" $) | nindent 12 }}
             {{- end }}
@@ -442,8 +437,6 @@ spec:
           configMap:
             name: {{ .Release.Name }}-objects-schema-override
         {{- end}}
-        - name: readiness
-          emptyDir: {}
         {{- if .Values.misp.extraVolumes }}
         {{- include "common.tplvalues.render" (dict "value" .Values.misp.extraVolumes "context" $) | nindent 8 }}
         {{- end }}

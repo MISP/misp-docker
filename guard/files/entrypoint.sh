@@ -34,11 +34,11 @@ mitmdump \
 MITM_PID=$!
 
 # wait for mitmproxy CA to exist
-while [ ! -f /root/.mitmproxy/mitmproxy-ca.pem ]; do
+while [ ! -f "${HOME:-/home/guard}/.mitmproxy/mitmproxy-ca.pem" ]; do
   sleep 1
 done
 
 # copy mitmproxy CA to shared volume for misp-core to use
-cp /root/.mitmproxy/mitmproxy-ca.pem /misp_guard_ca/mitmproxy-ca.pem
+cp "${HOME:-/home/guard}/.mitmproxy/mitmproxy-ca.pem" /misp_guard_ca/mitmproxy-ca.pem
 
 wait "$MITM_PID"

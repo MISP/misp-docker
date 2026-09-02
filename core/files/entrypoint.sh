@@ -1,5 +1,21 @@
 #!/bin/bash
 
+# Resolve "_FILE"-suffixed variants (Docker/Kubernetes secret-file convention)
+# into their plain counterpart before anything below reads it, e.g.
+# MYSQL_PASSWORD_FILE=/vault/secrets/db-password -> MYSQL_PASSWORD=<contents>.
+# Without this, a *_FILE-only deployment (no plain var set) silently falls
+# through to the "backward compatible" defaults below instead of erroring.
+file_env() {
+    local var="$1"
+    local fileVar="${var}_FILE"
+    if [ -n "${!fileVar:-}" ] && [ -z "${!var:-}" ]; then
+        export "$var"="$(cat "${!fileVar}")"
+    fi
+}
+
+file_env MYSQL_PASSWORD
+file_env REDIS_PASSWORD
+
 # export env variables again so they are not mandatory in docker-compose.yml in a backward compatible manner
 export NUM_WORKERS_DEFAULT=${NUM_WORKERS_DEFAULT:-${WORKERS:-5}}
 export NUM_WORKERS_PRIO=${NUM_WORKERS_PRIO:-${WORKERS:-5}}
@@ -96,6 +112,37 @@ export PHP_SESSION_COOKIE_SAMESITE=${PHP_SESSION_COOKIE_SAMESITE:-Lax}
 
 export TZ=${TZ:-UTC}
 
+# OpenShift (and similar platforms) start the container under an
+# arbitrary UID. Their container runtime (e.g. CRI-O) auto-registers that
+# UID in /etc/passwd itself when the file is group-writable - which ours
+# is, for unrelated arbitrary-UID reasons - but names the entry after the
+# raw UID, not any name MISP recognises. Besides being generally
+# surprising to anything that resolves the current user by uid, MISP's
+# own `cake Admin runUpdates` refuses to run (breaking all DB schema
+# updates on startup) unless PHP's posix_getpwuid() resolves the running
+# uid to a name it recognises - "www-data" being one of them, the same
+# identity Docker/Compose already runs as by default. So checking merely
+# "is some name resolvable" (e.g. via `whoami`) isn't enough - CRI-O's
+# auto-registered entry already makes that succeed, under the wrong name,
+# which silently defeated this workaround until an already-fresh install
+# still failed cake's os-user check. Check for the specific name instead,
+# and work around it with nss_wrapper: preload a shim NSS module backed
+# by passwd/group files under /tmp (writable regardless of root
+# filesystem mode), seeded from the real /etc/passwd - minus any
+# pre-existing entry for our own uid, so it doesn't shadow the one below -
+# plus a synthetic "www-data" entry for our own uid.
+if [ "$(id -un)" != "www-data" ]; then
+    if ldconfig -p 2>/dev/null | grep -q libnss_wrapper.so && mkdir -p /tmp/nss_wrapper 2>/dev/null; then
+        grep -v ":$(id -u):" /etc/passwd > /tmp/nss_wrapper/passwd
+        echo "www-data:x:$(id -u):0:www-data user:/var/www/MISP:/sbin/nologin" >> /tmp/nss_wrapper/passwd
+        export NSS_WRAPPER_PASSWD=/tmp/nss_wrapper/passwd
+        export NSS_WRAPPER_GROUP=/etc/group
+        export LD_PRELOAD=libnss_wrapper.so
+    else
+        echo "WARNING: nss_wrapper unavailable, cannot register the current UID $(id -u) as 'www-data'. MISP commands requiring a resolvable OS user (e.g. 'cake Admin runUpdates') will fail." >&2
+    fi
+fi
+
 export NGINX_X_FORWARDED_FOR=${NGINX_X_FORWARDED_FOR:-false}
 export NGINX_SET_REAL_IP_FROM=${NGINX_SET_REAL_IP_FROM}
 export NGINX_CLIENT_MAX_BODY_SIZE=${NGINX_CLIENT_MAX_BODY_SIZE:-50M}
@@ -107,8 +154,13 @@ export SUPERVISOR_HOST=${SUPERVISOR_HOST:-127.0.0.1}
 export SUPERVISOR_USERNAME=${SUPERVISOR_USERNAME:-supervisor}
 export SUPERVISOR_PASSWORD=${SUPERVISOR_PASSWORD:-supervisor}
 
-# Setting Timezone for supervisord
-update-alternatives --install /etc/localtime localtime /usr/share/zoneinfo/${TZ} 0
+# Setting Timezone for supervisord. Symlinking /etc/localtime requires
+# root, which we no longer have; the $TZ export above is already
+# respected directly by bash/python/etc, and change_php_vars() sets PHP's
+# date.timezone explicitly, so this is only needed for legacy root use.
+if [[ "$(id -u)" -eq 0 ]]; then
+    update-alternatives --install /etc/localtime localtime /usr/share/zoneinfo/${TZ} 0
+fi
 
 # Hinders further execution when sourced from other scripts
 if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
