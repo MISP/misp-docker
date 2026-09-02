@@ -264,9 +264,14 @@ RUN update-alternatives --set php /usr/bin/php${PHP_PACKAGE_VERSION}
 RUN ln -sf /usr/sbin/php-fpm${PHP_PACKAGE_VERSION} /usr/local/sbin/php-fpm
 RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# Install python modules
-COPY --from=python-build /wheels /wheels
-RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
+# Install python modules.
+#
+# The wheels are bind-mounted rather than COPYed. A COPY commits them to their own
+# layer, and the `rm -rf /wheels` that used to follow could only write a whiteout on
+# top of that layer -- it cannot remove the layer from the image, so the wheels
+# shipped in everything we publish. A bind mount is never committed to a layer.
+RUN --mount=type=bind,from=python-build,source=/wheels,target=/wheels \
+    pip install --no-cache-dir /wheels/*.whl
 # PHP: install prebuilt libraries, then install the app's PHP deps
 COPY --from=php-build /pecl_libs.tar.gz /
 RUN tar -xzf /pecl_libs.tar.gz && rm /pecl_libs.tar.gz
