@@ -110,3 +110,23 @@ init_settings() {
         set_default_settings "$settings_json" "$description"
     fi
 }
+
+# Resolve a PHP constant name (e.g. LDAP_OPT_X_TLS_ALLOW) to its integer value, so it can be written
+# as a number into config.php. Values that are already numeric are passed through unchanged.
+resolve_php_constant() {
+    local value="$1"
+
+    if [[ "$value" =~ ^-?[0-9]+$ ]]; then
+        echo "$value"
+        return 0
+    fi
+
+    local resolved
+    resolved=$(php -r 'echo defined($argv[1]) ? (int)constant($argv[1]) : "";' "$value")
+    if [ -z "$resolved" ]; then
+        echo "Unknown PHP constant: ${value}" >&2
+        return 1
+    fi
+
+    echo "$resolved"
+}
