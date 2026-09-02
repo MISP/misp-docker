@@ -100,6 +100,7 @@ group "default" {
     "misp-modules-slim",
     "misp-core",
     "misp-core-slim",
+    "misp-nginx",
     "misp-guard",
   ]
 }
@@ -108,6 +109,7 @@ group "slim" {
   targets = [
     "misp-modules-slim",
     "misp-core-slim",
+    "misp-nginx",
     "misp-guard",
   ]
 }
@@ -115,6 +117,7 @@ group "standard" {
   targets = [
     "misp-modules",
     "misp-core",
+    "misp-nginx",
     "misp-guard",
   ]
 }
@@ -193,6 +196,17 @@ target "misp-core-slim" {
     "PYPI_REDIS_VERSION": "${PYPI_REDIS_VERSION}",
     "PYPI_TAXII2_CLIENT_VERSION": "${PYPI_TAXII2_CLIENT_VERSION}",
     "DOCKER_HUB_PROXY" : "${DOCKER_HUB_PROXY}",
+  }
+  platforms = "${PLATFORMS}"
+}
+
+target "misp-nginx" {
+  context = "nginx/."
+  dockerfile = "Dockerfile"
+  tags = flatten(["${NAMESPACE}/misp-nginx:latest", "${NAMESPACE}/misp-nginx:${COMMIT_HASH}", CORE_TAG != "" ? ["${NAMESPACE}/misp-nginx:${CORE_TAG}"] : []])
+  args = {
+    "CORE_TAG": "${CORE_TAG}",
+    "CORE_COMMIT": "${CORE_COMMIT}",
   }
   platforms = "${PLATFORMS}"
 }

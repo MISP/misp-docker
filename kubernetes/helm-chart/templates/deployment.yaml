@@ -215,8 +215,7 @@ spec:
               echo "CA Certificates updated."
               {{- end }}
 
-              exec /entrypoint.sh
-          
+              exec /kubernetes/entrypoint_fpm.sh
           env:
             - name: ADMIN_EMAIL
               value: {{ .Values.misp.mispConfig.initialAdminUsername | quote }}
@@ -311,8 +310,8 @@ spec:
             {{- include "common.tplvalues.render" (dict "value" .Values.misp.extraEnvVarsSecret "context" $) | nindent 12 }}
             {{- end }}
           ports:
-            - name: http
-              containerPort: {{ .Values.misp.service.port }}
+            - name: misp-php
+              containerPort: 9002
               protocol: TCP
           {{- if .Values.misp.liveness.enabled }}
           livenessProbe:
@@ -332,11 +331,8 @@ spec:
             periodSeconds: {{ .Values.misp.readiness.period }}
             successThreshold: {{ .Values.misp.readiness.success }}
             timeoutSeconds: {{ .Values.misp.readiness.timeout }}
-            exec:
-              command:
-                - "/bin/sh"
-                - "-c"
-                - "grep -i 'MISP is ready' /misp/readiness/ready.log"
+            tcpSocket:
+              port: 9002
           {{- end }}
           {{- if .Values.misp.startup.enabled }}
           startupProbe:
@@ -398,6 +394,52 @@ spec:
           resources:
           {{- toYaml . | nindent 12 }}
           {{- end }}
+
+        - name: misp-nginx
+          image: "{{ .Values.misp.nginx.image.repository }}:{{ .Values.misp.nginx.image.tag | default "latest" }}"
+          imagePullPolicy: {{ .Values.misp.nginx.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.misp.service.port }}
+              protocol: TCP
+          env:
+            - name: BASE_URL
+            {{- if and .Values.misp.ingress.enabled .Values.misp.ingress.hosts }}
+              {{- with (first .Values.misp.ingress.hosts) }}
+              value: "http{{ if $.Values.misp.ingress.tls }}s{{ end }}://{{ .host }}"
+              {{- end }}
+            {{- else }}
+              value: "{{ .Values.misp.hostname | default (printf "http://%s.%s" (include "misp.fullname" .) .Release.Namespace) }}{{ if .Values.misp.nodePort }}:{{ .Values.misp.nodePort }}{{ end }}"
+            {{- end }}
+            {{- range $key, $value := .Values.misp.nginx.extraEnvVars }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          {{- with .Values.misp.nginx.resources }}
+          resources:
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-tmp
+              mountPath: /tmp
+          {{- if .Values.misp.nginx.readiness.enabled }}
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: {{ .Values.misp.nginx.readiness.delay }}
+            timeoutSeconds: {{ .Values.misp.nginx.readiness.timeout }}
+            periodSeconds: {{ .Values.misp.nginx.readiness.period }}
+            successThreshold: {{ .Values.misp.nginx.readiness.success }}
+            failureThreshold: {{ .Values.misp.nginx.readiness.failure }}
+          {{- end }}
+          {{- with .Values.misp.nginx.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
       volumes:
         {{- if .Values.misp.vault.enabled }}
         {{- range .Values.misp.vault.secrets }}
@@ -424,6 +466,12 @@ spec:
           {{- end }}
         {{- end }}
         {{- end }}
+        - name: nginx-config
+          emptyDir: {}
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-tmp
+          emptyDir: {}
         {{- if .Values.misp.keycloakSecret.enabled }}
         - name: keycloak-secret
           secret:
