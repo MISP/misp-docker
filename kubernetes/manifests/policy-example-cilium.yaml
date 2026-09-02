@@ -71,12 +71,6 @@ spec:
   ingress:
     - fromEndpoints:
         - matchLabels:
-            app.kubernetes.io/name: misp-cron
-      toPorts:
-        - ports:
-            - port: "443"
-    - fromEndpoints:
-        - matchLabels:
             app.kubernetes.io/component: controller
             io.kubernetes.pod.namespace: ingress-nginx
       toPorts:

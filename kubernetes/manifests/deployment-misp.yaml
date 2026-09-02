@@ -61,6 +61,15 @@ spec:
               value: misp-mysql
             - name: ENABLE_DB_SETTINGS
               value: "true"
+            # Housekeeping tasks are run by the MISP scheduler worker, from
+            # the scheduled_tasks table seeded on startup. Intervals are in
+            # seconds; see ../../template.env for the remaining CRON_* options.
+            - name: CRON_USER_ID
+              value: "1"
+            - name: CRON_PULLALL
+              value: "300"
+            - name: CRON_PUSHALL
+              value: "900"
           envFrom:
             - secretRef:
                 name: mysql-credentials
