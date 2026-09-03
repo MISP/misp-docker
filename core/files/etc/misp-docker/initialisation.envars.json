@@ -27,5 +27,8 @@
     "default_value": "${SALT}",
     "command_args": "-f",
     "blank_protection": true
+  },
+  "Security.auth_enforced": {
+    "default_value": "${AUTH_ENFORCED}"
   }
 }

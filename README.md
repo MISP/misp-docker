@@ -179,6 +179,14 @@ GUARD_ARGS=--ssl-insecure -v
 
 ### Authentication
 
+By default MISP shows its builtin email/password login form alongside any external provider. To disable the form and enforce external authentication, set:
+
+```bash
+AUTH_ENFORCED=true
+```
+
+This maps to MISP's `Security.auth_enforced` setting and applies to any configured external provider (OIDC/LDAP/AAD/CustomAuth).
+
 #### LDAP Authentication
 
 You can configure LDAP authentication in MISP using 2 methods:
@@ -273,6 +281,27 @@ Valid options for `OIDC_AUTH_METHOD` are:
 - `client_secret_basic`: the default if variable is not set, but seems broken with Okta. It will return the following error: `"Error 'invalid_request' received from IdP: Cannot supply multiple client credentials"`.
 - `client_secret_jwt`: _not tested_
 - `private_key_jwt`: _not tested_
+
+#### AAD (Entra) Authentication
+
+AAD (Azure AD / Microsoft Entra) authentication is implemented through the MISP AaAAuth plugin. See upstream plugin docs for the full [Entra app registration walkthrough](https://github.com/MISP/MISP/blob/2.4/app/Plugin/AadAuth/README.md).
+
+```bash
+AAD_ENABLE=true
+AAD_CLIENT_ID="<application (client) ID>"
+AAD_TENANT_ID="<directory (tenant) ID>"
+AAD_CLIENT_SECRET="<client secret>"
+AAD_REDIRECT_URI="https://misp.mydomain.com/users/login" # (same value in Azure AD)
+AAD_PROVIDER="https://login.microsoftonline.com/"
+AAD_PROVIDER_USER="https://graph.microsoft.com/"
+# Entra group names mapped to MISP roles
+AAD_MISP_USER="Misp Users"
+AAD_MISP_ORGADMIN="Misp Org Admins"
+AAD_MISP_SITEADMIN="Misp Site Admins"
+AAD_CHECK_GROUPS=false
+```
+
+> Unlike OIDC/LDAP, AAD currently has no per-plugin auth toggle. For AAD only login combine the above with `AUTH_ENFORCED=true` (see above).
 
 #### CustomAuth
 
