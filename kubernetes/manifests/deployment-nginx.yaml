@@ -18,19 +18,12 @@ spec:
     spec:
       enableServiceLinks: false
       securityContext:
-        # We want imported files to be owned by www-data group
-        fsGroup: 33
-        runAsUser: 33
+        runAsUser: 101
+        runAsGroup: 101
+        runAsNonRoot: true
       containers:
         - name: nginx
-          command:
-            - /usr/bin/tini
-          args:
-            - nginx
-            - --
-            - -g
-            - daemon off;
-          image: "ghcr.io/misp/misp-docker/misp-core:latest"
+          image: "ghcr.io/misp/misp-docker/misp-nginx:latest"
           imagePullPolicy: IfNotPresent
           readinessProbe:
             tcpSocket:
@@ -40,34 +33,51 @@ spec:
             timeoutSeconds: 5
             failureThreshold: 2
             successThreshold: 1
-
           env:
-            # We only expose https anyway
-            - name: DISABLE_SSL_REDIRECT
-              value: "true"
+            - name: BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: instance-secrets
+                  key: BASE_URL
+          envFrom:
+            - configMapRef:
+                name: nginx-config
           ports:
             - name: misp-http
               containerPort: 8080
               protocol: TCP
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop:
+                - ALL
           resources:
             limits:
               memory: 2048Mi
+              cpu: 250m
             requests:
               memory: 512Mi
               cpu: 50m
           volumeMounts:
             - name: nginx-config
-              mountPath: /etc/nginx/nginx.conf
-              subPath: nginx.conf
-            - name: nginx-body
-              mountPath: /var/lib/nginx/
+              mountPath: /etc/nginx/conf.d
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-tmp
+              mountPath: /tmp
       volumes:
         - name: nginx-config
-          configMap:
-            name: nginx-conf
-            items:
-              - key: nginx.conf
-                path: nginx.conf
+          emptyDir:
+            sizeLimit: 50Mi
+        - name: nginx-cache
+          emptyDir:
+            sizeLimit: 50Mi
+        - name: nginx-tmp
+          emptyDir:
+            sizeLimit: 50Mi
         - name: nginx-body
           emptyDir:
             sizeLimit: 50Mi

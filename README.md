@@ -9,6 +9,7 @@ Notable features:
 
 - MISP and MISP modules are split into two different Docker images, `misp-core` and `misp-modules`
 - Optional [MISP-Guard](https://github.com/MISP/misp-guard) container to filter traffic and enforce sharing policies via mitmproxy.
+- NGINX is split into a separate Docker image ([see below](#breaking-changes); ref: [misp/misp-docker#430](https://github.com/MISP/misp-docker/pull/430))
 - Docker images are pushed regularly, no build required
 - Lightweight Docker images by using multiple build stages and a slim parent image
 - Rely on off the shelf Docker images for Exim4, Redis, and MariaDB
@@ -60,7 +61,7 @@ docker compose version
 - `docker compose pull` if you want to use pre-built images or `docker compose build` if you want to build your own (see the [Troubleshooting](#troubleshooting) section in case of errors)
 - `docker compose up`
   - Add `-d` to run the services in the background
-- Login to `https://localhost`
+- Login to `http://localhost`
   - User: `admin@admin.test`
   - Password: `admin`
 
@@ -196,6 +197,14 @@ GUARD_ARGS=--ssl-insecure -v
 
 ### Authentication
 
+By default MISP shows its builtin email/password login form alongside any external provider. To disable the form and enforce external authentication, set:
+
+```bash
+AUTH_ENFORCED=true
+```
+
+This maps to MISP's `Security.auth_enforced` setting and applies to any configured external provider (OIDC/LDAP/AAD/CustomAuth).
+
 #### LDAP Authentication
 
 You can configure LDAP authentication in MISP using 2 methods:
@@ -277,7 +286,10 @@ OIDC_CODE_CHALLENGE_METHOD=S256
 OIDC_AUTH_METHOD="client_secret_post"
 OIDC_REDIRECT_URI="https://<MISP_URL>/users/login" # (same value set in Okta)
 OIDC_DISABLE_REQUEST_OBJECT=false
+OIDC_DISABLE_PUSHED_AUTHORIZATION_REQUEST=false
 OIDC_SKIP_PROXY=true
+OIDC_ALLOW_EMAIL_LINKING=false
+OIDC_REQUIRE_EMAIL_VERIFIED=true
 ```
 
 Valid options for `OIDC_AUTH_METHOD` are:
@@ -286,6 +298,27 @@ Valid options for `OIDC_AUTH_METHOD` are:
 - `client_secret_basic`: the default if variable is not set, but seems broken with Okta. It will return the following error: `"Error 'invalid_request' received from IdP: Cannot supply multiple client credentials"`.
 - `client_secret_jwt`: _not tested_
 - `private_key_jwt`: _not tested_
+
+#### AAD (Entra) Authentication
+
+AAD (Azure AD / Microsoft Entra) authentication is implemented through the MISP AaAAuth plugin. See upstream plugin docs for the full [Entra app registration walkthrough](https://github.com/MISP/MISP/blob/2.4/app/Plugin/AadAuth/README.md).
+
+```bash
+AAD_ENABLE=true
+AAD_CLIENT_ID="<application (client) ID>"
+AAD_TENANT_ID="<directory (tenant) ID>"
+AAD_CLIENT_SECRET="<client secret>"
+AAD_REDIRECT_URI="https://misp.mydomain.com/users/login" # (same value in Azure AD)
+AAD_PROVIDER="https://login.microsoftonline.com/"
+AAD_PROVIDER_USER="https://graph.microsoft.com/"
+# Entra group names mapped to MISP roles
+AAD_MISP_USER="Misp Users"
+AAD_MISP_ORGADMIN="Misp Org Admins"
+AAD_MISP_SITEADMIN="Misp Site Admins"
+AAD_CHECK_GROUPS=false
+```
+
+> Unlike OIDC/LDAP, AAD currently has no per-plugin auth toggle. For AAD only login combine the above with `AUTH_ENFORCED=true` (see above).
 
 #### CustomAuth
 
@@ -329,6 +362,36 @@ CUSTOM_AUTH_CUSTOM_LOGOUT=
   - `./gnupg`: `/var/www/MISP/.gnupg/`
 - If you need to automatically run additional steps each time the container starts, create a new file `files/customize_misp.sh`, and replace the variable `${CUSTOM_PATH}` inside `docker-compose.yml` with its parent path.
 - If you are interested in running streamlined versions of the images (fewer dependencies, easier approval from compliance), you might want to use the `latest-slim` tag. Just adjust the `docker-compose.yml` file, and run again `docker compose pull` and `docker compose up`.
+
+
+#### Breaking changes
+
+With PR [430](https://github.com/MISP/misp-docker/pull/430) the NGINX server was extracted from the MISP core image into it's own image.
+This improves security and scalability of the front-facing NGINX server but leads to some changes described as follows:
+
+**Variables**: As part of this change, a couple of variables were changed inside `template.env`:
+
+| Previous variable         | New variable                                             |
+| ------------------------- | -------------------------------------------------------- |
+| `CORE_HTTP_PORT`          | `NGINX_HTTP_PORT`                                        |
+| `CORE_HTTPS_PORT`         | `NGINX_HTTPS_PORT`                                       |
+| `FASTCGI_STATUS_LISTEN`   | `FASTCGI_LISTEN_STATUS`                                  |
+| `HSTS_MAX_AGE`            | `NGINX_HSTS_MAX_AGE`                                     |
+| `X_FRAME_OPTIONS`         | `NGINX_X_FRAME_OPTIONS`                                  |
+| `CONTENT_SECURITY_POLICY` | `NGINX_CONTENT_SECURITY_POLICY`                          |
+|                           |                                                          |
+| `DISABLE_SSL_REDIRECT`    | Removed entirely, SSL is auto-detected via cert presence |
+
+**Base URL:** The BASE_URL variable is now mandatory because the SSL logic is changed (see below). Please make sure it is in your environment.
+
+**TLS/SSL:** The existing `./ssl` volume mount from `misp-core` is moved to the `misp-nginx` container, so existing certificates keep working.
+
+**Certificates:** SSL is disabled if certificates are missing, but you can generate self-signed certificates with the following command: `mkdir -p ./ssl/ && openssl req -x509 -subj '/CN=localhost' -nodes -newkey rsa:4096 -keyout ssl/key.pem -out ssl/cert.pem -days 365 -addext "subjectAltName = DNS:localhost, IP:127.0.0.1, IP:::1"`
+
+**GPG key delivery:** `gpg.asc` is now served via `misp-nginx`, which proxies the request through to `misp-core` (PHP-FPM) rather than serving a static file from the webroot path.
+
+**Kubernetes/Helm:** manifests have been updated for the new two-container topology; if you deploy via Helm/Kubernetes, review the updated chart before upgrading.
+
 
 ### High availability deployments
 
@@ -507,11 +570,11 @@ See [here](/docs/stunnel-guide.md)
 
 ## Versioning
 
-A GitHub Action builds `misp-core`, `misp-modules`, and `misp-guard` images automatically and pushes them to the [GitHub Package registry](https://github.com/orgs/MISP/packages). We do not use tags inside the repository; instead we tag images as they are pushed to the registry. For each build, `misp-core`, `misp-modules`, `misp-guard` images are tagged as follows:
+A GitHub Action builds `misp-core`, `misp-nginx`, `misp-modules`, and `misp-guard` images automatically and pushes them to the [GitHub Package registry](https://github.com/orgs/MISP/packages). We do not use tags inside the repository; instead we tag images as they are pushed to the registry. For each build, `misp-core`, `misp-modules`, `misp-guard` images are tagged as follows:
 
-- `misp-core:${commit-sha1}[0:7]`, `misp-modules:${commit-sha1}[0:7]`, and `misp-guard:${commit-sha1}[0:7]` where `${commit-sha1}` is the commit hash triggering the build
-- `misp-core:latest`, `misp-modules:latest`, and `misp-guard:latest` in order to track the latest builds available
-- `misp-core:${CORE_TAG}`, `misp-modules:${MODULES_TAG}`, and `misp-guard:${GUARD_TAG}` reflecting the underlying versions as specified inside the `template.env` file at build time.
+- `misp-core:${commit-sha1}[0:7]`, `misp-nginx:${commit-sha1}[0:7]`, `misp-modules:${commit-sha1}[0:7]`, and `misp-guard:${commit-sha1}[0:7]` where `${commit-sha1}` is the commit hash triggering the build
+- `misp-core:latest`, `misp-nginx:latest`, `misp-modules:latest`, and `misp-guard:latest` in order to track the latest builds available
+- `misp-core:${CORE_TAG}`, `misp-nginx:${CORE_TAG}`, `misp-modules:${MODULES_TAG}`, and `misp-guard:${GUARD_TAG}` reflecting the underlying versions as specified inside the `template.env` file at build time.
 
 ## Podman (experimental)
 
@@ -628,6 +691,7 @@ With **Docker**:
 docker compose down
 docker system prune
 docker image rm ghcr.io/misp/misp-docker/misp-core
+docker image rm ghcr.io/misp/misp-docker/misp-nginx
 docker image rm ghcr.io/misp/misp-docker/misp-modules
 docker image rm ghcr.io/misp/misp-docker/misp-guard
 ```
@@ -638,6 +702,7 @@ With **Podman**:
 podman compose down
 podman system prune
 podman image rm ghcr.io/misp/misp-docker/misp-core
+podman image rm ghcr.io/misp/misp-docker/misp-nginx
 podman image rm ghcr.io/misp/misp-docker/misp-modules
 podman image rm ghcr.io/misp/misp-docker/misp-guard
 ```

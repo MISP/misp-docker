@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+  - deployment-misp-guard.yaml
+  - guard-cm.yaml
+  - misp-core-svc.yaml
+  - misp-guard-svc.yaml
+
+configMapGenerator:
+  - name: misp-guard-proxy
+    literals:
+      - PROXY_ENABLE=true
+      - PROXY_HOST=misp-guard
+      - PROXY_PORT=8888

@@ -8,6 +8,7 @@
 env.hcl
 rootca.crt
 cert.pem
+key.pem
 docker-compose.override.yml
 .DS_Store
 .AppleDouble

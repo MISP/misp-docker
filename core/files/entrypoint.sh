@@ -32,9 +32,8 @@ if [ "$ENABLE_REDIS_EMPTY_PASSWORD" = "true" ]; then
 else
     export REDIS_PASSWORD=${REDIS_PASSWORD:-redispassword}
 fi
-export BASE_URL=${BASE_URL:-https://localhost}
+export BASE_URL=${BASE_URL}
 export DISABLE_IPV6=${DISABLE_IPV6:-false}
-export DISABLE_SSL_REDIRECT=${DISABLE_SSL_REDIRECT:-false}
 export DISABLE_CA_REFRESH=${DISABLE_CA_REFRESH:-false}
 export SMTP_FQDN=${SMTP_FQDN:-mail}
 export SMTP_PORT=${SMTP_PORT:-25}
@@ -42,6 +41,8 @@ export SMTP_PORT=${SMTP_PORT:-25}
 export CRON_USER_ID=${CRON_USER_ID:-1}
 export CRON_PULLALL=${CRON_PULLALL:-86400}
 export CRON_PUSHALL=${CRON_PUSHALL:-86400}
+export FETCH_FEED_INTERVAL=${FETCH_FEED_INTERVAL:-86400}
+export CACHE_FEED_INTERVAL=${CACHE_FEED_INTERVAL:-86400}
 
 export ADMIN_EMAIL=${ADMIN_EMAIL:-admin@admin.test}
 export MISP_CONTACT=${MISP_CONTACT:-$ADMIN_EMAIL}
@@ -50,14 +51,17 @@ export GPG_PASSPHRASE=${GPG_PASSPHRASE:-passphrase}
 export MISP_MODULES_FQDN=${MISP_MODULES_FQDN:-http://misp-modules}
 export ATTACHMENTS_DIR=${ATTACHMENTS_DIR:-/var/www/MISP/app/files}
 
+export AUTH_ENFORCED=${AUTH_ENFORCED:-false}
 export AUTOCONF_GPG=${AUTOCONF_GPG:-true}
-export AUTOCONF_ADMIN_KEY=${AUTOCONF_ADMIN_KEY:-true}
-export AUTOGEN_ADMIN_KEY=${AUTOGEN_ADMIN_KEY:-$AUTOCONF_ADMIN_KEY}
+export AUTOGEN_ADMIN_KEY=${AUTOGEN_ADMIN_KEY:-${AUTOCONF_ADMIN_KEY:-true}}
 export OIDC_ENABLE=${OIDC_ENABLE:-false}
 export OIDC_MIXEDAUTH=${OIDC_MIXEDAUTH:-false}
 export OIDC_AUTH_METHOD=${OIDC_AUTH_METHOD:-client_secret_post}
 export OIDC_DISABLE_REQUEST_OBJECT=${OIDC_DISABLE_REQUEST_OBJECT:-false}
+export OIDC_DISABLE_PUSHED_AUTHORIZATION_REQUEST=${OIDC_DISABLE_PUSHED_AUTHORIZATION_REQUEST:-false}
 export OIDC_SKIP_PROXY=${OIDC_SKIP_PROXY:-true}
+export OIDC_ALLOW_EMAIL_LINKING=${OIDC_ALLOW_EMAIL_LINKING:-false}
+export OIDC_REQUIRE_EMAIL_VERIFIED=${OIDC_REQUIRE_EMAIL_VERIFIED:-true}
 export LDAP_ENABLE=${LDAP_ENABLE:-false}
 export ENABLE_DB_SETTINGS=${ENABLE_DB_SETTINGS:-false}
 export ENABLE_BACKGROUND_UPDATES=${ENABLE_BACKGROUND_UPDATES:-false}
@@ -65,10 +69,7 @@ export PROXY_ENABLE=${PROXY_ENABLE:-false}
 export DEBUG=${DEBUG:-0}
 export ENABLE_THEMES=${ENABLE_THEMES:-false}
 
-export FASTCGI_READ_TIMEOUT=${FASTCGI_READ_TIMEOUT:-300s}
-export FASTCGI_SEND_TIMEOUT=${FASTCGI_SEND_TIMEOUT:-300s}
-export FASTCGI_CONNECT_TIMEOUT=${FASTCGI_CONNECT_TIMEOUT:-300s}
-
+export PHP_LISTEN_FPM=true
 export PHP_FCGI_CHILDREN=${PHP_FCGI_CHILDREN:-5}
 export PHP_FCGI_START_SERVERS=${PHP_FCGI_START_SERVERS:-2}
 export PHP_FCGI_SPARE_SERVERS=${PHP_FCGI_SPARE_SERVERS:-1}
@@ -92,16 +93,32 @@ export PHP_SESSION_COOKIE_SAMESITE=${PHP_SESSION_COOKIE_SAMESITE:-Lax}
 
 export TZ=${TZ:-UTC}
 
-export NGINX_X_FORWARDED_FOR=${NGINX_X_FORWARDED_FOR:-false}
-export NGINX_SET_REAL_IP_FROM=${NGINX_SET_REAL_IP_FROM}
-export NGINX_CLIENT_MAX_BODY_SIZE=${NGINX_CLIENT_MAX_BODY_SIZE:-50M}
-
 export STUNNEL=${STUNNEL:-false}
 export STUNNEL_CONFIG=${STUNNEL_CONFIG}
 
 export SUPERVISOR_HOST=${SUPERVISOR_HOST:-127.0.0.1}
 export SUPERVISOR_USERNAME=${SUPERVISOR_USERNAME:-supervisor}
 export SUPERVISOR_PASSWORD=${SUPERVISOR_PASSWORD:-supervisor}
+
+# error out on legacy variables
+check_deprecated_env() {
+    local fail=0
+    local msg="This variable was renamed or removed in a breaking change. See the migration notes in the README: https://github.com/misp/misp-docker"
+    local deprecated_vars=(CORE_HTTP_PORT CORE_HTTPS_PORT HSTS_MAX_AGE X_FRAME_OPTIONS CONTENT_SECURITY_POLICY)
+
+    for var in "${deprecated_vars[@]}"; do
+        if [ -n "${!var:-}" ]; then
+            echo "ERROR: ${var} is deprecated. ${msg}" >&2
+            fail=1
+        fi
+    done
+
+    if [ "$fail" -eq 1 ]; then
+        exit 1
+    fi
+}
+
+check_deprecated_env
 
 # Setting Timezone for supervisord
 update-alternatives --install /etc/localtime localtime /usr/share/zoneinfo/${TZ} 0

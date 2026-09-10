@@ -13,7 +13,7 @@ echo "Starting custom MISP configuration..."
 echo "Waiting for MISP to be ready..."
 
 # First check basic HTTP response
-while ! curl -s -k "${BASE_URL:-https://localhost}/users/heartbeat" > /dev/null; do
+while ! curl -s -k "${BASE_URL:-http://localhost}/users/heartbeat" > /dev/null; do
     echo "Waiting for MISP HTTP response..."
     sleep 10
 done
@@ -55,9 +55,9 @@ set_misp_setting() {
     local setting_name="$1"
     local setting_value="$2"
     local description="$3"
-    
+
     echo "Setting ${description}: ${setting_name}=${setting_value}"
-    
+
     # Use cake command (should work now since MISP is fully ready)
     if ./app/Console/cake Admin setSetting "${setting_name}" "${setting_value}"; then
         echo "✓ Successfully set ${setting_name} via cake command"

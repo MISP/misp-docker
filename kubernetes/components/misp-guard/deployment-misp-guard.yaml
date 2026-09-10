@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: misp-guard
+  labels:
+    app.kubernetes.io/name: misp-guard
+spec:
+  strategy:
+    type: Recreate
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: misp-guard
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: misp-guard
+    spec:
+      enableServiceLinks: false
+      # Ensure we can resolve the misp-core ClusterIP before starting MISP-Guard
+      # If the IP is not resolved first MISP-Guard will fail
+      initContainers:
+        - name: wait-for-misp-core
+          image: "ghcr.io/misp/misp-docker/misp-guard:latest"
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              until getent hosts misp-core; do
+                echo "waiting for misp-core DNS to resolve"
+                sleep 5
+              done
+      containers:
+        - name: misp-guard
+          image: "ghcr.io/misp/misp-docker/misp-guard:latest"
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            exec:
+              # Check if the misp-core IP still matches what's in the running config
+              # This is just precautionary incase the misp-core pod is restarted and the guard is not
+              command:
+                - sh
+                - -c
+                - 'getent hosts misp-core | grep -qF "$(jq -r .instances.misp_container.ip /srv/misp-guard/src/config.json)"'
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: 8888
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 2
+            successThreshold: 1
+          env:
+            - name: GUARD_PORT
+              value: "8888"
+          ports:
+            - name: misp-guard
+              protocol: TCP
+              containerPort: 8888
+          resources:
+            limits:
+              memory: 2048Mi
+            requests:
+              memory: 512Mi
+              cpu: 50m 
+          volumeMounts:
+            - name: misp-guard-config
+              mountPath: /config.json
+              subPath: misp-guard-config.json
+            - name: misp-guard-ca
+              mountPath: /misp_guard_ca
+
+      volumes:
+        - name: misp-guard-config
+          configMap:
+            name: misp-guard-config
+            items:
+              - key: misp-guard-config.json
+                path: misp-guard-config.json
+        # TODO: replace with a shared volume to distribute the mitmproxy CA to misp-core (same purpose as the misp_guard_ca compose volume)
+        - name: misp-guard-ca
+          emptyDir: {}

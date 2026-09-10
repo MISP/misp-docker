@@ -6,7 +6,23 @@ variable "DOCKER_HUB_PROXY" {
   default = ""
 }
 
-variable "PYPI_REDIS_VERSION" {
+variable "PHP_API_VERSION" {
+  default = "20240924"
+}
+
+variable "PHP_PACKAGE_VERSION" {
+  default = "8.4"
+}
+
+variable "PYPI_SETUPTOOLS_VERSION" {
+  default = "==80.3.1"
+}
+
+variable "PYPI_SUPERVISOR_VERSION" {
+  default = "==4.2.5"
+}
+
+variable "PYPI_JSONSCHEMA_VERSION" {
   default = ""
 }
 
@@ -14,27 +30,15 @@ variable "PYPI_LIEF_VERSION" {
   default = ""
 }
 
+variable "PYPI_MISP_STIX_VERSION" {
+  default = ""
+}
+
+variable "PYPI_PLYARA_VERSION" {
+  default = ""
+}
+
 variable "PYPI_PYDEEP2_VERSION" {
-  default = ""
-}
-
-variable "PYPI_PYTHON_MAGIC_VERSION" {
-  default = ""
-}
-
-variable "PYPI_MISP_LIB_STIX2_VERSION" {
-  default = ""
-}
-
-variable "PYPI_MAEC_VERSION" {
-  default = ""
-}
-
-variable "PYPI_MIXBOX_VERSION" {
-  default = ""
-}
-
-variable "PYPI_CYBOX_VERSION" {
   default = ""
 }
 
@@ -42,19 +46,19 @@ variable "PYPI_PYMISP_VERSION" {
   default = ""
 }
 
-variable "PYPI_MISP_STIX_VERSION" {
+variable "PYPI_PYTHON_MAGIC_VERSION" {
   default = ""
 }
 
-variable "PYPI_TAXII2_CLIENT" {
+variable "PYPI_PYZMQ_VERSION" {
   default = ""
 }
 
-variable "PYPI_SETUPTOOLS_VERSION" {
+variable "PYPI_REDIS_VERSION" {
   default = ""
 }
 
-variable "PYPI_SUPERVISOR_VERSION" {
+variable "PYPI_TAXII2_CLIENT_VERSION" {
   default = ""
 }
 
@@ -90,16 +94,13 @@ variable "GUARD_COMMIT" {
   default = ""
 }
 
-variable "PHP_VER" {
-  default = null
-}
-
 group "default" {
   targets = [
     "misp-modules",
     "misp-modules-slim",
     "misp-core",
     "misp-core-slim",
+    "misp-nginx",
     "misp-guard",
   ]
 }
@@ -108,6 +109,7 @@ group "slim" {
   targets = [
     "misp-modules-slim",
     "misp-core-slim",
+    "misp-nginx",
     "misp-guard",
   ]
 }
@@ -115,6 +117,7 @@ group "standard" {
   targets = [
     "misp-modules",
     "misp-core",
+    "misp-nginx",
     "misp-guard",
   ]
 }
@@ -152,20 +155,20 @@ target "misp-core" {
     "CORE_TAG": "${CORE_TAG}",
     "CORE_COMMIT": "${CORE_COMMIT}",
     "CORE_FLAVOR": "standard",
-    "PHP_VER": "${PHP_VER}",
-    "PYPI_REDIS_VERSION": "${PYPI_REDIS_VERSION}",
-    "PYPI_LIEF_VERSION": "${PYPI_LIEF_VERSION}",
-    "PYPI_PYDEEP2_VERSION": "${PYPI_PYDEEP2_VERSION}",
-    "PYPI_PYTHON_MAGIC_VERSION": "${PYPI_PYTHON_MAGIC_VERSION}",
-    "PYPI_MISP_LIB_STIX2_VERSION": "${PYPI_MISP_LIB_STIX2_VERSION}",
-    "PYPI_MAEC_VERSION": "${PYPI_MAEC_VERSION}",
-    "PYPI_MIXBOX_VERSION": "${PYPI_MIXBOX_VERSION}",
-    "PYPI_CYBOX_VERSION": "${PYPI_CYBOX_VERSION}",
-    "PYPI_PYMISP_VERSION": "${PYPI_PYMISP_VERSION}",
-    "PYPI_MISP_STIX_VERSION": "${PYPI_MISP_STIX_VERSION}",
-    "PYPI_TAXII2_CLIENT": "${PYPI_TAXII2_CLIENT}",
+    "PHP_API_VERSION": "${PHP_API_VERSION}",
+    "PHP_PACKAGE_VERSION": "${PHP_PACKAGE_VERSION}",
     "PYPI_SETUPTOOLS_VERSION": "${PYPI_SETUPTOOLS_VERSION}",
     "PYPI_SUPERVISOR_VERSION": "${PYPI_SUPERVISOR_VERSION}",
+    "PYPI_JSONSCHEMA_VERSION": "${PYPI_JSONSCHEMA_VERSION}",
+    "PYPI_LIEF_VERSION": "${PYPI_LIEF_VERSION}",
+    "PYPI_MISP_STIX_VERSION": "${PYPI_MISP_STIX_VERSION}",
+    "PYPI_PLYARA_VERSION": "${PYPI_PLYARA_VERSION}",
+    "PYPI_PYDEEP2_VERSION": "${PYPI_PYDEEP2_VERSION}",
+    "PYPI_PYMISP_VERSION": "${PYPI_PYMISP_VERSION}",
+    "PYPI_PYTHON_MAGIC_VERSION": "${PYPI_PYTHON_MAGIC_VERSION}",
+    "PYPI_PYZMQ_VERSION": "${PYPI_PYZMQ_VERSION}",
+    "PYPI_REDIS_VERSION": "${PYPI_REDIS_VERSION}",
+    "PYPI_TAXII2_CLIENT_VERSION": "${PYPI_TAXII2_CLIENT_VERSION}",
     "DOCKER_HUB_PROXY" : "${DOCKER_HUB_PROXY}",
   }
   platforms = "${PLATFORMS}"
@@ -178,21 +181,32 @@ target "misp-core-slim" {
     "CORE_TAG": "${CORE_TAG}",
     "CORE_COMMIT": "${CORE_COMMIT}",
     "CORE_FLAVOR": "slim",
-    "PHP_VER": "${PHP_VER}",
-    "PYPI_REDIS_VERSION": "${PYPI_REDIS_VERSION}",
-    "PYPI_LIEF_VERSION": "${PYPI_LIEF_VERSION}",
-    "PYPI_PYDEEP2_VERSION": "${PYPI_PYDEEP2_VERSION}",
-    "PYPI_PYTHON_MAGIC_VERSION": "${PYPI_PYTHON_MAGIC_VERSION}",
-    "PYPI_MISP_LIB_STIX2_VERSION": "${PYPI_MISP_LIB_STIX2_VERSION}",
-    "PYPI_MAEC_VERSION": "${PYPI_MAEC_VERSION}",
-    "PYPI_MIXBOX_VERSION": "${PYPI_MIXBOX_VERSION}",
-    "PYPI_CYBOX_VERSION": "${PYPI_CYBOX_VERSION}",
-    "PYPI_PYMISP_VERSION": "${PYPI_PYMISP_VERSION}",
-    "PYPI_MISP_STIX_VERSION": "${PYPI_MISP_STIX_VERSION}",
-    "PYPI_TAXII2_CLIENT": "${PYPI_TAXII2_CLIENT}",
+    "PHP_API_VERSION": "${PHP_API_VERSION}",
+    "PHP_PACKAGE_VERSION": "${PHP_PACKAGE_VERSION}",
     "PYPI_SETUPTOOLS_VERSION": "${PYPI_SETUPTOOLS_VERSION}",
     "PYPI_SUPERVISOR_VERSION": "${PYPI_SUPERVISOR_VERSION}",
+    "PYPI_JSONSCHEMA_VERSION": "${PYPI_JSONSCHEMA_VERSION}",
+    "PYPI_LIEF_VERSION": "${PYPI_LIEF_VERSION}",
+    "PYPI_MISP_STIX_VERSION": "${PYPI_MISP_STIX_VERSION}",
+    "PYPI_PLYARA_VERSION": "${PYPI_PLYARA_VERSION}",
+    "PYPI_PYDEEP2_VERSION": "${PYPI_PYDEEP2_VERSION}",
+    "PYPI_PYMISP_VERSION": "${PYPI_PYMISP_VERSION}",
+    "PYPI_PYTHON_MAGIC_VERSION": "${PYPI_PYTHON_MAGIC_VERSION}",
+    "PYPI_PYZMQ_VERSION": "${PYPI_PYZMQ_VERSION}",
+    "PYPI_REDIS_VERSION": "${PYPI_REDIS_VERSION}",
+    "PYPI_TAXII2_CLIENT_VERSION": "${PYPI_TAXII2_CLIENT_VERSION}",
     "DOCKER_HUB_PROXY" : "${DOCKER_HUB_PROXY}",
+  }
+  platforms = "${PLATFORMS}"
+}
+
+target "misp-nginx" {
+  context = "nginx/."
+  dockerfile = "Dockerfile"
+  tags = flatten(["${NAMESPACE}/misp-nginx:latest", "${NAMESPACE}/misp-nginx:${COMMIT_HASH}", CORE_TAG != "" ? ["${NAMESPACE}/misp-nginx:${CORE_TAG}"] : []])
+  args = {
+    "CORE_TAG": "${CORE_TAG}",
+    "CORE_COMMIT": "${CORE_COMMIT}",
   }
   platforms = "${PLATFORMS}"
 }
@@ -203,7 +217,7 @@ target "misp-guard" {
   tags = flatten(["${NAMESPACE}/misp-guard:latest", "${NAMESPACE}/misp-guard:${COMMIT_HASH}", GUARD_TAG != "" ? ["${NAMESPACE}/misp-guard:${GUARD_TAG}"] : []])
   args = {
     "GUARD_TAG": "${GUARD_TAG}",
-    "GUARD_COMMIT": "${GUARD_COMMIT}"
+    "GUARD_COMMIT": "${GUARD_COMMIT}",
     "DOCKER_HUB_PROXY" : "${DOCKER_HUB_PROXY}",
   }
   platforms = "${PLATFORMS}"

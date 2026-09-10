@@ -3,7 +3,7 @@ ARG MISP_UID=1001
 ARG MISP_GID=1001
 
 
-FROM "${DOCKER_HUB_PROXY}python:3.12-slim-trixie" AS python-build
+FROM "${DOCKER_HUB_PROXY}python:3.14-slim-trixie" AS python-build
 ENV DEBIAN_FRONTEND=noninteractive
 ARG MODULES_TAG
 ARG MODULES_COMMIT
@@ -24,6 +24,7 @@ RUN <<-EOF
                 ca-certificates \
                 git \
                 build-essential \
+                libfuzzy-dev \
                 libpoppler-cpp-dev
         fi
         apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
@@ -40,10 +41,7 @@ RUN <<-EOF
 EOF
 
 WORKDIR /srv/misp-modules
-RUN pip install poetry
-RUN sed -i "s/^requires-python = .*/requires-python = \"$(python -c 'import platform; print(platform.python_version())')\"/" pyproject.toml
-RUN poetry lock
-RUN poetry self add poetry-plugin-export
+RUN pip install poetry poetry-plugin-bundle poetry-plugin-export
 RUN <<-EOF
         if [ "${MODULES_FLAVOR}" = "slim" ]; then
             poetry export --without-hashes -f requirements.txt -o requirements.txt
@@ -58,7 +56,7 @@ WORKDIR /srv/
 RUN rm -rf /srv/misp-modules
 
 
-FROM "${DOCKER_HUB_PROXY}python:3.12-slim-trixie"
+FROM "${DOCKER_HUB_PROXY}python:3.14-slim-trixie"
 ENV DEBIAN_FRONTEND=noninteractive
 ARG MODULES_FLAVOR
 ARG MISP_UID
@@ -71,9 +69,10 @@ RUN <<-EOF
         else
             apt-get install -y --no-install-recommends \
                 libgl1 \
+                libfuzzy2 \
                 libpoppler-cpp2 \
-                tesseract-ocr \
-                libzbar0
+                libzbar0 \
+                tesseract-ocr
         fi
         apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 EOF
@@ -81,8 +80,9 @@ EOF
 RUN groupadd -g "${MISP_GID}" misp && \
     useradd  -u "${MISP_UID}" -g "${MISP_GID}" -m -d /home/misp -s /usr/sbin/nologin misp
 
-COPY --from=python-build /wheels /wheels
-RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
+RUN --mount=type=bind,from=python-build,source=/wheels,target=/wheels \
+    pip install --no-cache-dir /wheels/*.whl
+
 RUN bash -c 'mkdir -p /custom/{action_mod,expansion,export_mod,import_mod} && chown -R misp:misp /custom'
 
 USER misp

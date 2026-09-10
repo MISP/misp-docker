@@ -11,7 +11,7 @@ export SETTING_CONTACT="${MISP_CONTACT}"
 export SETTING_EMAIL="${MISP_EMAIL}"
 
 init_minimum_config() {
-    # Temporarily disable DB to apply config file settings, reenable after if needed 
+    # Temporarily disable DB to apply config file settings, reenable after if needed
     sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.system_setting_db" false
     init_settings "minimum_config"
 }
@@ -55,7 +55,7 @@ configure_gnupg() {
     fi
 
     export GPG_DIR=/var/www/MISP/.gnupg
-    GPG_ASC=/var/www/MISP/app/webroot/gpg.asc
+    GPG_ASC=$GPG_DIR/gpg.asc
     GPG_TMP=/tmp/gpg.tmp
 
     if [ ! -f "${GPG_DIR}/trustdb.gpg" ]; then
@@ -86,6 +86,9 @@ GPGEOF
     if [ ! -f ${GPG_ASC} ]; then
         echo "... exporting GPG key"
         sudo -u www-data gpg --homedir ${GPG_DIR} --export --armor ${MISP_EMAIL} > ${GPG_ASC}
+
+        # misp looks for hardcoded webroot path to show link in footer template
+        sudo -u www-data ln -s ${GPG_ASC} /var/www/MISP/app/webroot/gpg.asc
     else
         echo "... found exported key ${GPG_ASC}"
     fi
@@ -125,7 +128,10 @@ set_up_oidc() {
                 \"authentication_method\": \"${OIDC_AUTH_METHOD}\",
                 \"redirect_uri\": \"${OIDC_REDIRECT_URI}\",
                 \"disable_request_object\": \"${OIDC_DISABLE_REQUEST_OBJECT}\",
-                \"skipProxy\": ${OIDC_SKIP_PROXY}
+                \"disable_pushed_authorization_request\": \"${OIDC_DISABLE_PUSHED_AUTHORIZATION_REQUEST}\",
+                \"skipProxy\": ${OIDC_SKIP_PROXY},
+                \"allow_email_linking\": ${OIDC_ALLOW_EMAIL_LINKING},
+                \"require_email_verified\": ${OIDC_REQUIRE_EMAIL_VERIFIED}
             }
         }" > /dev/null
 
@@ -139,6 +145,21 @@ set_up_oidc() {
                 }
             }" > /dev/null
         fi
+
+        # Set a custom label for the OIDC login button (shown when OIDC_MIXEDAUTH is enabled).
+        # Enforced on every start: when unset, clear any previous value so MISP falls back to
+        # its default ("Login with OIDC") instead of keeping a stale label.
+        if [[ -n "${OIDC_LOGIN_TEXT}" ]]; then
+            # JSON-encode the value so labels containing quotes/backslashes don't break the payload
+            OIDC_LOGIN_TEXT_JSON=$(printf '%s' "${OIDC_LOGIN_TEXT}" | jq -Rs .)
+        else
+            OIDC_LOGIN_TEXT_JSON='""'
+        fi
+        sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+            \"OidcAuth\": {
+                \"login_button_text\": ${OIDC_LOGIN_TEXT_JSON}
+            }
+        }" > /dev/null
 
         # Set the custom logout URL for OIDC if it is defined
         if [[ -n "${OIDC_LOGOUT_URL}" ]]; then
@@ -168,7 +189,8 @@ set_up_oidc() {
                 \"code_challenge_method\": \"\",
                 \"roles_property\": \"\",
                 \"role_mapper\": \"\",
-                \"default_org\": \"\"
+                \"default_org\": \"\",
+                \"login_button_text\": \"\"
             }
         }" > /dev/null
 
@@ -238,11 +260,19 @@ set_up_ldap() {
     # LDAPAUTH_LDAPSEARCHFILTER may be empty
     check_env_vars LDAPAUTH_LDAPSERVER LDAPAUTH_LDAPDN LDAPAUTH_LDAPREADERUSER LDAPAUTH_LDAPREADERPASSWORD LDAPAUTH_LDAPSEARCHATTRIBUTE LDAPAUTH_LDAPDEFAULTROLEID LDAPAUTH_LDAPDEFAULTORGID LDAPAUTH_LDAPEMAILFIELD LDAPAUTH_LDAPNETWORKTIMEOUT LDAPAUTH_LDAPPROTOCOL LDAPAUTH_LDAPALLOWREFERRALS LDAPAUTH_STARTTLS LDAPAUTH_MIXEDAUTH LDAPAUTH_UPDATEUSER LDAPAUTH_DEBUG LDAPAUTH_LDAPTLSREQUIRECERT LDAPAUTH_LDAPTLSCUSTOMCACERT LDAPAUTH_LDAPTLSCRLCHECK LDAPAUTH_LDAPTLSPROTOCOLMIN
 
-    # This variable can be false or a string, but the value in the below json object handed to modify_config.php is unquoted, 
+    # This variable can be false or a string, but the value in the below json object handed to modify_config.php is unquoted,
     # so we quote the value if it's not true or false we to end up with a valid json object.
     if [[ ! "$LDAPAUTH_LDAPTLSCUSTOMCACERT" =~ ^(0|false|1|true)$ ]]; then
         LDAPAUTH_LDAPTLSCUSTOMCACERT="\"$LDAPAUTH_LDAPTLSCUSTOMCACERT\""
     fi
+
+    # The LdapAuth plugin hands these three values straight to ldap_set_option(), which expects the
+    # integer value of the PHP constant. A constant name written as a string is silently coerced to 0
+    # (LDAP_OPT_X_TLS_NEVER / LDAP_OPT_X_TLS_CRL_NONE / no minimum protocol), so resolve the names to
+    # their integer values here and emit them unquoted below.
+    LDAPAUTH_LDAPTLSREQUIRECERT=$(resolve_php_constant "$LDAPAUTH_LDAPTLSREQUIRECERT") || exit 1
+    LDAPAUTH_LDAPTLSCRLCHECK=$(resolve_php_constant "$LDAPAUTH_LDAPTLSCRLCHECK") || exit 1
+    LDAPAUTH_LDAPTLSPROTOCOLMIN=$(resolve_php_constant "$LDAPAUTH_LDAPTLSPROTOCOLMIN") || exit 1
 
     sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
         \"LdapAuth\": {
@@ -262,10 +292,10 @@ set_up_ldap() {
           \"ldapDefaultRoleId\": ${LDAPAUTH_LDAPDEFAULTROLEID},
           \"updateUser\": ${LDAPAUTH_UPDATEUSER},
           \"debug\": ${LDAPAUTH_DEBUG},
-          \"ldapTlsRequireCert\": \"${LDAPAUTH_LDAPTLSREQUIRECERT}\",
+          \"ldapTlsRequireCert\": ${LDAPAUTH_LDAPTLSREQUIRECERT},
           \"ldapTlsCustomCaCert\": ${LDAPAUTH_LDAPTLSCUSTOMCACERT},
-          \"ldapTlsCrlCheck\": \"${LDAPAUTH_LDAPTLSCRLCHECK}\",
-          \"ldapTlsProtocolMin\": \"${LDAPAUTH_LDAPTLSPROTOCOLMIN}\"
+          \"ldapTlsCrlCheck\": ${LDAPAUTH_LDAPTLSCRLCHECK},
+          \"ldapTlsProtocolMin\": ${LDAPAUTH_LDAPTLSPROTOCOLMIN}
        }
     }" > /dev/null
 
@@ -290,7 +320,7 @@ set_up_aad() {
     # Check required variables
     check_env_vars AAD_CLIENT_ID AAD_TENANT_ID AAD_CLIENT_SECRET AAD_REDIRECT_URI AAD_PROVIDER AAD_PROVIDER_USER AAD_MISP_ORGADMIN AAD_MISP_SITEADMIN AAD_CHECK_GROUPS
 
-    # Note: Not necessary to edit bootstrap.php to load AadAuth Cake plugin because 
+    # Note: Not necessary to edit bootstrap.php to load AadAuth Cake plugin because
     # existing loadAll() call in bootstrap.php already loads all available Cake plugins
 
     # Set auth mechanism to AAD in config.php file
@@ -413,7 +443,9 @@ set_up_custom_auth() {
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_name" "External Authentication"
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_disable_logout" false
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_custom_password_reset"
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_custom_logout"
+        if [[ "$OIDC_ENABLE" != "true" || -z "${OIDC_LOGOUT_URL:-}" ]]; then
+            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_custom_logout"
+        fi
         # Re-enable settings
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" true
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.log_auth" true
@@ -453,11 +485,11 @@ set_up_proxy() {
 
 apply_updates() {
     # Disable 'ZeroMQ_enable' to get better logs when applying updates
-#    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" false
+    # sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" false
     # Run updates (strip colors since output might end up in a log)
     sudo -u www-data /var/www/MISP/app/Console/cake Admin runUpdates | stdbuf -oL sed -r "s/[[:cntrl:]]\[[0-9]{1,3}m//g"
     # Re-enable 'ZeroMQ_enable'
-#    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" true
+    # sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" true
 }
 
 init_user() {
@@ -688,11 +720,11 @@ create_default_scheduled_tasks() {
     fi
 
     echo "INSERT INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, params, enabled, next_execution_time, message) \
-        VALUES (1, 'Feed', 86400, 'Daily fetch of all Feeds', $CRON_USER_ID, 'fetch', 'all', 1, 0, '') \
-        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID;" | ${MYSQL_CMD}
+        VALUES (1, 'Feed', $FETCH_FEED_INTERVAL, 'Daily fetch of all Feeds', $CRON_USER_ID, 'fetch', 'all', 1, 0, '') \
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID, timer=$FETCH_FEED_INTERVAL;" | ${MYSQL_CMD}
     echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, params, enabled, next_execution_time, message) \
-        VALUES (2, 'Feed', 86400, 'Daily cache of all Feeds', $CRON_USER_ID, 'cache', 'all,all', 1, 0, '') \
-        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID;" | ${MYSQL_CMD}
+        VALUES (2, 'Feed', $CACHE_FEED_INTERVAL, 'Daily cache of all Feeds', $CRON_USER_ID, 'cache', 'all,all', 1, 0, '') \
+        ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID, timer=$CACHE_FEED_INTERVAL;" | ${MYSQL_CMD}
     echo "INSERT IGNORE INTO $MYSQL_DATABASE.scheduled_tasks (id, type, timer, description, user_id, action, params, enabled, next_execution_time, message) \
         VALUES (3, 'Server', $PULLALL_INTERVAL, 'Daily pull of all Servers', $CRON_USER_ID, 'pull', 'all,full', 1, 0, '') \
         ON DUPLICATE KEY UPDATE user_id=$CRON_USER_ID, timer=$PULLALL_INTERVAL;" | ${MYSQL_CMD}
@@ -771,4 +803,5 @@ echo "MISP | Create default Scheduled Tasks ..." && create_default_scheduled_tas
 echo "MISP | Configure misp-guard CA certificate ..." && configure_misp_guard_ca
 
 echo "MISP | Mark instance live" && print_version
+
 sudo -u www-data /var/www/MISP/app/Console/cake Admin live 1

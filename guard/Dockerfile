@@ -38,8 +38,8 @@ FROM "${DOCKER_HUB_PROXY}python:3.12-slim-trixie"
         apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 EOF
 
-    COPY --from=python-build /wheels /wheels
-    RUN pip install --no-cache-dir /wheels/*.whl && rm -rf /wheels
+    RUN --mount=type=bind,from=python-build,source=/wheels,target=/wheels \
+        pip install --no-cache-dir /wheels/*.whl
 
     COPY --from=python-build /srv /srv
     COPY files/ /

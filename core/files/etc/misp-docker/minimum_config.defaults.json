@@ -6,7 +6,7 @@
     "default_value": "/var/www/MISP/app/files"
   },
   "MISP.download_gpg_from_homedir": {
-    "default_value": false
+    "default_value": true
   },
   "MISP.background_jobs": {
     "default_value": true
