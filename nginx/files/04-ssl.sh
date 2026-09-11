@@ -13,13 +13,9 @@ if [ ! -f "/etc/nginx/certs/cert.pem" ] || [ ! -f "/etc/nginx/certs/key.pem" ]; 
     exit 0
 fi
 
-# normalize redirect url
-REDIRECT_URL=${BASE_URL#http://}
-REDIRECT_URL=${REDIRECT_URL#https://}
-REDIRECT_URL="https://${REDIRECT_URL}"
-
-# build redirect config
-cat >> "$REDIRECT_CONF" <<EOF
+# build redirect config if the BASE_URL is set
+if [ -n "$BASE_URL" ]; then
+    cat >> "$REDIRECT_CONF" <<EOF
 server {
     server_name misp;
     listen ${NGINX_INTERNAL_HTTP_PORT};
@@ -29,9 +25,10 @@ server {
     server_tokens off;
 
     # redirect all traffic to HTTPS
-    return 301 ${REDIRECT_URL};
+    return 301 ${BASE_URL};
 }
 EOF
+fi
 
 # build ssl block
 cat >> "$SSL_CONF" <<EOF
