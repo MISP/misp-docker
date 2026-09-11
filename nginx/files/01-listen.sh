@@ -16,6 +16,13 @@ if [ -f "/etc/nginx/certs/cert.pem" ] && [ -f "/etc/nginx/certs/key.pem" ]; then
         exit 1
         ;;
     esac
+else
+    case "$BASE_URL" in
+    https://*)
+        echo "BASE_URL starts with https://, but SSL certificate is NOT present. Please update your env variables!"
+        exit 1
+        ;;
+    esac
 fi
 
 if [ -f "/etc/nginx/certs/cert.pem" ] && [ -f "/etc/nginx/certs/key.pem" ]; then
