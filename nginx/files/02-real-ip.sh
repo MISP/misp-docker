@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # -*- coding: utf-8 -*-
 
-set -eu
+set -feu
 
 CONF="${NGINX_INCLUDE_DIR}/real-ip.conf"
 
@@ -22,8 +22,7 @@ real_ip_recursive on;
 EOF
 
 # append each cidr as set_real_ip_from directive
-set -- "${NGINX_SET_REAL_IP_FROM:-}"
-for CIDR in "$@"; do
+for CIDR in ${NGINX_SET_REAL_IP_FROM:-}; do
     # trim leading/trailing whitespace
     CIDR=$(echo "${CIDR}" | sed 's/^ *//; s/ *$//')
 
