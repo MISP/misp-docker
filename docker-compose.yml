@@ -132,12 +132,14 @@ services:
       - "./files/:/var/www/MISP/app/files/:Z"
       - "./gnupg/:/var/www/MISP/.gnupg/:Z"
       - "misp_guard_ca:/usr/local/share/ca-certificates/misp_guard:Z"
+      # custom MISP settings to be set on each boot, If changing the default path, be sure to also set MISP_SETTINGS_FILE
+      # - "./settings.json:/settings.json:ro"
+      # customize by replacing ${CUSTOM_PATH} with a path containing 'files/customize_misp.sh'
+      # - "${CUSTOM_PATH}/:/custom/:Z"
+      # mount custom ca root certificates
+      # - "./rootca.pem:/usr/local/share/ca-certificates/rootca.crt:Z"
     cap_add:
       - AUDIT_WRITE
-    # customize by replacing ${CUSTOM_PATH} with a path containing 'files/customize_misp.sh'
-    # - "${CUSTOM_PATH}/:/custom/:Z"
-    # mount custom ca root certificates
-    # - "./rootca.pem:/usr/local/share/ca-certificates/rootca.crt:Z"
     environment:
       - "BASE_URL=${BASE_URL:?The BASE_URL variable is now mandatory because the SSL logic is changed, see README.md for instructions.}"
       - "CRON_USER_ID=${CRON_USER_ID}"
@@ -327,6 +329,8 @@ services:
       - "PHP_SESSION_COOKIE_SAMESITE=${PHP_SESSION_COOKIE_SAMESITE:-Lax}"
       # compose profiles
       - "COMPOSE_PROFILES=${COMPOSE_PROFILES}"
+      # MISP settings
+      - "MISP_SETTINGS_FILE=${MISP_SETTINGS_FILE:-/settings.json}"
 
   misp-nginx:
     image: ${REGISTRY_MIRROR_URL:-}ghcr.io/misp/misp-docker/misp-nginx:${CORE_RUNNING_TAG:-latest}
