@@ -15,11 +15,11 @@ variable "PHP_PACKAGE_VERSION" {
 }
 
 variable "PYPI_SETUPTOOLS_VERSION" {
-  default = "==80.3.1"
+  default = "==84.0.0"
 }
 
 variable "PYPI_SUPERVISOR_VERSION" {
-  default = "==4.2.5"
+  default = "==4.3.0"
 }
 
 variable "PYPI_JSONSCHEMA_VERSION" {
