@@ -488,19 +488,25 @@ init_user() {
     fi
 
     if [ -n "$ADMIN_KEY" ]; then
-        if [ "$DISABLE_PRINTING_PLAINTEXT_CREDENTIALS" == "true" ]; then
-            echo "... setting admin key from environment variable"
+        ADMIN_KEY_ALREADY_SET=$($MYSQL_CMD -N -s -e 'SELECT authkey FROM auth_keys WHERE user_id = 1 AND (expiration = 0 OR expiration > UNIX_TIMESTAMP());' |
+            php -r '$match = false; while (($hash = fgets(STDIN)) !== false) { $match = $match || password_verify(getenv("ADMIN_KEY"), trim($hash)); } echo (int) $match;')
+        if [ "$ADMIN_KEY_ALREADY_SET" = "1" ]; then
+            echo "... configured admin key already active, not changing"
         else
-            echo "... setting admin key to '${ADMIN_KEY}'"
-        fi
-        CHANGE_CMD=(sudo -u www-data /var/www/MISP/app/Console/cake User change_authkey 1 "${ADMIN_KEY}")
+            if [ "$DISABLE_PRINTING_PLAINTEXT_CREDENTIALS" == "true" ]; then
+                echo "... setting admin key from environment variable"
+            else
+                echo "... setting admin key to '${ADMIN_KEY}'"
+            fi
+            CHANGE_CMD=(sudo -u www-data /var/www/MISP/app/Console/cake User change_authkey 1 "${ADMIN_KEY}")
+    fi
     elif [ -z "$ADMIN_KEY" ] && [ "$AUTOGEN_ADMIN_KEY" == "true" ]; then
         HAS_VALID_KEY=$($MYSQL_CMD -N -s -e 'SELECT EXISTS(SELECT 1 FROM auth_keys WHERE user_id = 1 AND (expiration = 0 OR expiration > UNIX_TIMESTAMP()));')
-	if (( HAS_VALID_KEY == 0 )); then
+	    if (( HAS_VALID_KEY == 0 )); then
             echo "... regenerating admin key (set \$ADMIN_KEY if you want it to change)"
             CHANGE_CMD=(sudo -u www-data /var/www/MISP/app/Console/cake User change_authkey 1)
-	else
-	    echo "... valid admin key for admin user found, not changing"
+	    else
+	        echo "... valid admin key for admin user found, not changing"
 	fi
     else
         echo "... admin user key auto generation disabled"
