@@ -11,9 +11,6 @@
   "MISP.background_jobs": {
     "default_value": true
   },
-  "MISP.osuser": {
-    "default_value": "www-data"
-  },
   "MISP.online_version_check": {
     "default_value": true
   },

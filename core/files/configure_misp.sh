@@ -9,6 +9,14 @@ export PYTHON_BIN="$(which python3)"
 export GPG_BINARY="$(which gpg)"
 export SETTING_CONTACT="${MISP_CONTACT}"
 export SETTING_EMAIL="${MISP_EMAIL}"
+# Default kept here (rather than only in minimum_config.defaults.json) so
+# envsubst - which has no ${VAR:-default} fallback of its own - still gets
+# a usable value when MISP_OSUSER isn't set. Needed on platforms (e.g.
+# OpenShift's arbitrary, per-namespace UID assignment) where nss_wrapper's
+# posix_getpwuid() shim doesn't resolve for every code path that calls it,
+# and MISP.osuser must instead be pinned to the raw UID string it falls
+# back to - see AdminShell::__assertOsUserMayWrite() upstream.
+export MISP_OSUSER="${MISP_OSUSER:-www-data}"
 
 init_minimum_config() {
     # Temporarily disable DB to apply config file settings, reenable after if needed
