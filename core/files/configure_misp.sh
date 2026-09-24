@@ -612,8 +612,18 @@ update_ca_certificates() {
         echo "Updating /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem using local data..."
         cp /etc/ssl/certs/ca-certificates.crt /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem
     else
+        # This used to be a blind, unbounded curl - on a host with no
+        # outbound internet access it hangs until the OS's own TCP timeout
+        # (well over a minute), which alone can blow the pod's startup
+        # probe budget and put it in a restart loop before it ever gets a
+        # chance to fail. Bound both the connection and the whole request,
+        # and fall back to the local (build-time) bundle rather than
+        # leaving cacert.pem untouched if the remote isn't reachable.
         echo "Updating /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem using curl data..."
-        curl -s --etag-compare /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt --etag-save /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt https://curl.se/ca/cacert.pem -o /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem
+        if ! curl -s --connect-timeout 3 --max-time 10 --etag-compare /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt --etag-save /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt https://curl.se/ca/cacert.pem -o /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem; then
+            echo "... curl.se unreachable, falling back to local data for cacert.pem..."
+            cp /etc/ssl/certs/ca-certificates.crt /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem
+        fi
     fi
 }
 
