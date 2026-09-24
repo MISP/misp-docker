@@ -213,6 +213,17 @@ RUN <<-EOF
         git clone --branch "${CORE_TAG}" --depth 1 https://github.com/MISP/MISP.git /var/www/MISP
     fi
     cd /var/www/MISP || exit; git submodule update --init --recursive --depth 1 .
+
+    # v2.5.47 ships two workflow modules declaring the same $id
+    # ("send-report-to-cti-info-extractor"), which makes Workflow's module
+    # scanner throw WorkflowDuplicatedModuleIDException on every load
+    # (surfaces as a 500 on /servers/serverSettings). Fixed upstream in
+    # MISP/MISP@1072b37f ("Rework the CTIInfoExtractor workflow action into
+    # Summarise report with AI"), which superseded this exact file with
+    # Module_ai_summarize_report.php - that commit landed after this tag was
+    # cut, so remove the stale duplicate ourselves until a later CORE_TAG
+    # picks up the real fix.
+    rm -f /var/www/MISP/app/Model/WorkflowModules/action/Module_send_report_to_CTIInfoExtractor.php
 EOF
 
 ARG PYPI_SETUPTOOLS_VERSION
