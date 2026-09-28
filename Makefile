@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help build build-core build-nginx build-modules build-guard build-slim bake up down logs shellcheck clean prune init-dirs
+.PHONY: help build build-core build-nginx build-modules build-guard build-slim bake up down logs shellcheck clean prune
 
 help:
 	@echo "Usage: make <target>"
@@ -15,7 +15,6 @@ help:
 	@echo "  bake           Build all images via docker buildx bake"
 	@echo ""
 	@echo "Runtime targets:"
-	@echo "  init-dirs      Create/own the bind-mounted host dirs (run once before first 'up')"
 	@echo "  up             Start all services in background"
 	@echo "  down           Stop all services"
 	@echo "  logs           Tail logs from all services"
@@ -45,14 +44,6 @@ build-slim:
 
 bake:
 	docker buildx bake
-
-# misp-core no longer runs as root, so it can no longer chown these host
-# bind mounts itself on first start. Run this once (and again any time you
-# add a new bind-mounted directory) before 'make up'.
-init-dirs:
-	mkdir -p configs logs files ssl gnupg
-	chown -R 33:0 configs logs files ssl gnupg
-	chmod -R g+rwX configs logs files ssl gnupg
 
 up:
 	docker compose up -d
