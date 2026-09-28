@@ -17,12 +17,24 @@ spec:
         app.kubernetes.io/name: misp-guard
     spec:
       enableServiceLinks: false
+      # No fixed runAsUser/fsGroup: misp-guard supports running as an
+      # arbitrary UID (paired with group 0), which is what OpenShift's
+      # restricted SCC requires.
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       # Ensure we can resolve the misp-core ClusterIP before starting MISP-Guard
       # If the IP is not resolved first MISP-Guard will fail
       initContainers:
         - name: wait-for-misp-core
           image: "ghcr.io/misp/misp-docker/misp-guard:latest"
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           command:
             - sh
             - -c
@@ -35,6 +47,11 @@ spec:
         - name: misp-guard
           image: "ghcr.io/misp/misp-docker/misp-guard:latest"
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           livenessProbe:
             exec:
               # Check if the misp-core IP still matches what's in the running config

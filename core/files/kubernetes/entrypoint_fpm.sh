@@ -6,9 +6,16 @@ source /entrypoint.sh
 source /entrypoint_fpm.sh
 
 # Configure supervisord for kubernetes
+#
+# Idempotent on purpose: /etc/supervisor/conf.d lives on an emptyDir that
+# survives container restarts within the same pod (only pod recreation
+# re-runs the init container that seeds it), while this script does not -
+# a restart after this succeeded once would otherwise find the .kubernetes
+# source already consumed by the earlier mv and fail here, masking
+# whatever the real restart reason was.
 echo "INIT | Configuring supervisord for kubernetes"
-mv /etc/supervisor/conf.d/10-supervisor.conf{.kubernetes,}
-mv /etc/supervisor/conf.d/50-workers.conf{.kubernetes,}
+[ -f /etc/supervisor/conf.d/10-supervisor.conf.kubernetes ] && mv /etc/supervisor/conf.d/10-supervisor.conf{.kubernetes,}
+[ -f /etc/supervisor/conf.d/50-workers.conf.kubernetes ] && mv /etc/supervisor/conf.d/50-workers.conf{.kubernetes,}
 
 # Starting supervisord
 echo "INIT | Starting supervisord"
@@ -40,4 +47,4 @@ echo "Configure PHP | Change PHP values ..."
 change_php_vars
 
 echo "MISP | Starting PHP FPM"
-exec /usr/bin/tini -- /usr/local/sbin/php-fpm -R -F
+exec /usr/bin/tini -- /usr/local/sbin/php-fpm -F

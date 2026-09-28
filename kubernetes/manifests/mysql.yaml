@@ -1,4 +1,11 @@
-# This works as a minimum viable db, but is not recommended
+# This works as a minimum viable db, but is not recommended.
+# NOT OpenShift-safe: this is the stock Docker Hub `mariadb` image, which
+# needs to run as root once to initialize an empty/fresh datadir before it
+# can drop to its own non-root user - a pattern OpenShift's restricted SCC
+# (no root, arbitrary UID) does not allow. Use the Helm chart's
+# bitnamilegacy-backed mariadb subchart for OpenShift deployments instead
+# (see kubernetes/helm-chart/DEPLOYMENT.md for the tradeoffs of that image
+# source).
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:

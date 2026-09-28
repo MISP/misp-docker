@@ -9,35 +9,19 @@ set -e
 
 echo "Starting custom MISP configuration..."
 
-# Wait for MISP to be fully ready using the same method as readiness probe
+# Wait for MISP to be fully ready using the same method as the Kubernetes
+# readiness probe (httpGet against nginx on its local port). BASE_URL
+# points at the external ingress hostname, which may not be resolvable or
+# routable from inside the pod itself, and nginx here only ever listens on
+# 8080/8443 (never the default 80/443) - so check localhost:8080 directly
+# instead.
 echo "Waiting for MISP to be ready..."
 
-# First check basic HTTP response
-while ! curl -s -k "${BASE_URL:-http://localhost}/users/heartbeat" > /dev/null; do
+while ! curl -s "http://localhost:8080/users/heartbeat" > /dev/null; do
     echo "Waiting for MISP HTTP response..."
     sleep 10
 done
 echo "✓ MISP HTTP is responding"
-
-# Then wait for the readiness log confirmation (same as Kubernetes readiness probe)
-echo "Waiting for MISP readiness confirmation..."
-max_readiness_wait=60  # 10 minutes max wait
-readiness_wait=0
-
-while [ $readiness_wait -lt $max_readiness_wait ]; do
-    if grep -i 'MISP is ready' /misp/readiness/ready.log >/dev/null 2>&1; then
-        echo "✓ MISP readiness confirmed via ready.log"
-        break
-    else
-        echo "Waiting for MISP readiness confirmation... ($readiness_wait/$max_readiness_wait)"
-        sleep 10
-        readiness_wait=$((readiness_wait + 1))
-    fi
-done
-
-if [ $readiness_wait -eq $max_readiness_wait ]; then
-    echo "⚠️ Warning: Timeout waiting for readiness confirmation, proceeding anyway..."
-fi
 
 echo "MISP is ready, applying custom configurations..."
 

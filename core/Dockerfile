@@ -28,13 +28,13 @@ RUN <<-EOF
             tini \
             gettext \
             procps \
-            sudo \
             openssl \
             gpg \
             gpg-agent \
             mariadb-client \
             rsync \
             rsyslog \
+            libnss-wrapper \
             php${PHP_PACKAGE_VERSION} \
             php${PHP_PACKAGE_VERSION}-curl \
             php${PHP_PACKAGE_VERSION}-xml \
@@ -56,13 +56,13 @@ RUN <<-EOF
             tini \
             gettext \
             procps \
-            sudo \
             openssl \
             gpg \
             gpg-agent \
             mariadb-client \
             rsync \
             rsyslog \
+            libnss-wrapper \
             php${PHP_PACKAGE_VERSION} \
             php${PHP_PACKAGE_VERSION}-apcu \
             php${PHP_PACKAGE_VERSION}-curl \
@@ -213,6 +213,17 @@ RUN <<-EOF
         git clone --branch "${CORE_TAG}" --depth 1 https://github.com/MISP/MISP.git /var/www/MISP
     fi
     cd /var/www/MISP || exit; git submodule update --init --recursive --depth 1 .
+
+    # v2.5.47 ships two workflow modules declaring the same $id
+    # ("send-report-to-cti-info-extractor"), which makes Workflow's module
+    # scanner throw WorkflowDuplicatedModuleIDException on every load
+    # (surfaces as a 500 on /servers/serverSettings). Fixed upstream in
+    # MISP/MISP@1072b37f ("Rework the CTIInfoExtractor workflow action into
+    # Summarise report with AI"), which superseded this exact file with
+    # Module_ai_summarize_report.php - that commit landed after this tag was
+    # cut, so remove the stale duplicate ourselves until a later CORE_TAG
+    # picks up the real fix.
+    rm -f /var/www/MISP/app/Model/WorkflowModules/action/Module_send_report_to_CTIInfoExtractor.php
 EOF
 
 ARG PYPI_SETUPTOOLS_VERSION
@@ -285,11 +296,22 @@ ARG CORE_FLAVOR
 
 ENV PATH="/var/www/MISP/app/Console:${PATH}"
 
-# Remove some defaults (kernel logging) and fix alternatives
-RUN sed -i '/imklog/s/^/#/' /etc/rsyslog.conf
+# Remove some defaults (kernel logging, local syslog socket) and fix
+# alternatives. imuxsock binds /dev/log, which needs root/a writable /dev
+# - not available to us anymore (and not baked-in-image fixable, since
+# /dev is runtime-mounted). Nothing in this container relies on local
+# syslog delivery, so rsyslogd just idles harmlessly without it.
+RUN sed -i -e '/imklog/s/^/#/' -e '/imuxsock/s/^/#/' /etc/rsyslog.conf
 RUN update-alternatives --set php /usr/bin/php${PHP_PACKAGE_VERSION}
 RUN ln -sf /usr/sbin/php-fpm${PHP_PACKAGE_VERSION} /usr/local/sbin/php-fpm
 RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+# www-data (uid 33) is the default runtime identity for Docker/Compose.
+# Also make it a member of group 0 so it behaves the same way an
+# OpenShift-assigned arbitrary UID would (arbitrary UIDs always carry
+# primary group 0) - this keeps the default case and the arbitrary-UID
+# case relying on the exact same on-disk permissions.
+RUN usermod -aG 0 www-data
 
 # Install python modules.
 #
@@ -331,23 +353,62 @@ EOF
 #   1) User and group aligned in terms of permissions
 #   2) Files executable and read only, because of some rogue scripts like 'cake'
 #   3) Directories writable, because sometimes MISP add new files
+#
+# Everything is also group-owned by 0 with group perms mirroring owner
+# perms (already true: 0550 files/0770 dirs have group == owner bits) and
+# setgid on directories, so it keeps working when OpenShift runs the
+# container under an arbitrary UID (always paired with primary group 0).
 
 RUN <<-EOF
     cp -R /var/www/MISP/app/files /var/www/MISP/app/files.dist
     cp -R /var/www/MISP/app/Config /var/www/MISP/app/Config.dist
     echo "${CORE_COMMIT:-${CORE_TAG}}" > /var/www/MISP/app/files/VERSION
-    find /var/www/MISP \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data '{}' +;
+    find /var/www/MISP \( ! -user www-data -or ! -group 0 \) -exec chown www-data:0 '{}' +;
     find /var/www/MISP -not -perm 550 -type f -exec chmod 0550 '{}' +;
-    find /var/www/MISP -not -perm 770 -type d -exec chmod 0770 '{}' +;
+    find /var/www/MISP -not -perm 2770 -type d -exec chmod 2770 '{}' +;
     # Diagnostics wants this file to be present and writable even if we do not use git in docker land
-    touch /var/www/MISP/.git/ORIG_HEAD && chmod 0600 /var/www/MISP/.git/ORIG_HEAD && chown www-data:www-data /var/www/MISP/.git/ORIG_HEAD
+    touch /var/www/MISP/.git/ORIG_HEAD && chmod 0600 /var/www/MISP/.git/ORIG_HEAD && chown www-data:0 /var/www/MISP/.git/ORIG_HEAD
+EOF
+
+# Same treatment for every other system path the entrypoint chain writes
+# to at runtime (php-fpm, supervisord, rsyslog) - none of this can be
+# chown'd at container startup anymore since we never run as root, so it
+# all has to be correct at build time. /var/log covers rsyslog's default
+# targets (syslog, auth.log, ...) too. nginx no longer lives in this
+# image (see nginx/Dockerfile), which already runs on the
+# arbitrary-UID-ready nginx-unprivileged base image.
+RUN <<-EOF
+    mkdir -p /run/php /var/log/supervisor
+    chown -R www-data:0 /run/php /var/log /var/log/supervisor /etc/php/*/fpm /etc/php/*/cli
+    chmod -R g=u /run/php /var/log /var/log/supervisor /etc/php/*/fpm /etc/php/*/cli
+    find /run/php /var/log /var/log/supervisor /etc/php/*/fpm /etc/php/*/cli -type d -exec chmod g+s '{}' +
 EOF
 
 # Copy all our image specific files to appropriate locations
 COPY files/ /
 
+# files/ was copied in as root:root, overwriting the ownership/group we
+# set on /etc/supervisor above for the pieces it touches (supervisor
+# confs) - redo it.
+RUN <<-EOF
+    chown -R www-data:0 /var/log/supervisor /etc/supervisor
+    chmod -R g=u /var/log/supervisor /etc/supervisor
+    find /var/log/supervisor /etc/supervisor -type d -exec chmod g+s '{}' +
+    # unix_http_server's "file" and supervisord's "pidfile" are the
+    # socket/pidfile paths themselves; supervisorctl's "serverurl"
+    # (used by configure_misp.sh to start the worker programs) must
+    # point at the same relocated socket or it silently fails to
+    # connect and the (autostart=false) workers never start.
+    sed -i -E 's#^(file|pidfile)=/var/run/#\1=/tmp/#' /etc/supervisor/supervisord.conf
+    sed -i -E 's#^(serverurl=unix://)/var/run/#\1/tmp/#' /etc/supervisor/supervisord.conf
+EOF
+
 # define entrypoint
 ENTRYPOINT [ "/entrypoint.sh" ]
+
+# Default runtime identity for Docker/Compose (OpenShift overrides this
+# with its own arbitrary UID regardless of what's declared here).
+USER 33
 
 # Change Workdirectory
 WORKDIR /var/www/MISP

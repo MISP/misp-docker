@@ -9,10 +9,18 @@ export PYTHON_BIN="$(which python3)"
 export GPG_BINARY="$(which gpg)"
 export SETTING_CONTACT="${MISP_CONTACT}"
 export SETTING_EMAIL="${MISP_EMAIL}"
+# Default kept here (rather than only in minimum_config.defaults.json) so
+# envsubst - which has no ${VAR:-default} fallback of its own - still gets
+# a usable value when MISP_OSUSER isn't set. Needed on platforms (e.g.
+# OpenShift's arbitrary, per-namespace UID assignment) where nss_wrapper's
+# posix_getpwuid() shim doesn't resolve for every code path that calls it,
+# and MISP.osuser must instead be pinned to the raw UID string it falls
+# back to - see AdminShell::__assertOsUserMayWrite() upstream.
+export MISP_OSUSER="${MISP_OSUSER:-www-data}"
 
 init_minimum_config() {
     # Temporarily disable DB to apply config file settings, reenable after if needed
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.system_setting_db" false
+    /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.system_setting_db" false
     init_settings "minimum_config"
 }
 
@@ -56,17 +64,17 @@ GPGEOF
         echo "... found pre-generated GPG key in ${GPG_DIR}"
     fi
 
-    # Fix permissions
-    chown -R www-data:www-data ${GPG_DIR}
+    # Fix permissions. No chown here: we're not root, and mkdir/gpg already
+    # create these files owned by our own identity.
     find ${GPG_DIR} -type f -exec chmod 600 {} \;
     find ${GPG_DIR} -type d -exec chmod 700 {} \;
 
     if [ ! -f ${GPG_ASC} ]; then
         echo "... exporting GPG key"
-        sudo -u www-data gpg --homedir ${GPG_DIR} --export --armor ${MISP_EMAIL} > ${GPG_ASC}
+        gpg --homedir ${GPG_DIR} --export --armor ${MISP_EMAIL} > ${GPG_ASC}
 
         # misp looks for hardcoded webroot path to show link in footer template
-        sudo -u www-data ln -s ${GPG_ASC} /var/www/MISP/app/webroot/gpg.asc
+        ln -s ${GPG_ASC} /var/www/MISP/app/webroot/gpg.asc
     else
         echo "... found exported key ${GPG_ASC}"
     fi
@@ -85,14 +93,14 @@ set_up_oidc() {
         check_env_vars OIDC_PROVIDER_URL OIDC_CLIENT_ID OIDC_ROLES_PROPERTY OIDC_ROLES_MAPPING OIDC_DEFAULT_ORG
 
         # Configure OIDC in MISP
-        sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+        php /var/www/MISP/tests/modify_config.php modify "{
             \"Security\": {
                 \"auth\": [\"OidcAuth.Oidc\"]
             }
         }" > /dev/null
 
         # Set OIDC authentication details in MISP
-        sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+        php /var/www/MISP/tests/modify_config.php modify "{
             \"OidcAuth\": {
                 \"provider_url\": \"${OIDC_PROVIDER_URL}\",
                 ${OIDC_ISSUER:+\"issuer\": \"${OIDC_ISSUER}\",}
@@ -117,7 +125,7 @@ set_up_oidc() {
         if [[ "$(echo "$OIDC_SCOPES" | jq type -r)" == "array" ]]; then
             # Run the modify_config.php script to update OidcAuth configuration with the provided OIDC_SCOPES
             # The 'scopes' field will only be added if OIDC_SCOPES has a value
-            sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+            php /var/www/MISP/tests/modify_config.php modify "{
                 \"OidcAuth\": {
                     \"scopes\": ${OIDC_SCOPES}
                 }
@@ -133,7 +141,7 @@ set_up_oidc() {
         else
             OIDC_LOGIN_TEXT_JSON='""'
         fi
-        sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+        php /var/www/MISP/tests/modify_config.php modify "{
             \"OidcAuth\": {
                 \"login_button_text\": ${OIDC_LOGIN_TEXT_JSON}
             }
@@ -146,19 +154,19 @@ set_up_oidc() {
             else
                 OIDC_LOGOUT_URL_COMPLETE="${OIDC_LOGOUT_URL}?post_logout_redirect_uri=${BASE_URL}/users/login"
             fi
-            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_custom_logout" "${OIDC_LOGOUT_URL_COMPLETE}"
+            /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_custom_logout" "${OIDC_LOGOUT_URL_COMPLETE}"
         else
             echo "OIDC_LOGOUT_URL is not set"
         fi
 
         # Disable password confirmation as recommended in https://github.com/MISP/MISP/issues/8116
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
+        /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
 
         echo "... OIDC authentication enabled"
 
     else
         # Reset OIDC authentication settings to empty values
-        sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+        php /var/www/MISP/tests/modify_config.php modify "{
             \"OidcAuth\": {
                 \"provider_url\": \"\",
                 \"issuer\": \"\",
@@ -174,16 +182,16 @@ set_up_oidc() {
 
         # Remove the line containing 'scopes' => from config.php
         # This prevents an empty scopes entry from being loaded in the configuration.
-        sudo -u www-data sed -i "/'scopes' =>/d" /var/www/MISP/app/Config/config.php
+        sed -i "/'scopes' =>/d" /var/www/MISP/app/Config/config.php
 
         # Use sed to remove the OidcAuth.Oidc entry from the 'auth' array in the config.php
-        sudo -u www-data sed -i "/'auth' =>/,/)/ { /0 => 'OidcAuth.Oidc',/d; }" /var/www/MISP/app/Config/config.php
+        sed -i "/'auth' =>/,/)/ { /0 => 'OidcAuth.Oidc',/d; }" /var/www/MISP/app/Config/config.php
 
         # Remove the custom logout URL
-        sudo -u www-data sed -i "/'CustomAuth_custom_logout' =>/d" /var/www/MISP/app/Config/config.php
+        sed -i "/'CustomAuth_custom_logout' =>/d" /var/www/MISP/app/Config/config.php
 
         # Re-enable password confirmation if necessary
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" true
+        /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" true
 
         echo "... OIDC authentication disabled"
     fi
@@ -204,7 +212,7 @@ set_up_apachesecureauth() {
     # APACHESECUREAUTH_LDAP_SEARCH_FILTER may be empty
     check_env_vars APACHESECUREAUTH_LDAP_APACHE_ENV APACHESECUREAUTH_LDAP_SERVER APACHESECUREAUTH_LDAP_STARTTLS APACHESECUREAUTH_LDAP_READER_USER APACHESECUREAUTH_LDAP_READER_PASSWORD APACHESECUREAUTH_LDAP_DN APACHESECUREAUTH_LDAP_SEARCH_ATTRIBUTE APACHESECUREAUTH_LDAP_FILTER APACHESECUREAUTH_LDAP_DEFAULT_ROLE_ID APACHESECUREAUTH_LDAP_DEFAULT_ORG APACHESECUREAUTH_LDAP_OPT_PROTOCOL_VERSION APACHESECUREAUTH_LDAP_OPT_NETWORK_TIMEOUT APACHESECUREAUTH_LDAP_OPT_REFERRALS
 
-    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+    php /var/www/MISP/tests/modify_config.php modify "{
         \"ApacheSecureAuth\": {
             \"apacheEnv\": \"${APACHESECUREAUTH_LDAP_APACHE_ENV}\",
             \"ldapServer\": \"${APACHESECUREAUTH_LDAP_SERVER}\",
@@ -225,7 +233,7 @@ set_up_apachesecureauth() {
     }" > /dev/null
 
     # Disable password confirmation as stated at https://github.com/MISP/MISP/issues/8116
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
+    /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
 }
 
 set_up_ldap() {
@@ -252,7 +260,7 @@ set_up_ldap() {
     LDAPAUTH_LDAPTLSCRLCHECK=$(resolve_php_constant "$LDAPAUTH_LDAPTLSCRLCHECK") || exit 1
     LDAPAUTH_LDAPTLSPROTOCOLMIN=$(resolve_php_constant "$LDAPAUTH_LDAPTLSPROTOCOLMIN") || exit 1
 
-    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+    php /var/www/MISP/tests/modify_config.php modify "{
         \"LdapAuth\": {
           \"ldapServer\": \"${LDAPAUTH_LDAPSERVER}\",
           \"ldapDn\": \"${LDAPAUTH_LDAPDN}\",
@@ -278,7 +286,7 @@ set_up_ldap() {
     }" > /dev/null
 
     # Configure LdapAuth in MISP
-    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+    php /var/www/MISP/tests/modify_config.php modify "{
             \"Security\": {
                 \"auth\": [\"LdapAuth.Ldap\"]
             }
@@ -286,7 +294,7 @@ set_up_ldap() {
 
 
     # Disable password confirmation as stated at https://github.com/MISP/MISP/issues/8116
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
+    /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
 }
 
 set_up_aad() {
@@ -302,14 +310,14 @@ set_up_aad() {
     # existing loadAll() call in bootstrap.php already loads all available Cake plugins
 
     # Set auth mechanism to AAD in config.php file
-    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+    php /var/www/MISP/tests/modify_config.php modify "{
         \"Security\": {
             \"auth\": [\"AadAuth.AadAuthenticate\"]
         }
     }" > /dev/null
 
     # Configure AAD auth settings from environment variables in config.php file
-    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+    php /var/www/MISP/tests/modify_config.php modify "{
         \"AadAuth\": {
             \"client_id\": \"${AAD_CLIENT_ID}\",
             \"ad_tenant\": \"${AAD_TENANT_ID}\",
@@ -326,12 +334,12 @@ set_up_aad() {
 
     # Disable self-management, username change, and password change to prevent users from circumventing AAD login flow
     # Recommended per https://github.com/MISP/MISP/blob/2.4/app/Plugin/AadAuth/README.md
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.disableUserSelfManagement" true
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.disable_user_login_change" true
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.disable_user_password_change" true
+    /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.disableUserSelfManagement" true
+    /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.disable_user_login_change" true
+    /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.disable_user_password_change" true
 
     # Disable password confirmation as stated at https://github.com/MISP/MISP/issues/8116
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
+    /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
 }
 
 set_up_custom_auth() {
@@ -348,85 +356,85 @@ set_up_custom_auth() {
         # - CUSTOM_AUTH_CUSTOM_LOGOUT
 
         # Configure CustomAuth in MISP
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_enable" true
+        /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_enable" true
 
         if [[ -n "$CUSTOM_AUTH_HEADER" ]]; then
-            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_header" "${CUSTOM_AUTH_HEADER}"
+            /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_header" "${CUSTOM_AUTH_HEADER}"
         else
-            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_header"
+            /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_header"
         fi
 
         if [[ -n "$CUSTOM_AUTH_USE_HEADER_NAMESPACE" ]]; then
-            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_use_header_namespace" "${CUSTOM_AUTH_USE_HEADER_NAMESPACE}"
+            /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_use_header_namespace" "${CUSTOM_AUTH_USE_HEADER_NAMESPACE}"
         else
-            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_use_header_namespace" true
+            /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_use_header_namespace" true
         fi
 
         if [[ -n "$CUSTOM_AUTH_REQUIRED" ]]; then
-            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_required" "${CUSTOM_AUTH_REQUIRED}"
+            /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_required" "${CUSTOM_AUTH_REQUIRED}"
         else
-            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_required" false
+            /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_required" false
         fi
 
         if [[ -n "$CUSTOM_AUTH_HEADER_NAMESPACE" ]]; then
-            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_header_namespace" "${CUSTOM_AUTH_HEADER_NAMESPACE}"
+            /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_header_namespace" "${CUSTOM_AUTH_HEADER_NAMESPACE}"
         else
-            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_header_namespace" "HTTP_"
+            /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_header_namespace" "HTTP_"
         fi
 
         if [[ -n "$CUSTOM_AUTH_NAME" ]]; then
-            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_name" "${CUSTOM_AUTH_NAME}"
+            /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_name" "${CUSTOM_AUTH_NAME}"
         else
-            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_name" "External Authentication"
+            /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_name" "External Authentication"
         fi
 
         if [[ -n "$CUSTOM_AUTH_DISABLE_LOGOUT" ]]; then
-            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_disable_logout" "${CUSTOM_AUTH_DISABLE_LOGOUT}"
+            /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_disable_logout" "${CUSTOM_AUTH_DISABLE_LOGOUT}"
         else
-            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_disable_logout" false
+            /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_disable_logout" false
         fi
 
         if [[ -n "$CUSTOM_AUTH_ONLY_ALLOW_SOURCE" ]]; then
-            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_only_allow_source" "${CUSTOM_AUTH_ONLY_ALLOW_SOURCE}"
+            /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_only_allow_source" "${CUSTOM_AUTH_ONLY_ALLOW_SOURCE}"
         else
-            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_only_allow_source"
+            /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_only_allow_source"
         fi
 
         if [[ -n "$CUSTOM_AUTH_CUSTOM_PASSWORD_RESET" ]]; then
-            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_custom_password_reset" "${CUSTOM_AUTH_CUSTOM_PASSWORD_RESET}"
+            /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_custom_password_reset" "${CUSTOM_AUTH_CUSTOM_PASSWORD_RESET}"
         else
-            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_custom_password_reset"
+            /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_custom_password_reset"
         fi
 
         if [[ -n "$CUSTOM_AUTH_CUSTOM_LOGOUT" ]]; then
-            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_custom_logout" "${CUSTOM_AUTH_CUSTOM_LOGOUT}"
+            /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_custom_logout" "${CUSTOM_AUTH_CUSTOM_LOGOUT}"
         else
-            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_custom_logout"
+            /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_custom_logout"
         fi
 
         # normally users need to enter their password on updating their profile even if they are using external authentication, which can be problematic if the password is not known due to external management. Disable this confirmation as recommended.
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
+        /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" false
         # Disable auth logging as it doesn't add much value when using external authentication. Otherwise each single request triggers a authentication log entry.
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.log_auth" false
+        /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.log_auth" false
 
         echo "... CUSTOM_AUTH authentication enabled"
 
     else
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_enable" false
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_header"
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_use_header_namespace" true
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_required" false
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_header_namespace" "HTTP_"
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_only_allow_source"
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_name" "External Authentication"
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_disable_logout" false
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_custom_password_reset"
+        /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_enable" false
+        /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_header"
+        /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_use_header_namespace" true
+        /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_required" false
+        /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_header_namespace" "HTTP_"
+        /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_only_allow_source"
+        /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_name" "External Authentication"
+        /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.CustomAuth_disable_logout" false
+        /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_custom_password_reset"
         if [[ "$OIDC_ENABLE" != "true" || -z "${OIDC_LOGOUT_URL:-}" ]]; then
-            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_custom_logout"
+            /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_custom_logout"
         fi
         # Re-enable settings
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" true
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.log_auth" true
+        /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" true
+        /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.log_auth" true
 
         echo "... CUSTOM_AUTH authentication disabled"
     fi
@@ -434,7 +442,7 @@ set_up_custom_auth() {
 
 set_up_session() {
     # Command to modify MISP session configuration
-    sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+    php /var/www/MISP/tests/modify_config.php modify "{
         \"Session\": {
             \"timeout\": ${PHP_SESSION_TIMEOUT},
             \"cookie_timeout\": ${PHP_SESSION_COOKIE_TIMEOUT},
@@ -463,23 +471,23 @@ set_up_proxy() {
 
 apply_updates() {
     # Disable 'ZeroMQ_enable' to get better logs when applying updates
-    # sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" false
+    # /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" false
     # Run updates (strip colors since output might end up in a log)
-    sudo -u www-data /var/www/MISP/app/Console/cake Admin runUpdates | stdbuf -oL sed -r "s/[[:cntrl:]]\[[0-9]{1,3}m//g"
+    /var/www/MISP/app/Console/cake Admin runUpdates | stdbuf -oL sed -r "s/[[:cntrl:]]\[[0-9]{1,3}m//g"
     # Re-enable 'ZeroMQ_enable'
-    # sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" true
+    # /var/www/MISP/app/Console/cake Admin setSetting -q "Plugin.ZeroMQ_enable" true
 }
 
 init_user() {
     # Create the main user if it is not there already
-    sudo -u www-data /var/www/MISP/app/Console/cake user init -q > /dev/null 2>&1
+    /var/www/MISP/app/Console/cake user init -q > /dev/null 2>&1
 
     echo "UPDATE $MYSQL_DATABASE.users SET email = \"${ADMIN_EMAIL}\" WHERE id = 1;" | ${MYSQL_CMD}
 
     if [ ! -z "$ADMIN_ORG" ]; then
         echo "... setting admin org to '${ADMIN_ORG}'"
         echo "UPDATE $MYSQL_DATABASE.organisations SET name = \"${ADMIN_ORG}\" where id = 1;" | ${MYSQL_CMD}
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.org" "${ADMIN_ORG}"
+        /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.org" "${ADMIN_ORG}"
     fi
 
     if [ ! -z "$ADMIN_ORG_UUID" ]; then
@@ -493,12 +501,12 @@ init_user() {
         else
             echo "... setting admin key to '${ADMIN_KEY}'"
         fi
-        CHANGE_CMD=(sudo -u www-data /var/www/MISP/app/Console/cake User change_authkey 1 "${ADMIN_KEY}")
+        CHANGE_CMD=(/var/www/MISP/app/Console/cake User change_authkey 1 "${ADMIN_KEY}")
     elif [ -z "$ADMIN_KEY" ] && [ "$AUTOGEN_ADMIN_KEY" == "true" ]; then
         HAS_VALID_KEY=$($MYSQL_CMD -N -s -e 'SELECT EXISTS(SELECT 1 FROM auth_keys WHERE user_id = 1 AND (expiration = 0 OR expiration > UNIX_TIMESTAMP()));')
 	if (( HAS_VALID_KEY == 0 )); then
             echo "... regenerating admin key (set \$ADMIN_KEY if you want it to change)"
-            CHANGE_CMD=(sudo -u www-data /var/www/MISP/app/Console/cake User change_authkey 1)
+            CHANGE_CMD=(/var/www/MISP/app/Console/cake User change_authkey 1)
 	else
 	    echo "... valid admin key for admin user found, not changing"
 	fi
@@ -521,13 +529,13 @@ init_user() {
         else
             echo "... setting admin password to '${ADMIN_PASSWORD}'"
         fi
-        PASSWORD_POLICY=$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting "Security.password_policy_complexity" | jq ".value" -r)
-        PASSWORD_LENGTH=$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting "Security.password_policy_length" | jq ".value" -r)
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_length" 1
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_complexity" '/.*/'
-        sudo -u www-data /var/www/MISP/app/Console/cake User change_pw "${ADMIN_EMAIL}" "${ADMIN_PASSWORD}"
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_complexity" "${PASSWORD_POLICY}"
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_length" "${PASSWORD_LENGTH}"
+        PASSWORD_POLICY=$(/var/www/MISP/app/Console/cake Admin getSetting "Security.password_policy_complexity" | jq ".value" -r)
+        PASSWORD_LENGTH=$(/var/www/MISP/app/Console/cake Admin getSetting "Security.password_policy_length" | jq ".value" -r)
+        /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_length" 1
+        /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_complexity" '/.*/'
+        /var/www/MISP/app/Console/cake User change_pw "${ADMIN_EMAIL}" "${ADMIN_PASSWORD}"
+        /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_complexity" "${PASSWORD_POLICY}"
+        /var/www/MISP/app/Console/cake Admin setSetting -q "Security.password_policy_length" "${PASSWORD_LENGTH}"
     else
         echo "... setting admin password skipped"
     fi
@@ -541,7 +549,7 @@ apply_critical_fixes() {
     local config_json=$(echo '<?php require_once "/var/www/MISP/app/Config/config.php"; echo json_encode($config, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>'|/usr/bin/php)
     if $(echo $config_json |jq -e 'getpath(("Security.auth" | split("."))) == null'); then
         echo "Updating unset critical setting 'Security.auth' to 'Array()'..."
-        sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
+        php /var/www/MISP/tests/modify_config.php modify "{
             \"Security\": {
                 \"auth\": {}
             }
@@ -564,7 +572,7 @@ apply_storage_settings() {
 # Leaving this here though in case the serverSettings model for those odd settings is fixed one day.
 #setting_is_set() {
 #    local setting="$1"
-#    local current_value="$(sudo -u www-data /var/www/MISP/app/Console/cake Admin getSetting $setting)"
+#    local current_value="$(/var/www/MISP/app/Console/cake Admin getSetting $setting)"
 #    local error_value="$(jq -r '.errorMessage' <<< $current_value)"
 #
 #    if [[ "$current_value" =~ ^\{.*\}$ && "$error_value" != "Value not set." && "$error_value" != Invalid* ]]; then
@@ -575,37 +583,67 @@ apply_storage_settings() {
 #}
 
 update_components() {
-    UPDATE_SUDO_CMD="sudo -u www-data"
+    UPDATE_CMD=(/var/www/MISP/app/Console/cake)
+    RUN_IN_BACKGROUND=false
     if [ ! -z "${DB_ALREADY_INITIALISED}" ]; then
         if [[ "$ENABLE_BACKGROUND_UPDATES" = "true" ]]; then
             echo "... updates will run in the background"
-            UPDATE_SUDO_CMD="sudo -b -u www-data"
+            RUN_IN_BACKGROUND=true
         fi
     fi
-    ${UPDATE_SUDO_CMD} /var/www/MISP/app/Console/cake Admin updateGalaxies
-    ${UPDATE_SUDO_CMD} /var/www/MISP/app/Console/cake Admin updateTaxonomies
-    ${UPDATE_SUDO_CMD} /var/www/MISP/app/Console/cake Admin updateWarningLists
-    ${UPDATE_SUDO_CMD} /var/www/MISP/app/Console/cake Admin updateNoticeLists
-    ${UPDATE_SUDO_CMD} /var/www/MISP/app/Console/cake Admin updateObjectTemplates "$CRON_USER_ID"
+    if [[ "$RUN_IN_BACKGROUND" = "true" ]]; then
+        (
+            "${UPDATE_CMD[@]}" Admin updateGalaxies
+            "${UPDATE_CMD[@]}" Admin updateTaxonomies
+            "${UPDATE_CMD[@]}" Admin updateWarningLists
+            "${UPDATE_CMD[@]}" Admin updateNoticeLists
+            "${UPDATE_CMD[@]}" Admin updateObjectTemplates "$CRON_USER_ID"
+        ) &
+    else
+        "${UPDATE_CMD[@]}" Admin updateGalaxies
+        "${UPDATE_CMD[@]}" Admin updateTaxonomies
+        "${UPDATE_CMD[@]}" Admin updateWarningLists
+        "${UPDATE_CMD[@]}" Admin updateNoticeLists
+        "${UPDATE_CMD[@]}" Admin updateObjectTemplates "$CRON_USER_ID"
+    fi
 }
 
 update_ca_certificates() {
-    # Upgrade host os certificates
-    update-ca-certificates
+    # Updating the system-wide CA trust store requires root, which we no
+    # longer have. Custom CAs must be baked into the image at build time
+    # instead (see README). This is a no-op everywhere except for anyone
+    # still explicitly running the container as root.
+    if [[ "$(id -u)" -eq 0 ]]; then
+        update-ca-certificates
+    fi
     if [[ "$DISABLE_CA_REFRESH" = "true" ]]; then
         echo "Updating /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem using local data..."
-        sudo cp /etc/ssl/certs/ca-certificates.crt /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem
+        cp /etc/ssl/certs/ca-certificates.crt /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem
     else
+        # This used to be a blind, unbounded curl - on a host with no
+        # outbound internet access it hangs until the OS's own TCP timeout
+        # (well over a minute), which alone can blow the pod's startup
+        # probe budget and put it in a restart loop before it ever gets a
+        # chance to fail. Bound both the connection and the whole request,
+        # and fall back to the local (build-time) bundle rather than
+        # leaving cacert.pem untouched if the remote isn't reachable.
         echo "Updating /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem using curl data..."
-        sudo -E -u www-data curl -s --etag-compare /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt --etag-save /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt https://curl.se/ca/cacert.pem -o /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem
+        if ! curl -s --connect-timeout 3 --max-time 10 --etag-compare /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt --etag-save /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt https://curl.se/ca/cacert.pem -o /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem; then
+            echo "... curl.se unreachable, falling back to local data for cacert.pem..."
+            cp /etc/ssl/certs/ca-certificates.crt /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem
+        fi
     fi
 }
 
 configure_misp_guard_ca() {
     if [[ "$COMPOSE_PROFILES" = "misp-guard" ]]; then
         echo "... configuring misp-guard CA certificate"
-        chown www-data:www-data /usr/local/share/ca-certificates/misp_guard/mitmproxy-ca.pem
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.ca_path" "/usr/local/share/ca-certificates/misp_guard/mitmproxy-ca.pem"
+        # Only possible when still running as root; misp-guard's own
+        # entrypoint already writes this file world-readable otherwise.
+        if [[ "$(id -u)" -eq 0 ]]; then
+            chown www-data:www-data /usr/local/share/ca-certificates/misp_guard/mitmproxy-ca.pem
+        fi
+        /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.ca_path" "/usr/local/share/ca-certificates/misp_guard/mitmproxy-ca.pem"
     fi
 }
 
@@ -780,4 +818,4 @@ echo "MISP | Configure misp-guard CA certificate ..." && configure_misp_guard_ca
 
 echo "MISP | Mark instance live" && print_version
 
-sudo -u www-data /var/www/MISP/app/Console/cake Admin live 1
+/var/www/MISP/app/Console/cake Admin live 1

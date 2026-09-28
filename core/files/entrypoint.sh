@@ -93,6 +93,31 @@ export PHP_SESSION_COOKIE_SAMESITE=${PHP_SESSION_COOKIE_SAMESITE:-Lax}
 
 export TZ=${TZ:-UTC}
 
+# OpenShift (and similar platforms) start the container under an
+# arbitrary UID with no matching /etc/passwd entry, and their default
+# restricted SCC also runs it with a read-only root filesystem, so we
+# can't just append to /etc/passwd the way a writable Docker/Compose root
+# would allow. Besides being generally surprising to anything that
+# resolves the current user by uid, MISP's own `cake Admin runUpdates`
+# refuses to run (breaking all DB schema updates on startup) unless PHP's
+# posix_getpwuid() resolves the running uid to a name it recognises -
+# "www-data" being one of them, the same identity Docker/Compose already
+# runs as by default. Work around both constraints with nss_wrapper:
+# preload a shim NSS module backed by passwd/group files under /tmp
+# (writable regardless of root filesystem mode), seeded from the real
+# /etc/passwd plus a synthetic "www-data" entry for our own uid.
+if ! whoami &>/dev/null; then
+    if ldconfig -p 2>/dev/null | grep -q libnss_wrapper.so && mkdir -p /tmp/nss_wrapper 2>/dev/null; then
+        cp /etc/passwd /tmp/nss_wrapper/passwd
+        echo "www-data:x:$(id -u):0:www-data user:/var/www/MISP:/sbin/nologin" >> /tmp/nss_wrapper/passwd
+        export NSS_WRAPPER_PASSWD=/tmp/nss_wrapper/passwd
+        export NSS_WRAPPER_GROUP=/etc/group
+        export LD_PRELOAD=libnss_wrapper.so
+    else
+        echo "WARNING: nss_wrapper unavailable, cannot register the current UID $(id -u) as a known user. MISP commands requiring a resolvable OS user (e.g. 'cake Admin runUpdates') will fail." >&2
+    fi
+fi
+
 export STUNNEL=${STUNNEL:-false}
 export STUNNEL_CONFIG=${STUNNEL_CONFIG}
 
@@ -120,8 +145,13 @@ check_deprecated_env() {
 
 check_deprecated_env
 
-# Setting Timezone for supervisord
-update-alternatives --install /etc/localtime localtime /usr/share/zoneinfo/${TZ} 0
+# Setting Timezone for supervisord. Symlinking /etc/localtime requires
+# root, which we no longer have; the $TZ export above is already
+# respected directly by bash/python/etc, and change_php_vars() sets PHP's
+# date.timezone explicitly, so this is only needed for legacy root use.
+if [[ "$(id -u)" -eq 0 ]]; then
+    update-alternatives --install /etc/localtime localtime /usr/share/zoneinfo/${TZ} 0
+fi
 
 # Hinders further execution when sourced from other scripts
 if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then

@@ -15,7 +15,6 @@ stdout_logfile_maxbytes=0
 stderr_logfile=/dev/stderr
 stderr_logfile_maxbytes=0
 directory=/var/www/MISP
-user=www-data
 
 [program:prio]
 directory=/var/www/MISP
@@ -29,7 +28,6 @@ stdout_logfile_maxbytes=0
 stderr_logfile=/dev/stderr 
 stderr_logfile_maxbytes=0
 directory=/var/www/MISP
-user=www-data
 
 [program:email]
 directory=/var/www/MISP
@@ -43,7 +41,6 @@ stdout_logfile_maxbytes=0
 stderr_logfile=/dev/stderr
 stderr_logfile_maxbytes=0
 directory=/var/www/MISP
-user=www-data
 
 [program:update]
 directory=/var/www/MISP
@@ -55,7 +52,6 @@ autorestart=true
 stderr_logfile=/var/www/MISP/app/tmp/logs/misp-workers-errors.log
 stdout_logfile=/var/www/MISP/app/tmp/logs/misp-workers.log
 directory=/var/www/MISP
-user=www-data
 
 [program:cache]
 directory=/var/www/MISP
@@ -68,7 +64,6 @@ stdout_logfile=/dev/stdout
 stdout_logfile_maxbytes=0 
 stderr_logfile=/dev/stderr
 stderr_logfile_maxbytes=0
-user=www-data
 
 [program:scheduler]
 directory=/var/www/MISP
@@ -81,4 +76,3 @@ stdout_logfile=/dev/stdout
 stdout_logfile_maxbytes=0
 stderr_logfile=/dev/stderr 
 stderr_logfile_maxbytes=0
-user=www-data

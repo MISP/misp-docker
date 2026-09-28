@@ -16,10 +16,22 @@ spec:
       labels:
         app.kubernetes.io/name: redis
     spec:
+      # Stock Docker Hub `redis` image: unlike mariadb, this one already
+      # runs fine as an arbitrary non-root UID with no persistent volume
+      # here, so no fsGroup/runAsUser is needed.
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: redis
           image: "redis:8.2.1"
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           args:
             - --requirepass
             - "$(REDIS_PASSWORD)"
