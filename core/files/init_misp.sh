@@ -226,7 +226,7 @@ enforce_misp_data_permissions(){
     else
         echo "find & change ... chown -R www-data:www-data /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
         # Enforce 0770 on all files and dirs - app/tmp contains a mix of cache, exports and temp files that all need to be writable by www-data
-        echo "find & change... chmod -R 0770 /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp ! -perm 0770 -exec chmod 0770 {} +
+        echo "find & change ... chmod -R 0770 /var/www/MISP/app/tmp" && find /var/www/MISP/app/tmp ! -perm 0770 -exec chmod 0770 {} +
 
         echo "find & change ... chown -R www-data:www-data /var/www/MISP/app/files" && find /var/www/MISP/app/files \( ! -user www-data -or ! -group www-data \) -exec chown www-data:www-data {} +
         # Enforce 0770 on all files and dirs - app/files contains a mix of scripts and user data
