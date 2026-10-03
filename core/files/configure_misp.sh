@@ -317,6 +317,7 @@ set_up_aad() {
             \"redirect_uri\": \"${AAD_REDIRECT_URI}\",
             \"auth_provider\": \"${AAD_PROVIDER}\",
             \"auth_provider_user\": \"${AAD_PROVIDER_USER}\",
+            \"auth_property_name\": \"${AAD_AUTH_PROPERTY_NAME:-userPrincipalName}\",
             \"misp_user\": \"${AAD_MISP_USER}\",
             \"misp_orgadmin\": \"${AAD_MISP_ORGADMIN}\",
             \"misp_siteadmin\": \"${AAD_MISP_SITEADMIN}\",
