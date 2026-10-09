@@ -146,6 +146,16 @@ PROXY_PORT=8888
 
 #### Configuration
 
+> [!WARNING]
+> **Important:** You must create the `guard/config.json` file **before** starting the container.
+> If the file does not exist, Docker/Podman will automatically create it as an empty **directory**, which will cause the misp-guard container to fail and continuously restart.
+> 
+> Create it first:
+> ```bash
+> mkdir -p guard
+> touch guard/config.json
+> ```
+
 - Rules are defined in `guard/config.json`.
 - The container automatically replaces the `misp-core` IP at runtime using `entrypoint.sh`.
 
