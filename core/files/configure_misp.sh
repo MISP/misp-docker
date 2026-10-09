@@ -437,7 +437,7 @@ set_up_session() {
     sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
         \"Session\": {
             \"timeout\": ${PHP_SESSION_TIMEOUT},
-            \"cookie_timeout\": ${PHP_SESSION_COOKIE_TIMEOUT},
+            \"cookieTimeout\": ${PHP_SESSION_COOKIE_TIMEOUT},
             \"defaults\": \"${PHP_SESSION_DEFAULTS}\",
             \"autoRegenerate\": ${PHP_SESSION_AUTO_REGENERATE},
             \"checkAgent\": ${PHP_SESSION_CHECK_AGENT},
