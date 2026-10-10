@@ -305,6 +305,8 @@ AAD_CLIENT_SECRET="<client secret>"
 AAD_REDIRECT_URI="https://misp.mydomain.com/users/login" # (same value in Azure AD)
 AAD_PROVIDER="https://login.microsoftonline.com/"
 AAD_PROVIDER_USER="https://graph.microsoft.com/"
+# Entra attribute used for login matching; valid values are "userPrincipalName" or "mail"
+AAD_AUTH_PROPERTY_NAME="userPrincipalName"
 # Entra group names mapped to MISP roles
 AAD_MISP_USER="Misp Users"
 AAD_MISP_ORGADMIN="Misp Org Admins"
