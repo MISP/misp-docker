@@ -119,11 +119,11 @@ EOT
     # Avoid sed -i which creates temp files alongside the target,
     # broken on VirtioFS (Docker Desktop for Mac).
     chmod +w $MISP_APP_CONFIG_PATH/database.php
-    safe_sed_i "s/localhost/$MYSQL_HOST/" $MISP_APP_CONFIG_PATH/database.php
-    safe_sed_i "s/db\s*login/$MYSQL_USER/" $MISP_APP_CONFIG_PATH/database.php
-    safe_sed_i "s/3306/$MYSQL_PORT/" $MISP_APP_CONFIG_PATH/database.php
-    safe_sed_i "s/db\s*password/$MYSQL_PASSWORD/" $MISP_APP_CONFIG_PATH/database.php
-    safe_sed_i "s/'database' => 'misp'/'database' => '$MYSQL_DATABASE'/" $MISP_APP_CONFIG_PATH/database.php
+    safe_sed_i "s/'host'\s*=>\s*'.*'/'host' => '$MYSQL_HOST'/" $MISP_APP_CONFIG_PATH/database.php
+    safe_sed_i "s/'login'\s*=>\s*'.*'/'login' => '$MYSQL_USER'/" $MISP_APP_CONFIG_PATH/database.php
+    safe_sed_i "s/'port'\s*=>\s*[0-9]*/'port' => $MYSQL_PORT/" $MISP_APP_CONFIG_PATH/database.php
+    safe_sed_i "s/'password'\s*=>\s*'.*'/'password' => '$MYSQL_PASSWORD'/" $MISP_APP_CONFIG_PATH/database.php
+    safe_sed_i "s/'database'\s*=>\s*'.*'/'database' => '$MYSQL_DATABASE'/" $MISP_APP_CONFIG_PATH/database.php
 
     # Enable MySQL TLS immediately, as TLS requiring hosts like AWS RDS may banlist non-TLS connecting hosts
     # Conversely, this is also a good spot to disable it if required
