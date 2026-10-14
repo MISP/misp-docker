@@ -142,6 +142,11 @@ PROXY_ENABLE=true
 PROXY_HOST=misp-guard
 # this must match GUARD_PORT (DEFAULT=8888)
 PROXY_PORT=8888
+
+# optional: authenticated proxy credentials (must match GUARD_USER / GUARD_PASSWORD)
+# PROXY_METHOD=Basic
+# PROXY_USER=misp
+# PROXY_PASSWORD=secret
 ```
 
 #### Configuration
@@ -186,6 +191,10 @@ GUARD_PORT=8888
 
 # optional: mitmdump misp-guard runtime arguments (space separated)
 GUARD_ARGS=--ssl-insecure -v
+
+# optional: proxy authentication credentials (must match PROXY_USER / PROXY_PASSWORD)
+GUARD_USER=
+GUARD_PASSWORD=
 ```
 
 ### Authentication
@@ -359,7 +368,6 @@ CUSTOM_AUTH_CUSTOM_LOGOUT=
 - If you need to automatically run additional steps each time the container starts, create a new file `files/customize_misp.sh`, and replace the variable `${CUSTOM_PATH}` inside `docker-compose.yml` with its parent path.
 - If you are interested in running streamlined versions of the images (fewer dependencies, easier approval from compliance), you might want to use the `latest-slim` tag. Just adjust the `docker-compose.yml` file, and run again `docker compose pull` and `docker compose up`.
 
-
 #### Breaking changes
 
 With PR [430](https://github.com/MISP/misp-docker/pull/430) the NGINX server was extracted from the MISP core image into it's own image.
@@ -387,7 +395,6 @@ This improves security and scalability of the front-facing NGINX server but lead
 **GPG key delivery:** `gpg.asc` is now served via `misp-nginx`, which proxies the request through to `misp-core` (PHP-FPM) rather than serving a static file from the webroot path.
 
 **Kubernetes/Helm:** manifests have been updated for the new two-container topology; if you deploy via Helm/Kubernetes, review the updated chart before upgrading.
-
 
 ### High availability deployments
 

@@ -415,6 +415,8 @@ services:
     environment:
       - "GUARD_PORT=${GUARD_PORT:-8888}"
       - "GUARD_ARGS=${GUARD_ARGS}"
+      - "GUARD_USER=${GUARD_USER}"
+      - "GUARD_PASSWORD=${GUARD_PASSWORD}"
       - "TZ=${TZ:-UTC}"
     volumes:
       - ./guard/config.json:/config.json:ro

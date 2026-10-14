@@ -8,6 +8,7 @@ sensitive_settings=(
     "Security.encryption_key"
     "GnuPG.password"
     "Security.salt"
+    "Proxy.password"
 )
 
 # Check whether passed env variables are defined
