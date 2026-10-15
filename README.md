@@ -144,6 +144,7 @@ PROXY_HOST=misp-guard
 PROXY_PORT=8888
 
 # optional: authenticated proxy credentials (must match GUARD_USER / GUARD_PASSWORD)
+# Setting a PROXY_METHOD is required, otherwise MISP won't send the credentials
 # PROXY_METHOD=Basic
 # PROXY_USER=misp
 # PROXY_PASSWORD=secret
