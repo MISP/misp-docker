@@ -24,9 +24,7 @@ jq --arg ip "$MISP_IP" \
    '.instances.misp_container.ip = $ip' \
    /config.json > /srv/misp-guard/src/config.json
 
-# proxy authentication credentials
-GUARD_USER="${GUARD_USER:-$PROXY_USER}"
-GUARD_PASSWORD="${GUARD_PASSWORD:-$PROXY_PASSWORD}"
+# optional proxy authentication
 AUTH_ARGS=""
 if [ -n "$GUARD_USER" ]; then
   AUTH_ARGS="--proxyauth=${GUARD_USER}:${GUARD_PASSWORD}"

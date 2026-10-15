@@ -143,11 +143,10 @@ PROXY_HOST=misp-guard
 # this must match GUARD_PORT (DEFAULT=8888)
 PROXY_PORT=8888
 
-# optional: proxy authentication (misp-guard will use these same credentials by default)
+# optional: authenticated proxy credentials (must match GUARD_USER / GUARD_PASSWORD)
+# PROXY_METHOD=Basic
 # PROXY_USER=misp
 # PROXY_PASSWORD=secret
-# Setting a PROXY_METHOD is required, otherwise MISP won't send the credentials
-# PROXY_METHOD=Basic
 ```
 
 #### Configuration
@@ -193,7 +192,7 @@ GUARD_PORT=8888
 # optional: mitmdump misp-guard runtime arguments (space separated)
 GUARD_ARGS=--ssl-insecure -v
 
-# optional: proxy authentication credentials (defaults to PROXY_USER / PROXY_PASSWORD)
+# optional: proxy authentication credentials (must match PROXY_USER / PROXY_PASSWORD)
 GUARD_USER=
 GUARD_PASSWORD=
 ```
