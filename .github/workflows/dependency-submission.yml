@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   sbom-dependency-submission:
@@ -48,13 +49,20 @@ jobs:
           set: |
             *.platform=linux/amd64
 
-      - name: Generate SBOM and submit Dependency Snapshot
+      - name: Generate SBOM
         uses: anchore/sbom-action@v0
         with:
           image: "local/${{ matrix.target }}:latest"
           format: "spdx-json"
           output-file: "sbom-${{ matrix.target }}.spdx.json"
-          dependency-snapshot: true
+          dependency-snapshot: false
+
+      - name: Submit Dependency Snapshot to GitHub Dependency Graph
+        uses: advanced-security/spdx-dependency-submission-action@v0
+        with:
+          filePath: "sbom-${{ matrix.target }}.spdx.json"
+          correlator: "${{ github.job }}-${{ matrix.target }}"
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@v7
