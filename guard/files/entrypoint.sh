@@ -24,10 +24,17 @@ jq --arg ip "$MISP_IP" \
    '.instances.misp_container.ip = $ip' \
    /config.json > /srv/misp-guard/src/config.json
 
+# optional proxy authentication
+AUTH_ARGS=""
+if [ -n "$GUARD_USER" ]; then
+  AUTH_ARGS="--proxyauth=${GUARD_USER}:${GUARD_PASSWORD}"
+fi
+
 # start mitmdump in background
 mitmdump \
   -s mispguard.py \
   -p "${GUARD_PORT:-8888}" \
+  ${AUTH_ARGS:+"$AUTH_ARGS"} \
   ${GUARD_ARGS:+$GUARD_ARGS} \
   --set config=config.json &
 

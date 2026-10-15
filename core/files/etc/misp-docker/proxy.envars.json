@@ -1,17 +1,22 @@
 {
   "Proxy.host": {
-    "default_value": "${PROXY_HOST}"
+    "default_value": "${PROXY_HOST}",
+    "blank_protection": true
   },
   "Proxy.port": {
-    "default_value": "${PROXY_PORT}"
+    "default_value": "${PROXY_PORT}",
+    "blank_protection": true
   },
   "Proxy.method": {
-    "default_value": "${PROXY_METHOD}"
+    "default_value": "${PROXY_METHOD}",
+    "blank_protection": true
   },
   "Proxy.user": {
-    "default_value": "${PROXY_USER}"
+    "default_value": "${PROXY_USER}",
+    "blank_protection": true
   },
   "Proxy.password": {
-    "default_value": "${PROXY_PASSWORD}"
+    "default_value": "${PROXY_PASSWORD}",
+    "blank_protection": true
   }
 }
