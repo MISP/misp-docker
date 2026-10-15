@@ -417,6 +417,8 @@ services:
       - "GUARD_ARGS=${GUARD_ARGS}"
       - "GUARD_USER=${GUARD_USER}"
       - "GUARD_PASSWORD=${GUARD_PASSWORD}"
+      - "PROXY_USER=${PROXY_USER}"
+      - "PROXY_PASSWORD=${PROXY_PASSWORD}"
       - "TZ=${TZ:-UTC}"
     volumes:
       - ./guard/config.json:/config.json:ro
