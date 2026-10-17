@@ -73,16 +73,7 @@ jobs:
           registry-password: ${{ secrets.GITHUB_TOKEN }}
           format: "spdx-json"
           output-file: "sbom-${{ matrix.target }}.spdx.json"
-          dependency-snapshot: false
-
-      - name: Submit Dependency Snapshot to GitHub Dependency Graph
-        uses: advanced-security/spdx-dependency-submission-action@v0
-        with:
-          filePath: "."
-          filePattern: "sbom-${{ matrix.target }}.spdx.json"
-          manifestPath: "${{ matrix.target }}"
-          correlator: "${{ github.workflow }}-${{ github.job }}-${{ matrix.target }}"
-          token: ${{ secrets.GITHUB_TOKEN }}
+          dependency-snapshot: true
 
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@v7
