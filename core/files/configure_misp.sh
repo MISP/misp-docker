@@ -434,17 +434,12 @@ set_up_custom_auth() {
 }
 
 set_up_session() {
-    local cookie_secure="${PHP_SESSION_COOKIE_SECURE}"
-    if [ -z "${cookie_secure}" ]; then
-        case "${BASE_URL}" in
-            http://*)
-                cookie_secure=false
-                ;;
-            *)
-                cookie_secure=true
-                ;;
-        esac
-    fi
+    local cookie_secure=true
+    case "${BASE_URL}" in
+        http://*)
+            cookie_secure=false
+            ;;
+    esac
 
     # Command to modify MISP session configuration
     sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
