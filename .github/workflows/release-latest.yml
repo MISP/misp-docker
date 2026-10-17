@@ -2,12 +2,12 @@ name: Build the Docker images and push them to the container registry
 
 on:
   push:
-    branches: [ "master" ]
+    branches: ["master"]
   workflow_dispatch: # manual trigger
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     strategy:
       matrix:
@@ -61,9 +61,6 @@ jobs:
           provenance: false
           files: docker-bake.hcl, env.hcl
           targets: ${{ matrix.target }}
-          # set: |
-          #   *.cache-from=type=gha
-          #   *.cache-to=type=gha,mode=max
 
       - name: Generate SBOM
         uses: anchore/sbom-action@v0

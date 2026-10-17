@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
 
     strategy:
       matrix:
@@ -46,6 +46,3 @@ jobs:
           provenance: false
           files: docker-bake.hcl, env.hcl
           targets: ${{ matrix.target }}
-          # set: |
-          #   *.cache-from=type=gha
-          #   *.cache-to=type=gha,mode=max
