@@ -434,6 +434,13 @@ set_up_custom_auth() {
 }
 
 set_up_session() {
+    local cookie_secure=true
+    case "${BASE_URL}" in
+        http://*)
+            cookie_secure=false
+            ;;
+    esac
+
     # Command to modify MISP session configuration
     sudo -u www-data php /var/www/MISP/tests/modify_config.php modify "{
         \"Session\": {
@@ -443,7 +450,7 @@ set_up_session() {
             \"autoRegenerate\": ${PHP_SESSION_AUTO_REGENERATE},
             \"checkAgent\": ${PHP_SESSION_CHECK_AGENT},
             \"ini\": {
-                \"session.cookie_secure\": ${PHP_SESSION_COOKIE_SECURE},
+                \"session.cookie_secure\": ${cookie_secure},
                 \"session.cookie_domain\": \"${PHP_SESSION_COOKIE_DOMAIN}\",
                 \"session.cookie_samesite\": \"${PHP_SESSION_COOKIE_SAMESITE}\"
             }
