@@ -208,6 +208,8 @@ RUN apt-get install -y --no-install-recommends \
 
 # Download MISP using git in the /var/www/ directory. Remove unnecessary items.
 RUN <<-EOF
+    # Some nested submodules are declared with SSH URLs, fetch them over HTTPS instead
+    git config --global url."https://github.com/".insteadOf "git@github.com:"
     if [ ! -z "${CORE_COMMIT}" ]; then
         git clone https://github.com/MISP/MISP.git /var/www/MISP && cd /var/www/MISP && git checkout "${CORE_COMMIT}"
     else
@@ -264,8 +266,8 @@ RUN <<-EOF
     pip wheel --no-cache-dir -w /wheels/ -r /var/www/MISP/requirements.txt
 
     # Remove files we do not care for
-    find /var/www/MISP/INSTALL/* ! -name 'MYSQL.sql' -type f -exec rm {} +
-    find /var/www/MISP/INSTALL/* ! -name 'MYSQL.sql' -type l -exec rm {} +
+    find /var/www/MISP/INSTALL/* ! -name 'MYSQL.sql' ! -name 'MARIADB.sql' -type f -exec rm {} +
+    find /var/www/MISP/INSTALL/* ! -name 'MYSQL.sql' ! -name 'MARIADB.sql' -type l -exec rm {} +
     # Remove most files in .git - we do not use git functionality in docker
     find /var/www/MISP/.git/* ! -name HEAD -exec rm -rf {} +
     # Remove libraries submodules
@@ -276,6 +278,8 @@ RUN <<-EOF
     rm -r /var/www/MISP/app/files/scripts/python-cybox
     rm -r /var/www/MISP/app/files/scripts/python-maec
     rm -r /var/www/MISP/app/files/scripts/python-stix
+    # Build-time sources of the icon set, MISP only uses its generated exports
+    rm -rf /var/www/MISP/app/files/misp-iconify/vendor
 EOF
 
 # --- final stage

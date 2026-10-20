@@ -53,9 +53,6 @@
     "default_value": "",
     "command_args": "-f"
   },
-  "SimpleBackgroundJobs.enabled": {
-    "default_value": true
-  },
   "SimpleBackgroundJobs.supervisor_host": {
     "default_value": "127.0.0.1"
   },

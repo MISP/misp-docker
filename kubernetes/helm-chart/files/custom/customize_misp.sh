@@ -84,7 +84,6 @@ configure_admin_password() {
 }
 
 configure_background_jobs() {
-    set_misp_setting "SimpleBackgroundJobs.enabled" "true" "background jobs enabled"
     set_misp_setting "SimpleBackgroundJobs.supervisor_host" "127.0.0.1" "supervisor host"
     set_misp_setting "SimpleBackgroundJobs.supervisor_port" "9001" "supervisor port"
     set_misp_setting "SimpleBackgroundJobs.supervisor_password" "${SUPERVISOR_PASSWORD}" "supervisor password"

@@ -37,8 +37,13 @@ init_mysql() {
         echo "... database has already been initialized"
         export DB_ALREADY_INITIALISED=true
     else
-        echo "... database has not been initialized, importing MySQL scheme..."
-        $MYSQL_CMD < /var/www/MISP/INSTALL/MYSQL.sql
+        # MISP ships a dedicated MariaDB baseline when the collations differ from MySQL's
+        SCHEMA_FILE=/var/www/MISP/INSTALL/MYSQL.sql
+        if [ -f /var/www/MISP/INSTALL/MARIADB.sql ] && echo "SELECT VERSION()" | $MYSQL_CMD | grep -qi mariadb; then
+            SCHEMA_FILE=/var/www/MISP/INSTALL/MARIADB.sql
+        fi
+        echo "... database has not been initialized, importing $(basename "$SCHEMA_FILE") scheme..."
+        $MYSQL_CMD < "$SCHEMA_FILE"
     fi
 }
 
