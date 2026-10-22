@@ -111,8 +111,13 @@ change_php_vars() {
             echo "Configure PHP | Setting 'pm.status_path = /fpm-status'"
             sed -i -E "s/;?pm.status_path = .*/pm.status_path = \/fpm-status/" "$FILE"
             if [[ -n "$PHP_LISTEN_FPM" ]]; then
-                echo "Configure PHP | Setting 'pm.status_listen' to [::]:9003"
-                sed -i -E "s/;?pm.status_listen = .*/pm.status_listen = [::]:9003/" "$FILE"
+                if [[ "$DISABLE_IPV6" = "true" ]]; then
+                    echo "Configure PHP | Setting 'pm.status_listen' to 0.0.0.0:9003"
+                    sed -i -E "s/;?pm.status_listen = .*/pm.status_listen = 0.0.0.0:9003/" "$FILE"
+                else
+                    echo "Configure PHP | Setting 'pm.status_listen' to [::]:9003"
+                    sed -i -E "s/;?pm.status_listen = .*/pm.status_listen = [::]:9003/" "$FILE"
+                fi
             else
                 echo "Configure PHP | Setting 'pm.status_listen = /run/php/php-fpm-status.sock'"
                 sed -i -E "s/;?pm.status_listen = .*/pm.status_listen = \/run\/php\/php-fpm-status.sock/" "$FILE"

@@ -170,24 +170,23 @@ RUN update-alternatives --set php /usr/bin/php${PHP_PACKAGE_VERSION} && \
     update-alternatives --set php-config /usr/bin/php-config${PHP_PACKAGE_VERSION} && \
     update-alternatives --set phpize /usr/bin/phpize${PHP_PACKAGE_VERSION}
 
-RUN <<-EOF
-    pecl channel-update pecl.php.net
-
+RUN --mount=type=bind,from=ghcr.io/php/pie:bin,source=/pie,target=/usr/local/bin/pie <<-EOF
     if [ "${CORE_FLAVOR}" = "slim" ]; then
         tar -czf /pecl_libs.tar.gz -T /dev/null
     else
         cp "/usr/lib/$(gcc -dumpmachine)"/libfuzzy.* /usr/lib
-        pecl install rdkafka
-        pecl install simdjson
-        pecl install zstd
-        pecl install brotli
+        pie install --no-cache \
+            rdkafka/rdkafka \
+            kjdev/zstd \
+            kjdev/brotli \
+            awesome/simdjson_plus
         git clone --recursive --depth=1 https://github.com/JakubOnderka/pecl-text-ssdeep.git /tmp/pecl-text-ssdeep
         cd /tmp/pecl-text-ssdeep && phpize && ./configure && make && make install
         tar -czf /pecl_libs.tar.gz \
             /usr/lib/php/${PHP_API_VERSION}/ssdeep.so \
             /usr/lib/php/${PHP_API_VERSION}/rdkafka.so \
             /usr/lib/php/${PHP_API_VERSION}/brotli.so \
-            /usr/lib/php/${PHP_API_VERSION}/simdjson.so \
+            /usr/lib/php/${PHP_API_VERSION}/simdjson_plus.so \
             /usr/lib/php/${PHP_API_VERSION}/zstd.so
     fi
 EOF
@@ -316,7 +315,7 @@ RUN <<-EOF
     if [ "${CORE_FLAVOR}" = "slim" ]; then
         set --
     else
-        set -- "ssdeep" "rdkafka" "brotli" "simdjson" "zstd"
+        set -- "ssdeep" "rdkafka" "brotli" "simdjson_plus" "zstd"
     fi
     for mod in "$@"; do
         for dir in /etc/php/*/; do
