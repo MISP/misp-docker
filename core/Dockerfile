@@ -115,6 +115,8 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 RUN <<-EOF
     composer config --no-interaction allow-plugins.composer/installers true
     composer install
+    # Only created when a dependency is a CakePHP plugin, the final stage copies it regardless
+    mkdir -p /tmp/Plugin
 
     if [ "${CORE_FLAVOR}" = "slim" ]; then
         :
