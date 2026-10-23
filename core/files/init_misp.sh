@@ -29,7 +29,7 @@ update_database_tls_config() {
             sed -E "s@^([[:space:]]*'${key}'[[:space:]]*=>)[^,]*,@\1 '${value}',@g" \
               "$config_file" > "$tmp"
         else
-            sed -E "/public[[:space:]]+\\\$default[[:space:]]*=[[:space:]]*\\[/a\\
+            sed -E "/^[[:space:]]*public[[:space:]]+\\\$default[[:space:]]*=[[:space:]]*\\[/a\\
         '${key}' => '${value}'," \
               "$config_file" > "$tmp"
         fi
