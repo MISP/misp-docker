@@ -300,6 +300,12 @@ RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 # shipped in everything we publish. A bind mount is never committed to a layer.
 RUN --mount=type=bind,from=python-build,source=/wheels,target=/wheels \
     pip install --no-cache-dir /wheels/*.whl
+
+# Installation is complete. Keep pip and its vendored dependencies out of the
+# runtime, including the bundled wheel that could reinstall them via ensurepip.
+RUN python -m pip uninstall --yes pip && \
+    python -c 'import pathlib, shutil, sysconfig; shutil.rmtree(pathlib.Path(sysconfig.get_path("stdlib")) / "ensurepip")'
+
 # PHP: install prebuilt libraries, then install the app's PHP deps
 COPY --from=php-build /pecl_libs.tar.gz /
 RUN tar -xzf /pecl_libs.tar.gz && rm /pecl_libs.tar.gz
