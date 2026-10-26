@@ -70,8 +70,8 @@ jobs:
           registry-password: ${{ secrets.GITHUB_TOKEN }}
           format: "spdx-json"
           output-file: "sbom-${{ matrix.target }}.spdx.json"
+          artifact-name: "sbom-${{ matrix.target }}.spdx.json"
           dependency-snapshot: true
-          dependency-snapshot-correlator: ${{ github.workflow }}_${{ github.job }}_${{ matrix.target }}
           upload-artifact: false
 
       - name: Upload SBOM artifact
