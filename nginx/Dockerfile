@@ -1,5 +1,5 @@
 # --- sources stage
-FROM ghcr.io/nginx/nginx-unprivileged:1.31.2-trixie AS sources
+FROM ghcr.io/nginx/nginx-unprivileged:1.31.8-trixie AS sources
 
 ARG CORE_TAG
 ARG CORE_COMMIT
@@ -31,7 +31,7 @@ RUN <<-EOF
 EOF
 
 # --- final stage
-FROM ghcr.io/nginx/nginx-unprivileged:1.31.2-trixie
+FROM ghcr.io/nginx/nginx-unprivileged:1.31.8-trixie
 
 # environment
 ENV NGINX_INTERNAL_HTTP_PORT=8080
