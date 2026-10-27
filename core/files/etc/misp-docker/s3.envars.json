@@ -2,6 +2,9 @@
     "Plugin.S3_bucket_name": {
         "default_value": "${S3_BUCKET}"
     },
+    "Plugin.S3_region": {
+        "default_value": "${S3_REGION}"
+    },
     "Plugin.S3_aws_endpoint": {
         "default_value": "${S3_ENDPOINT}"
     },
