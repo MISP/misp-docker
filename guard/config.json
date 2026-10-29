@@ -17,6 +17,8 @@
             "port": 443,
             "compartment_id": "compartment_1",
             "affiliation": "internal",
+            "allow_sync_auth_key_refresh": false,
+            "allow_sightings": false,
             "taxonomies_rules": {
                 "required_taxonomies": [],
                 "allowed_tags": {},
@@ -36,6 +38,8 @@
             "port": 443,
             "compartment_id": "compartment_1",
             "affiliation": "partner",
+            "allow_sync_auth_key_refresh": false,
+            "allow_sightings": false,
             "taxonomies_rules": {
                 "required_taxonomies": [],
                 "allowed_tags": {
