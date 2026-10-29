@@ -183,7 +183,7 @@ The following format is required to target the misp-core, the IP is replaced wit
 docker compose restart misp-guard
 ```
 
-> [!IMPORTANT]
+> [!NOTE]
 > **misp-guard v1.4+:** sightings sync is blocked by default. To allow it:
 >
 > ```jsonc
