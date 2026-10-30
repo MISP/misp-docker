@@ -41,6 +41,11 @@ EOF
     RUN --mount=type=bind,from=python-build,source=/wheels,target=/wheels \
         pip install --no-cache-dir /wheels/*.whl
 
+    # Installation is complete. Keep pip and its vendored dependencies out of the
+    # runtime, including the bundled wheel that could reinstall them via ensurepip.
+    RUN python -m pip uninstall --yes pip && \
+        python -c 'import pathlib, shutil, sysconfig; shutil.rmtree(pathlib.Path(sysconfig.get_path("stdlib")) / "ensurepip")'
+
     COPY --from=python-build /srv /srv
     COPY files/ /
 
