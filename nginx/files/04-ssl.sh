@@ -17,7 +17,7 @@ fi
 for f in /etc/nginx/certs/cert.pem /etc/nginx/certs/key.pem; do
     if [ ! -r "$f" ]; then
         echo "ERROR: $f exists but is not readable by uid $(id -u) / gid $(id -g)." >&2
-        echo "ERROR: Fix the permissions on the host, e.g. 'chgrp $(id -g) ssl/key.pem && chmod 640 ssl/key.pem'." >&2
+        echo "ERROR: Fix the permissions on the host, e.g. 'chgrp $(id -g) ssl/$(basename "$f") && chmod 640 ssl/$(basename "$f")'." >&2
         exit 1
     fi
 done
