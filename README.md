@@ -391,6 +391,8 @@ This improves security and scalability of the front-facing NGINX server but lead
 
 **TLS/SSL:** The existing `./ssl` volume mount from `misp-core` is moved to the `misp-nginx` container, so existing certificates keep working.
 
+**Permissions:** `misp-nginx` runs as a non-root user (uid/gid `101`) and mounts `./ssl` read-only, so `cert.pem` and `key.pem` must be readable by that user. If `key.pem` is owned by `root` with mode `600`, HTTPS will not work. Grant read access with `chgrp 101 ssl/key.pem && chmod 640 ssl/key.pem` or, since gid `101` may already belong to an unrelated group on the host (e.g. `ssh_keys` on RHEL), with an ACL: `setfacl -m u:101:r ssl/key.pem`.
+
 **Certificates:** SSL is disabled if certificates are missing, but you can generate self-signed certificates with the following command: `mkdir -p ./ssl/ && openssl req -x509 -subj '/CN=localhost' -nodes -newkey rsa:4096 -keyout ssl/key.pem -out ssl/cert.pem -days 365 -addext "subjectAltName = DNS:localhost, IP:127.0.0.1, IP:::1"`
 
 **GPG key delivery:** `gpg.asc` is now served via `misp-nginx`, which proxies the request through to `misp-core` (PHP-FPM) rather than serving a static file from the webroot path.
