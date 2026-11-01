@@ -13,6 +13,15 @@ if [ ! -f "/etc/nginx/certs/cert.pem" ] || [ ! -f "/etc/nginx/certs/key.pem" ]; 
     exit 0
 fi
 
+# ensure certificates are readable by the user running nginx
+for f in /etc/nginx/certs/cert.pem /etc/nginx/certs/key.pem; do
+    if [ ! -r "$f" ]; then
+        echo "ERROR: $f exists but is not readable by uid $(id -u) / gid $(id -g)." >&2
+        echo "ERROR: Fix the permissions on the host, e.g. 'chgrp $(id -g) ssl/key.pem && chmod 640 ssl/key.pem'." >&2
+        exit 1
+    fi
+done
+
 # build redirect config if the BASE_URL is set
 if [ -n "$BASE_URL" ]; then
     cat >> "$REDIRECT_CONF" <<EOF
