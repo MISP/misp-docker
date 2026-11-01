@@ -308,7 +308,8 @@ RUN tar -xzf /pecl_libs.tar.gz && rm /pecl_libs.tar.gz
 COPY --from=python-build --chown=www-data:www-data --chmod=0550 /var/www/MISP /var/www/MISP
 COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/composer.lock /var/www/MISP/app/composer.lock
 COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/Vendor /var/www/MISP/app/Vendor
-COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/Plugin /var/www/MISP/app/Plugin
+# From 2.5.51 there is no /tmp/Plugin
+# COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/Plugin /var/www/MISP/app/Plugin
 
 # Gather these in one layer, only act on actual directories under /etc/php/
 RUN <<-EOF
