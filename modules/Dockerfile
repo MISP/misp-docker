@@ -33,6 +33,7 @@ EOF
 RUN mkdir /wheels
 
 RUN <<-EOF
+        poetry add more-itertools==11.1.0
         if [ ! -z ${MODULES_COMMIT} ]; then
             git clone https://github.com/MISP/misp-modules.git /srv/misp-modules && cd /srv/misp-modules && git checkout ${MODULES_COMMIT}
         else
