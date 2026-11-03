@@ -426,7 +426,9 @@ set_up_custom_auth() {
             sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q -n "Plugin.CustomAuth_custom_logout"
         fi
         # Re-enable settings
-        sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" true
+        if [[ "$OIDC_ENABLE" != "true" && "$APACHESECUREAUTH_LDAP_ENABLE" != "true" && "$LDAPAUTH_ENABLE" != "true" && "$AAD_ENABLE" != "true" ]]; then
+            sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "Security.require_password_confirmation" true
+        fi
         sudo -u www-data /var/www/MISP/app/Console/cake Admin setSetting -q "MISP.log_auth" true
 
         echo "... CUSTOM_AUTH authentication disabled"
