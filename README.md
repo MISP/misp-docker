@@ -183,6 +183,18 @@ The following format is required to target the misp-core, the IP is replaced wit
 docker compose restart misp-guard
 ```
 
+> [!NOTE]
+> **misp-guard v1.4+:** sightings sync is blocked by default. To allow it:
+>
+> ```jsonc
+> "partner_example": {
+>   // true = allow sightings sync with this partner (push and pull)
+>   "allow_sightings": true,
+>   // true = allow the sync user's API key on this partner to be refreshed
+>   "allow_sync_auth_key_refresh": true
+> }
+> ```
+
 #### Environment Variables
 
 ```bash
