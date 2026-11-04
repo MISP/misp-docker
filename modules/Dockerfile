@@ -98,6 +98,8 @@ RUN bash -c 'mkdir -p /custom/{action_mod,expansion,export_mod,import_mod} && \
     chmod -R g=u /custom /home/misp && \
     find /custom /home/misp -type d -exec chmod g+s {} +'
 
-USER misp
+# Numeric, not "misp": the kubelet can only verify runAsNonRoot against a
+# numeric image USER when the pod spec doesn't pin runAsUser itself.
+USER ${MISP_UID}
 
 ENTRYPOINT [ "/usr/local/bin/misp-modules", "-l", "0.0.0.0", "-c", "/custom/"]

@@ -1013,14 +1013,16 @@ misp:
     ## @param containerSecurityContext.seccompProfile.type Set container's Security Context seccomp profile
     ## @param containerSecurityContext.readOnlyRootFilesystem Set container's Security Context read-only root filesystem
     # yamllint enable
+    # runAsUser/runAsGroup are deliberately omitted, as for misp.securityContext
+    # above: the nginx-unprivileged base image already declares a numeric
+    # non-root USER (101) for vanilla k8s, and supports running as an
+    # arbitrary UID (paired with group 0) for OpenShift.
     securityContext:
       readOnlyRootFilesystem: true
       allowPrivilegeEscalation: false
       seccompProfile:
         type: RuntimeDefault
       runAsNonRoot: true
-      runAsUser: 101
-      runAsGroup: 101
       capabilities:
         drop:
           - ALL

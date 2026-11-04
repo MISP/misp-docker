@@ -63,6 +63,8 @@ EOF
         find /srv /home/guard /misp_guard_ca -type d -exec chmod g+s {} +
 
     ENV HOME=/home/guard
-    USER guard
+    # Numeric, not "guard": the kubelet can only verify runAsNonRoot against
+    # a numeric image USER when the pod spec doesn't pin runAsUser itself.
+    USER ${GUARD_UID}
     WORKDIR /srv/misp-guard/src
     ENTRYPOINT [ "/entrypoint.sh" ]
