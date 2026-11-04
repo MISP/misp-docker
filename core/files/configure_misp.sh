@@ -220,7 +220,7 @@ set_up_apachesecureauth() {
             \"ldapDefaultRoleId\": ${APACHESECUREAUTH_LDAP_DEFAULT_ROLE_ID},
             \"ldapDefaultOrg\": \"${APACHESECUREAUTH_LDAP_DEFAULT_ORG}\",
             \"ldapAllowReferrals\": ${APACHESECUREAUTH_LDAP_OPT_REFERRALS},
-            \"ldapEmailField\": ${APACHESECUREAUTH_LDAP_EMAIL_FIELD}
+             \"ldapEmailField\": [\"${APACHESECUREAUTH_LDAP_EMAIL_FIELD}\"],
         }
     }" > /dev/null
 
