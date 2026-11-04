@@ -1,0 +1,329 @@
+name: OpenShift compatibility
+
+# Guards the rootless / arbitrary-UID support (OpenShift restricted-v2 SCC)
+# against regressions, without regressing the plain Docker path:
+#   - lint:       forbidden patterns in Dockerfiles/scripts, and pod security
+#                 settings of the rendered Helm chart and plain manifests
+#   - images:     every image declares a numeric non-root USER, and starts
+#                 under a random UID paired with group 0
+#   - kubernetes: the Helm chart installs and becomes ready on a cluster
+#                 enforcing Pod Security "restricted", under a random UID
+#
+# A line can be exempted from the forbidden-pattern check with a trailing
+# "openshift-lint: allow <reason>" comment.
+
+on:
+  pull_request:
+    branches: ["master"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: No privilege-escalation helpers or setuid bits
+        run: |
+          # setgid (g+s, 2xxx) is fine and used on purpose for group-0 dirs;
+          # setuid (u+s, +s, 4xxx-7xxx) and sudo-like helpers are not.
+          if grep -rnE '\b(sudo|gosu|su-exec|setcap)\b|chmod( -[A-Za-z]+)* ([ago]*u[ago]*|a)?\+s|chmod( -[A-Za-z]+)* [4-7][0-7]{3}\b' \
+               --include=Dockerfile --include='*.sh' --include='*.envsh' \
+               core modules guard nginx kubernetes \
+             | grep -v 'openshift-lint: allow'; then
+            echo "::error::Privilege-escalation pattern found (see above). Containers must work without ever being root at runtime."
+            exit 1
+          fi
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v5
+
+      - name: Pod security of the Helm chart and plain manifests
+        run: |
+          python3 -c 'import yaml' 2>/dev/null || { sudo apt-get update && sudo apt-get install -y python3-yaml; }
+          helm template misp kubernetes/helm-chart \
+            --set misp.image.repository=ci/misp-core \
+            --set misp.nginx.image.repository=ci/misp-nginx \
+            > rendered.yaml
+          python3 - rendered.yaml kubernetes/manifests/*.yaml kubernetes/components/*/*.yaml <<'EOF'
+          import sys, yaml
+
+          WORKLOADS = {"Deployment", "StatefulSet", "DaemonSet", "Job", "ReplicaSet"}
+          errors = []
+
+          for path in sys.argv[1:]:
+              with open(path) as f:
+                  docs = [d for d in yaml.safe_load_all(f) if d]
+              for doc in docs:
+                  kind = doc.get("kind")
+                  if kind == "CronJob":
+                      spec = doc["spec"]["jobTemplate"]["spec"]["template"]["spec"]
+                  elif kind in WORKLOADS:
+                      spec = doc["spec"]["template"]["spec"]
+                  elif kind == "Pod":
+                      spec = doc["spec"]
+                  else:
+                      continue
+                  containers = spec.get("initContainers", []) + spec.get("containers", [])
+                  # Only pods running one of our own images; third-party pods (Bitnami
+                  # subcharts, the stock mariadb/redis manifests) are out of scope.
+                  if not any("misp" in c.get("image", "") for c in containers):
+                      continue
+                  where = f"{path}: {kind}/{doc['metadata']['name']}"
+                  psc = spec.get("securityContext") or {}
+                  # OpenShift assigns its own UID/GID/fsGroup and rejects pods that pin one.
+                  for key in ("runAsUser", "runAsGroup", "fsGroup"):
+                      if key in psc:
+                          errors.append(f"{where}: pod securityContext pins {key}")
+                  for key in ("hostNetwork", "hostPID", "hostIPC"):
+                      if spec.get(key):
+                          errors.append(f"{where}: {key} is set")
+                  for v in spec.get("volumes", []):
+                      if "hostPath" in v:
+                          errors.append(f"{where}: hostPath volume {v['name']}")
+                  for c in containers:
+                      cw = f"{where} container {c['name']}"
+                      sc = c.get("securityContext") or {}
+                      for key in ("runAsUser", "runAsGroup"):
+                          if key in sc:
+                              errors.append(f"{cw}: pins {key}")
+                      if sc.get("privileged"):
+                          errors.append(f"{cw}: privileged")
+                      if sc.get("allowPrivilegeEscalation") is not False:
+                          errors.append(f"{cw}: allowPrivilegeEscalation must be false")
+                      caps = sc.get("capabilities") or {}
+                      if "ALL" not in (caps.get("drop") or []):
+                          errors.append(f"{cw}: capabilities.drop must include ALL")
+                      if set(caps.get("add") or []) - {"NET_BIND_SERVICE"}:
+                          errors.append(f"{cw}: adds capabilities {caps['add']}")
+                      if not sc.get("runAsNonRoot", psc.get("runAsNonRoot")):
+                          errors.append(f"{cw}: runAsNonRoot must be true")
+                      seccomp = (sc.get("seccompProfile") or psc.get("seccompProfile") or {}).get("type")
+                      if seccomp not in ("RuntimeDefault", "Localhost"):
+                          errors.append(f"{cw}: seccompProfile must be RuntimeDefault")
+                      for p in c.get("ports", []):
+                          if p.get("containerPort", 1024) < 1024:
+                              errors.append(f"{cw}: privileged containerPort {p['containerPort']}")
+
+          for e in errors:
+              print(f"::error::{e}")
+          sys.exit(1 if errors else 0)
+          EOF
+
+  images:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Initialize environment
+        run: |
+          sed -e '/^[[:space:]]*$/d' -e '/[#@]/d' -e 's/\"//g' -e 's/\(^[^=]*\)=\(.*\)/\1="\2"/' template.env > env.hcl
+          echo "COMMIT_HASH=ci" >> "$GITHUB_ENV"
+          echo "NAMESPACE=ci" >> "$GITHUB_ENV"
+
+      # amd64 only: multi-arch builds are already covered by test-build-latest.yml.
+      - name: Build
+        uses: docker/bake-action@v7
+        with:
+          source: .
+          load: true
+          provenance: false
+          files: docker-bake.hcl, env.hcl
+          targets: misp-core, misp-modules, misp-guard, misp-nginx
+          set: |
+            *.platform=linux/amd64
+
+      - name: Images declare a numeric non-root USER
+        run: |
+          # The kubelet can only enforce runAsNonRoot against a numeric USER
+          # when the pod spec does not pin runAsUser itself.
+          fail=0
+          for name in misp-core misp-modules misp-guard misp-nginx; do
+            user=$(docker image inspect -f '{{.Config.User}}' "ci/$name:ci")
+            if [[ "$user" =~ ^[1-9][0-9]*(:[0-9]+)?$ ]]; then
+              echo "$name: USER $user"
+            else
+              echo "::error::$name declares USER '$user', expected a numeric non-root UID"
+              fail=1
+            fi
+          done
+          exit $fail
+
+      # misp-core needs a database and is covered by the kubernetes job.
+      - name: Images start under a random UID with group 0
+        run: |
+          uid=$(shuf -i 1000000000-1999999999 -n 1)
+          echo "Running as $uid:0"
+          fail=0
+          for spec in \
+              "misp-modules 6666" \
+              "misp-guard 8888 -e MISP_IP=127.0.0.1 -v $GITHUB_WORKSPACE/guard/config.json:/config.json:ro" \
+              "misp-nginx 8080 -e BASE_URL=http://localhost -e DISABLE_IPV6=true --add-host misp-core:127.0.0.1"; do
+            # shellcheck disable=SC2086 # split "name port docker-run-args..."
+            set -- $spec
+            name=$1 port=$2
+            shift 2
+            docker run -d --name "$name" --user "$uid:0" --cap-drop ALL \
+              --security-opt no-new-privileges "$@" "ci/$name:ci" > /dev/null
+            ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$name")
+            up=0
+            for _ in $(seq 90); do
+              [ "$(docker inspect -f '{{.State.Running}}' "$name")" = true ] || break
+              if (echo > "/dev/tcp/$ip/$port") 2>/dev/null; then up=1; break; fi
+              sleep 2
+            done
+            if [ "$up" != 1 ]; then
+              echo "::error::$name did not start listening on $port as $uid:0"
+              docker logs "$name"
+              fail=1
+              continue
+            fi
+            uids=$(docker top "$name" -eo pid,uid | awk 'NR>1 {print $2}' | sort -u | tr '\n' ' ')
+            if [ "$uids" != "$uid " ]; then
+              echo "::error::$name has processes running as UIDs: $uids(expected only $uid)"
+              fail=1
+              continue
+            fi
+            echo "$name: OK"
+          done
+          exit $fail
+
+      - name: Export images for the kubernetes job
+        run: docker save ci/misp-core:ci ci/misp-nginx:ci | zstd -T0 -3 > images.tar.zst
+
+      - name: Upload images
+        uses: actions/upload-artifact@v7
+        with:
+          name: openshift-compat-images
+          path: images.tar.zst
+          retention-days: 1
+
+  kubernetes:
+    needs: images
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Download images
+        uses: actions/download-artifact@v7
+        with:
+          name: openshift-compat-images
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v5
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: misp
+
+      - name: Load images into kind
+        run: |
+          zstd -dc images.tar.zst | docker load
+          kind load docker-image ci/misp-core:ci ci/misp-nginx:ci --name misp
+
+      # Vanilla equivalent of OpenShift's restricted-v2 SCC baseline. It does
+      # not assign a UID from a namespace range the way OpenShift does, so a
+      # random one is forced below instead.
+      - name: Create namespace enforcing Pod Security "restricted"
+        run: |
+          kubectl create namespace misp
+          kubectl label namespace misp \
+            pod-security.kubernetes.io/enforce=restricted \
+            pod-security.kubernetes.io/warn=restricted
+
+      - name: Chart values
+        run: |
+          uid=$(shuf -i 1000000000-1999999999 -n 1)
+          echo "TEST_UID=$uid" >> "$GITHUB_ENV"
+          cat > ci-values.yaml <<EOF
+          misp:
+            image:
+              repository: ci/misp-core
+              tag: ci
+              pullPolicy: Never
+            nginx:
+              image:
+                repository: ci/misp-nginx
+                tag: ci
+                pullPolicy: Never
+            ingress:
+              enabled: false
+            hostname: http://misp.ci.local
+            # What OpenShift does: arbitrary UID, primary group 0, fsGroup from the range.
+            podSecurityContext:
+              runAsUser: $uid
+              runAsGroup: 0
+              fsGroup: $uid
+            # First start initialises the database, which is slow on CI runners.
+            startup:
+              failure: 180
+          EOF
+          cat ci-values.yaml
+
+      # Fails fast with a readable message, instead of helm --wait timing out
+      # on pods that admission silently refuses to create.
+      - name: Pod Security admission dry run
+        run: |
+          helm template misp kubernetes/helm-chart -n misp -f ci-values.yaml \
+            | kubectl apply -n misp --dry-run=server -f - 2> admission.log > /dev/null || true
+          cat admission.log
+          if grep -q 'violate PodSecurity' admission.log; then
+            echo "::error::The chart violates Pod Security \"restricted\" (see above)"
+            exit 1
+          fi
+
+      - name: Install the chart
+        run: helm install misp kubernetes/helm-chart -n misp -f ci-values.yaml --wait --timeout 30m
+
+      - name: All MISP processes run as the assigned UID
+        run: |
+          pod=$(kubectl get pod -n misp -l app.kubernetes.io/component=misp,app.kubernetes.io/part-of=misp -o name | head -1)
+          fail=0
+          for c in $(kubectl get -n misp "$pod" -o jsonpath='{.spec.containers[*].name}'); do
+            uids=$(kubectl exec -n misp "$pod" -c "$c" -- \
+              sh -c "awk '/^Uid:/ {print \$2; print \$3}' /proc/[0-9]*/status" | sort -u | tr '\n' ' ')
+            if [ "$uids" != "$TEST_UID " ]; then
+              echo "::error::Container $c has processes running as UIDs: $uids(expected only $TEST_UID)"
+              fail=1
+            else
+              echo "$c: OK"
+            fi
+          done
+          exit $fail
+
+      - name: MISP answers over HTTP
+        run: |
+          pod=$(kubectl get pod -n misp -l app.kubernetes.io/component=misp,app.kubernetes.io/part-of=misp -o name | head -1)
+          kubectl port-forward -n misp "$pod" 8080:8080 > /dev/null &
+          sleep 5
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --retry 10 --retry-all-errors --retry-delay 3 http://127.0.0.1:8080/users/login)
+          echo "GET /users/login -> $code"
+          [ "$code" = 200 ]
+
+      - name: Diagnostics
+        if: failure()
+        run: |
+          kubectl get all,pvc,events -n misp || true
+          kubectl describe pods -n misp || true
+          for pod in $(kubectl get pods -n misp -o name); do
+            kubectl logs -n misp "$pod" --all-containers --prefix --tail=200 || true
+          done
