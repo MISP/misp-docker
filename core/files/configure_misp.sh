@@ -630,6 +630,10 @@ update_ca_certificates() {
     if [[ "$(id -u)" -eq 0 ]]; then
         update-ca-certificates
     fi
+    # Enforce MISP permissions (see init_misp.sh) has already locked these
+    # down to 0550 by the time this runs - make them writable again first,
+    # same as the bootstrap.php/database.php handling above.
+    chmod +w /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt 2>/dev/null || true
     if [[ "$DISABLE_CA_REFRESH" = "true" ]]; then
         echo "Updating /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem using local data..."
         cp /etc/ssl/certs/ca-certificates.crt /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem
@@ -647,6 +651,7 @@ update_ca_certificates() {
             cp /etc/ssl/certs/ca-certificates.crt /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem
         fi
     fi
+    chmod 0550 /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/cacert.pem /var/www/MISP/app/Lib/cakephp/lib/Cake/Config/etag.txt 2>/dev/null || true
 }
 
 configure_misp_guard_ca() {
