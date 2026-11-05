@@ -19,7 +19,7 @@ services:
       - "TZ=${TZ:-UTC}"
 
   redis:
-    image: ${REGISTRY_MIRROR_URL:-}valkey/valkey:7.2
+    image: ${REGISTRY_MIRROR_URL:-}ghcr.io/valkey-io/valkey:7.2
     restart: always
     command: |
       sh -c '
@@ -58,7 +58,7 @@ services:
 
   db:
     # We use MariaDB because it supports ARM and has the expected collations
-    image: ${REGISTRY_MIRROR_URL:-}mariadb:10.11
+    image: ${REGISTRY_MIRROR_URL:-}ghcr.io/mariadb/mariadb:10.11
     restart: always
     environment:
       - "MYSQL_USER=${MYSQL_USER:-misp}"
@@ -95,7 +95,6 @@ services:
       args:
         - CORE_TAG=${CORE_TAG:?Missing or outdated .env file, see README.md for instructions}
         - CORE_COMMIT=${CORE_COMMIT}
-        - CORE_FLAVOR=${CORE_FLAVOR:-standard}
         - PHP_API_VERSION=${PHP_API_VERSION:-20240924}
         - PHP_PACKAGE_VERSION=${PHP_PACKAGE_VERSION:-8.4}
         - PYPI_SETUPTOOLS_VERSION=${PYPI_SETUPTOOLS_VERSION:-==84.0.0}
@@ -381,7 +380,6 @@ services:
       args:
         - MODULES_TAG=${MODULES_TAG:?Missing or outdated .env file, see README.md for instructions}
         - MODULES_COMMIT=${MODULES_COMMIT}
-        - MODULES_FLAVOR=${MODULES_FLAVOR:-standard}
     healthcheck:
       test: "/bin/bash -c '</dev/tcp/localhost/6666'"
       interval: 2s

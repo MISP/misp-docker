@@ -7,7 +7,6 @@ FROM "${DOCKER_HUB_PROXY}python:3.14-slim-trixie" AS python-build
 ENV DEBIAN_FRONTEND=noninteractive
 ARG MODULES_TAG
 ARG MODULES_COMMIT
-ARG MODULES_FLAVOR
 
 # Uncomment when building in corporate environments
 # COPY ./cert.pem /usr/local/share/ca-certificates/rootca.pem
@@ -15,18 +14,12 @@ ARG MODULES_FLAVOR
 
 RUN <<-EOF
         apt-get update
-        if [ "${MODULES_FLAVOR}" = "slim" ]; then
-            apt-get install -y --no-install-recommends \
-                ca-certificates \
-                git
-        else
-            apt-get install -y --no-install-recommends \
-                ca-certificates \
-                git \
-                build-essential \
-                libfuzzy-dev \
-                libpoppler-cpp-dev
-        fi
+        apt-get install -y --no-install-recommends \
+            ca-certificates \
+            git \
+            build-essential \
+            libfuzzy-dev \
+            libpoppler-cpp-dev
         apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 EOF
 
@@ -43,11 +36,7 @@ EOF
 WORKDIR /srv/misp-modules
 RUN pip install poetry poetry-plugin-bundle poetry-plugin-export
 RUN <<-EOF
-        if [ "${MODULES_FLAVOR}" = "slim" ]; then
-            poetry export --without-hashes -f requirements.txt -o requirements.txt
-        else
-            poetry export -E all --without-hashes -f requirements.txt -o requirements.txt
-        fi
+        poetry export -E all --without-hashes -f requirements.txt -o requirements.txt
 EOF
 RUN pip wheel -r requirements.txt --no-cache-dir -w /wheels/
 RUN poetry build --output /wheels/
@@ -58,22 +47,17 @@ RUN rm -rf /srv/misp-modules
 
 FROM "${DOCKER_HUB_PROXY}python:3.14-slim-trixie"
 ENV DEBIAN_FRONTEND=noninteractive
-ARG MODULES_FLAVOR
 ARG MISP_UID
 ARG MISP_GID
 
 RUN <<-EOF
         apt-get update
-        if [ "${MODULES_FLAVOR}" = "slim" ]; then
-            :
-        else
-            apt-get install -y --no-install-recommends \
-                libgl1 \
-                libfuzzy2 \
-                libpoppler-cpp2 \
-                libzbar0 \
-                tesseract-ocr
-        fi
+        apt-get install -y --no-install-recommends \
+            libgl1 \
+            libfuzzy2 \
+            libpoppler-cpp2 \
+            libzbar0 \
+            tesseract-ocr
         apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 EOF
 
