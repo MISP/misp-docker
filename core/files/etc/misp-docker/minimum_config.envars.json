@@ -2,6 +2,9 @@
   "MISP.python_bin": {
     "default_value": "${PYTHON_BIN}"
   },
+  "MISP.osuser": {
+    "default_value": "${MISP_OSUSER}"
+  },
   "SimpleBackgroundJobs.supervisor_host": {
     "default_value": "${SUPERVISOR_HOST}"
   },

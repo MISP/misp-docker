@@ -1,3 +1,13 @@
+# Referenced by both misp-core (the real service) and misp-core-init (which
+# fixes their ownership before misp-core starts - see init.sh) so the list
+# is never duplicated between the two.
+x-misp-core-volumes: &misp-core-volumes
+  - "./configs/:/var/www/MISP/app/Config/:Z"
+  - "./logs/:/var/www/MISP/app/tmp/logs/:Z"
+  - "./files/:/var/www/MISP/app/files/:Z"
+  - "./gnupg/:/var/www/MISP/.gnupg/:Z"
+  - "misp_guard_ca:/usr/local/share/ca-certificates/misp_guard:Z"
+
 services:
   # This is capable to relay via gmail, Amazon SES, or generic relays
   # See: https://gitlab.com/egos-tech/smtp
@@ -87,6 +97,19 @@ services:
       start_period: 30s
       start_interval: 5s
 
+  # Fixes ownership of misp-core's bind-mounted host directories (they
+  # otherwise land with whatever ownership the host user's umask gave
+  # them) before misp-core itself starts - misp-core runs as a fixed
+  # non-root user (33:0) and can no longer chown these itself on first
+  # start. Reuses the misp-core image purely as "a Linux userland with
+  # chown available", not for anything misp-core-specific - see init.sh.
+  misp-core-init:
+    image: ${REGISTRY_MIRROR_URL:-}ghcr.io/misp/misp-docker/misp-core:${CORE_RUNNING_TAG:-latest}
+    entrypoint: ["/init.sh"]
+    user: "0:0"
+    restart: "no"
+    volumes: *misp-core-volumes
+
   misp-core:
     image: ${REGISTRY_MIRROR_URL:-}ghcr.io/misp/misp-docker/misp-core:${CORE_RUNNING_TAG:-latest}
     restart: always
@@ -117,6 +140,8 @@ services:
         condition: service_healthy
       misp-modules:
         condition: service_healthy
+      misp-core-init:
+        condition: service_completed_successfully
     healthcheck:
       test: bash -c 'echo > /dev/tcp/127.0.0.1/9002' || exit 1
       interval: 2s
@@ -126,12 +151,9 @@ services:
       start_interval: 5s
     expose:
       - 9002
-    volumes:
-      - "./configs/:/var/www/MISP/app/Config/:Z"
-      - "./logs/:/var/www/MISP/app/tmp/logs/:Z"
-      - "./files/:/var/www/MISP/app/files/:Z"
-      - "./gnupg/:/var/www/MISP/.gnupg/:Z"
-      - "misp_guard_ca:/usr/local/share/ca-certificates/misp_guard:Z"
+    # Ownership of these bind mounts is fixed automatically by the
+    # misp-core-init service above (see init.sh) - no manual step needed.
+    volumes: *misp-core-volumes
     cap_add:
       - AUDIT_WRITE
     # customize by replacing ${CUSTOM_PATH} with a path containing 'files/customize_misp.sh'

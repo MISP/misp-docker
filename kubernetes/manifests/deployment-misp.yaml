@@ -18,15 +18,25 @@ spec:
         app.kubernetes.io/name: misp
     spec:
       enableServiceLinks: false
+      # No fixed runAsUser/fsGroup: the misp-core image supports running as
+      # an arbitrary UID (paired with group 0), which is what lets
+      # OpenShift admit this pod under its restricted SCC (which assigns
+      # its own UID/fsGroup and rejects pods that pin one).
       securityContext:
-        # We want imported files to be owned by www-data group
-        fsGroup: 33
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: misp
           command:
             - /kubernetes/entrypoint_fpm.sh
           image: "ghcr.io/misp/misp-docker/misp-core:latest"
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           readinessProbe:
             tcpSocket:
               port: 9002
@@ -114,9 +124,11 @@ spec:
         app.kubernetes.io/name: misp-modules
     spec:
       enableServiceLinks: false
+      # No fixed runAsUser/fsGroup - see the misp Deployment above for why.
       securityContext:
-        # We want imported files to be owned by www-data group
-        fsGroup: 33
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: misp-modules
           resources:
@@ -127,6 +139,11 @@ spec:
               cpu: 20m
           image: "ghcr.io/misp/misp-docker/misp-modules:latest"
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           readinessProbe:
             tcpSocket:
               port: 6666
