@@ -5,7 +5,6 @@ FROM "${DOCKER_HUB_PROXY}python:3.14-slim-trixie" AS php-base
 
 ARG CORE_TAG
 ARG CORE_COMMIT
-ARG CORE_FLAVOR
 ARG PHP_API_VERSION
 RUN : "${PHP_API_VERSION:?Build argument PHP_API_VERSION is required and cannot be empty.}"
 ARG PHP_PACKAGE_VERSION
@@ -20,77 +19,46 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN <<-EOF
     apt-get update
-
-    if [ "${CORE_FLAVOR}" = "slim" ]; then
-        apt-get install -y --no-install-recommends \
-            lsb-release \
-            ca-certificates \
-            tini \
-            gettext \
-            procps \
-            sudo \
-            openssl \
-            gpg \
-            gpg-agent \
-            mariadb-client \
-            rsync \
-            rsyslog \
-            php${PHP_PACKAGE_VERSION} \
-            php${PHP_PACKAGE_VERSION}-curl \
-            php${PHP_PACKAGE_VERSION}-xml \
-            php${PHP_PACKAGE_VERSION}-mbstring \
-            php${PHP_PACKAGE_VERSION}-mysql \
-            php${PHP_PACKAGE_VERSION}-redis \
-            php${PHP_PACKAGE_VERSION}-gd \
-            php${PHP_PACKAGE_VERSION}-fpm \
-            php${PHP_PACKAGE_VERSION}-zip \
-            unzip \
-            zip \
-            curl \
-            uuid-runtime \
-            jq
-    else
-        apt-get install -y --no-install-recommends \
-            lsb-release \
-            ca-certificates \
-            tini \
-            gettext \
-            procps \
-            sudo \
-            openssl \
-            gpg \
-            gpg-agent \
-            mariadb-client \
-            rsync \
-            rsyslog \
-            php${PHP_PACKAGE_VERSION} \
-            php${PHP_PACKAGE_VERSION}-apcu \
-            php${PHP_PACKAGE_VERSION}-curl \
-            php${PHP_PACKAGE_VERSION}-xml \
-            php${PHP_PACKAGE_VERSION}-intl \
-            php${PHP_PACKAGE_VERSION}-bcmath \
-            php${PHP_PACKAGE_VERSION}-mbstring \
-            php${PHP_PACKAGE_VERSION}-mysql \
-            php${PHP_PACKAGE_VERSION}-redis \
-            php${PHP_PACKAGE_VERSION}-gd \
-            php${PHP_PACKAGE_VERSION}-fpm \
-            php${PHP_PACKAGE_VERSION}-zip \
-            php${PHP_PACKAGE_VERSION}-ldap \
-            libmagic1 \
-            libldap-common \
-            librdkafka1 \
-            libbrotli1 \
-            libsimdjson25 \
-            libzstd1 \
-            ssdeep \
-            stunnel4 \
-            libfuzzy2 \
-            unzip \
-            zip \
-            curl \
-            uuid-runtime \
-            jq
-    fi
+    apt-get install -y --no-install-recommends \
+        lsb-release \
+        ca-certificates \
+        tini \
+        gettext \
+        procps \
+        sudo \
+        openssl \
+        gpg \
+        gpg-agent \
+        mariadb-client \
+        rsync \
+        rsyslog \
+        php${PHP_PACKAGE_VERSION} \
+        php${PHP_PACKAGE_VERSION}-apcu \
+        php${PHP_PACKAGE_VERSION}-curl \
+        php${PHP_PACKAGE_VERSION}-xml \
+        php${PHP_PACKAGE_VERSION}-intl \
+        php${PHP_PACKAGE_VERSION}-bcmath \
+        php${PHP_PACKAGE_VERSION}-mbstring \
+        php${PHP_PACKAGE_VERSION}-mysql \
+        php${PHP_PACKAGE_VERSION}-redis \
+        php${PHP_PACKAGE_VERSION}-gd \
+        php${PHP_PACKAGE_VERSION}-fpm \
+        php${PHP_PACKAGE_VERSION}-zip \
+        php${PHP_PACKAGE_VERSION}-ldap \
+        libmagic1 \
+        libldap-common \
+        librdkafka1 \
+        libbrotli1 \
+        libsimdjson25 \
+        libzstd1 \
+        ssdeep \
+        stunnel4 \
+        libfuzzy2 \
+        unzip \
+        zip \
+        curl \
+        uuid-runtime \
+        jq
 EOF
 
 # --- composer-build
@@ -101,7 +69,6 @@ WORKDIR /tmp
 ENV COMPOSER_ALLOW_SUPERUSER=1
 ARG CORE_TAG
 ARG CORE_COMMIT
-ARG CORE_FLAVOR
 
 # prepare composer.json
 RUN curl -o /tmp/composer.json https://raw.githubusercontent.com/MISP/MISP/${CORE_COMMIT:-${CORE_TAG}}/app/composer.json && \
@@ -115,17 +82,12 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 RUN <<-EOF
     composer config --no-interaction allow-plugins.composer/installers true
     composer install
-
-    if [ "${CORE_FLAVOR}" = "slim" ]; then
-        :
-    else
-        composer require --with-all-dependencies --no-interaction \
-            elasticsearch/elasticsearch:^8.7.0 \
-            jakub-onderka/openid-connect-php:^1.0.0 \
-            certmichelin/openid-connect-php:1.3.0 \
-            phpseclib/phpseclib:^3.0.47 \
-            aws/aws-sdk-php
-    fi
+    composer require --with-all-dependencies --no-interaction \
+        elasticsearch/elasticsearch:^8.7.0 \
+        jakub-onderka/openid-connect-php:^1.0.0 \
+        certmichelin/openid-connect-php:1.3.0 \
+        phpseclib/phpseclib:^3.0.47 \
+        aws/aws-sdk-php
 EOF
 
 # --- php-build
@@ -135,33 +97,22 @@ FROM php-base AS php-build
 ENV TZ=Etc/UTC
 ARG CORE_TAG
 ARG CORE_COMMIT
-ARG CORE_FLAVOR
 ARG PHP_API_VERSION
 ARG PHP_PACKAGE_VERSION
 
 RUN <<-EOF
-    if [ "${CORE_FLAVOR}" = "slim" ]; then
-        apt-get install -y --no-install-recommends \
-            gcc \
-            g++ \
-            git \
-            make \
-            php${PHP_PACKAGE_VERSION}-dev \
-            php-pear
-    else
-        apt-get install -y --no-install-recommends \
-            gcc \
-            g++ \
-            git \
-            make \
-            php${PHP_PACKAGE_VERSION}-dev \
-            php-pear \
-            libbrotli-dev \
-            libfuzzy-dev \
-            librdkafka-dev \
-            libsimdjson-dev \
-            libzstd-dev
-    fi
+    apt-get install -y --no-install-recommends \
+        gcc \
+        g++ \
+        git \
+        make \
+        php${PHP_PACKAGE_VERSION}-dev \
+        php-pear \
+        libbrotli-dev \
+        libfuzzy-dev \
+        librdkafka-dev \
+        libsimdjson-dev \
+        libzstd-dev
     apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 EOF
 
@@ -171,31 +122,26 @@ RUN update-alternatives --set php /usr/bin/php${PHP_PACKAGE_VERSION} && \
     update-alternatives --set phpize /usr/bin/phpize${PHP_PACKAGE_VERSION}
 
 RUN --mount=type=bind,from=ghcr.io/php/pie:bin,source=/pie,target=/usr/local/bin/pie <<-EOF
-    if [ "${CORE_FLAVOR}" = "slim" ]; then
-        tar -czf /pecl_libs.tar.gz -T /dev/null
-    else
-        cp "/usr/lib/$(gcc -dumpmachine)"/libfuzzy.* /usr/lib
-        pie install --no-cache \
-            rdkafka/rdkafka \
-            kjdev/zstd \
-            kjdev/brotli \
-            awesome/simdjson_plus
-        git clone --recursive --depth=1 https://github.com/JakubOnderka/pecl-text-ssdeep.git /tmp/pecl-text-ssdeep
-        cd /tmp/pecl-text-ssdeep && phpize && ./configure && make && make install
-        tar -czf /pecl_libs.tar.gz \
-            /usr/lib/php/${PHP_API_VERSION}/ssdeep.so \
-            /usr/lib/php/${PHP_API_VERSION}/rdkafka.so \
-            /usr/lib/php/${PHP_API_VERSION}/brotli.so \
-            /usr/lib/php/${PHP_API_VERSION}/simdjson_plus.so \
-            /usr/lib/php/${PHP_API_VERSION}/zstd.so
-    fi
+    cp "/usr/lib/$(gcc -dumpmachine)"/libfuzzy.* /usr/lib
+    pie install --no-cache \
+        rdkafka/rdkafka \
+        kjdev/zstd \
+        kjdev/brotli \
+        awesome/simdjson_plus
+    git clone --recursive --depth=1 https://github.com/JakubOnderka/pecl-text-ssdeep.git /tmp/pecl-text-ssdeep
+    cd /tmp/pecl-text-ssdeep && phpize && ./configure && make && make install
+    tar -czf /pecl_libs.tar.gz \
+        /usr/lib/php/${PHP_API_VERSION}/ssdeep.so \
+        /usr/lib/php/${PHP_API_VERSION}/rdkafka.so \
+        /usr/lib/php/${PHP_API_VERSION}/brotli.so \
+        /usr/lib/php/${PHP_API_VERSION}/simdjson_plus.so \
+        /usr/lib/php/${PHP_API_VERSION}/zstd.so
 EOF
 
 # --- python-build
 FROM php-base AS python-build
 ARG CORE_TAG
 ARG CORE_COMMIT
-ARG CORE_FLAVOR
 
 RUN apt-get install -y --no-install-recommends \
     gcc \
@@ -281,7 +227,6 @@ EOF
 FROM php-base
 ARG CORE_TAG
 ARG CORE_COMMIT
-ARG CORE_FLAVOR
 ARG PHP_PACKAGE_VERSION
 
 ENV PATH="/var/www/MISP/app/Console:${PATH}"
@@ -319,11 +264,7 @@ COPY --from=composer-build --chown=www-data:www-data --chmod=0550 /tmp/Vendor /v
 
 # Gather these in one layer, only act on actual directories under /etc/php/
 RUN <<-EOF
-    if [ "${CORE_FLAVOR}" = "slim" ]; then
-        set --
-    else
-        set -- "ssdeep" "rdkafka" "brotli" "simdjson_plus" "zstd"
-    fi
+    set -- "ssdeep" "rdkafka" "brotli" "simdjson_plus" "zstd"
     for mod in "$@"; do
         for dir in /etc/php/*/; do
             echo "extension=${mod}.so" > "${dir}mods-available/${mod}.ini"
