@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help build build-core build-nginx build-modules build-guard build-slim bake up down logs shellcheck clean prune
+.PHONY: help build build-core build-nginx build-modules build-guard bake up down logs shellcheck clean prune
 
 help:
 	@echo "Usage: make <target>"
@@ -11,7 +11,6 @@ help:
 	@echo "  build-nginx    Build misp-nginx only"
 	@echo "  build-modules  Build misp-modules only"
 	@echo "  build-guard    Build misp-guard only"
-	@echo "  build-slim     Build all slim variant images"
 	@echo "  bake           Build all images via docker buildx bake"
 	@echo ""
 	@echo "Runtime targets:"
@@ -38,9 +37,6 @@ build-modules:
 
 build-guard:
 	docker compose build misp-guard
-
-build-slim:
-	docker compose build --build-arg CORE_FLAVOR=slim --build-arg MODULES_FLAVOR=slim
 
 bake:
 	docker buildx bake
