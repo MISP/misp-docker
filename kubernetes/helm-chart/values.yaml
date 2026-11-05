@@ -466,7 +466,7 @@ misp:
         ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
         ##   GKE, AWS & OpenStack)
         ##
-        storageClassName: local-path
+        storageClassName: null
         ## @param primary.persistence.accessModes MISP primary persistent volume access Modes
         ##
         accessModes:
@@ -753,6 +753,12 @@ misp:
     - name: run
       mountPath: /var/run
       rsync: true
+    - name: supervisor
+      # entrypoint_fpm.sh's kubernetes-specific supervisord setup rewrites
+      # files under here (see core/files/kubernetes/entrypoint_fpm.sh) and
+      # needs it writable.
+      mountPath: /etc/supervisor
+      rsync: true
     - name: tmp
       mountPath: /tmp
       rsync: false
@@ -955,6 +961,7 @@ misp:
     ##
     extraEnvVars:
       FASTCGI_LISTEN: 127.0.0.1:9002
+      FASTCGI_LISTEN_STATUS: 127.0.0.1:9003
       FASTCGI_READ_TIMEOUT: 300s
       FASTCGI_SEND_TIMEOUT: 300s
       FASTCGI_CONNECT_TIMEOUT: 300s
