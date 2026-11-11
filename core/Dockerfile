@@ -210,17 +210,29 @@ RUN <<-EOF
 
     # Remove files we do not care for
     find /var/www/MISP/INSTALL/* ! -name 'MYSQL.sql' -type f -exec rm {} +
+    find /var/www/MISP/INSTALL/* ! -name 'MYSQL.sql' -type d -exec rm -r {} +
     find /var/www/MISP/INSTALL/* ! -name 'MYSQL.sql' -type l -exec rm {} +
     # Remove most files in .git - we do not use git functionality in docker
     find /var/www/MISP/.git/* ! -name HEAD -exec rm -rf {} +
     # Remove libraries submodules
-    rm -r /var/www/MISP/PyMISP
-    rm -r /var/www/MISP/app/files/scripts/cti-python-stix2
-    rm -r /var/www/MISP/app/files/scripts/misp-stix
-    rm -r /var/www/MISP/app/files/scripts/mixbox
-    rm -r /var/www/MISP/app/files/scripts/python-cybox
-    rm -r /var/www/MISP/app/files/scripts/python-maec
-    rm -r /var/www/MISP/app/files/scripts/python-stix
+    rm -rf /var/www/MISP/PyMISP
+    rm -rf /var/www/MISP/app/files/scripts/cti-python-stix2
+    rm -rf /var/www/MISP/app/files/scripts/misp-stix
+    rm -rf /var/www/MISP/app/files/scripts/mixbox
+    rm -rf /var/www/MISP/app/files/scripts/python-cybox
+    rm -rf /var/www/MISP/app/files/scripts/python-maec
+    rm -rf /var/www/MISP/app/files/scripts/python-stix
+    # Remove unneded directories
+    rm -rf /var/www/MISP/.forgejo
+    rm -rf /var/www/MISP/.github
+    rm -rf /var/www/MISP/build
+    rm -rf /var/www/MISP/format
+    rm -rf /var/www/MISP/debian
+    rm -rf /var/www/MISP/docs
+    rm -rf /var/www/MISP/tools
+    find /var/www/MISP/tests/* ! -name 'modify_config.php' -type f -exec rm {} +
+    find /var/www/MISP/tests/* ! -name 'modify_config.php' -type d -exec rm -r {} +
+    find /var/www/MISP/tests/* ! -name 'modify_config.php' -type l -exec rm {} +
 EOF
 
 # --- final stage
