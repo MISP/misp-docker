@@ -89,8 +89,17 @@ export PHP_SESSION_AUTO_REGENERATE=${PHP_SESSION_AUTO_REGENERATE:-false}
 export PHP_SESSION_CHECK_AGENT=${PHP_SESSION_CHECK_AGENT:-false}
 export PHP_SESSION_COOKIE_DOMAIN=${PHP_SESSION_COOKIE_DOMAIN}
 export PHP_SESSION_COOKIE_SAMESITE=${PHP_SESSION_COOKIE_SAMESITE:-Lax}
+# Optional prefix for PHP (phpredis) session keys in Redis. Empty keeps phpredis'
+# default (PHPREDIS_SESSION:). Set e.g. "misp:session:" to namespace sessions when
+# Redis is shared with other applications.
+export PHP_REDIS_SESSION_PREFIX=${PHP_REDIS_SESSION_PREFIX:-}
 
 export TZ=${TZ:-UTC}
+
+# Redis key namespace for MISP SimpleBackgroundJobs. Default 'background_jobs' keeps
+# backward compatibility; override (e.g. 'misp:background_jobs') to namespace background
+# job keys when Redis is shared with other applications.
+export BACKGROUND_JOBS_REDIS_NAMESPACE=${BACKGROUND_JOBS_REDIS_NAMESPACE:-background_jobs}
 
 export STUNNEL=${STUNNEL:-false}
 export STUNNEL_CONFIG=${STUNNEL_CONFIG}
