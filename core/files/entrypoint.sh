@@ -101,6 +101,13 @@ export TZ=${TZ:-UTC}
 # job keys when Redis is shared with other applications.
 export BACKGROUND_JOBS_REDIS_NAMESPACE=${BACKGROUND_JOBS_REDIS_NAMESPACE:-background_jobs}
 
+# Redis logical DB index per MISP subsystem. Defaults match MISP's historical values
+# (MISP generic=13, background jobs=1, ZeroMQ=1). Set all to 0 when using a single-DB
+# backend such as Azure Managed Redis (only DB 0 exists); key isolation is by prefix.
+export MISP_REDIS_DATABASE=${MISP_REDIS_DATABASE:-13}
+export BACKGROUND_JOBS_REDIS_DATABASE=${BACKGROUND_JOBS_REDIS_DATABASE:-1}
+export ZEROMQ_REDIS_DATABASE=${ZEROMQ_REDIS_DATABASE:-1}
+
 export STUNNEL=${STUNNEL:-false}
 export STUNNEL_CONFIG=${STUNNEL_CONFIG}
 
