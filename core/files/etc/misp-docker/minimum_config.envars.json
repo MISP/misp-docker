@@ -40,5 +40,8 @@
   },
   "SimpleBackgroundJobs.redis_password": {
     "default_value": "${REDIS_PASSWORD}"
+  },
+  "SimpleBackgroundJobs.redis_namespace": {
+    "default_value": "${BACKGROUND_JOBS_REDIS_NAMESPACE}"
   }
 }
