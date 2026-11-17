@@ -155,8 +155,9 @@ PROXY_PORT=8888
 > [!WARNING]
 > **Important:** You must create the `guard/config.json` file **before** starting the container.
 > If the file does not exist, Docker/Podman will automatically create it as an empty **directory**, which will cause the misp-guard container to fail and continuously restart.
-> 
+>
 > Create it first:
+>
 > ```bash
 > mkdir -p guard
 > touch guard/config.json
@@ -257,7 +258,6 @@ LDAPAUTH_LDAPTLSPROTOCOLMIN=LDAP_OPT_X_TLS_PROTOCOL_TLS1_2
 
 STARTTLS is set to false as it's meant to upgrade an unencrypted connection (LDAP) to a secure one if possible automatically (LDAPS).
 As we use LDAPS (hardcoded) or no connection at all, this isn't desired.
-
 
 #### OIDC Authentication
 

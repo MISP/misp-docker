@@ -11,8 +11,9 @@ On unauthenticated access to the MISP console, users will be redirected by nginx
 This section outlines how to create and configure a Keycloak client for MISP. The client represents MISP in the Keycloak realm and facilitates authentication and authorization.
 
 **Steps**
+
 > Navigate to: `Manage -> Clients -> Create client`
-     
+
 1. **General Settings**
    - **Client Type**: OpenID Connect
    - **Client ID**: `misp`
@@ -35,6 +36,7 @@ Define roles in Keycloak that correspond to MISP roles. These roles will be used
 **Steps**
 
 > Navigate to: `Manage -> Clients -> misp -> Roles -> Create Role`
+
 1. **Role name**: e.g., `admin`
 
 > Repeat this for every MISP role you want to assign through Keycloak (e.g., `admin`, `OrgAdmin`, `User`, `Read Only`, etc.)
@@ -46,7 +48,7 @@ Assign the defined roles to specific users to control their access in MISP.
 **Steps**
 
 > Navigate to: `Manage -> Users -> <your user> -> Role mapping -> Assign Role`
-  
+
 1. Ensure “Filter by clients” is visible in the top left corner
 2. Select the appropriate MISP role (e.g., `misp admin`)
 3. Click `Assign`
@@ -60,34 +62,42 @@ Client scopes define what information is included in the tokens issued to the cl
 **Steps**
 
 1. **Create Client Scope**
+
 > Navigate to: `Manage -> Realm roles -> Create Client Scope`
-  - **Name**: `misp-oidc`
-  - **Type**: Optional
-  - **Protocol**: OpenID Connect
-  - **Include in token scope**: Off
+
+- **Name**: `misp-oidc`
+- **Type**: Optional
+- **Protocol**: OpenID Connect
+- **Include in token scope**: Off
 
 2. **Configure Predefined Client Scope Mappers**
+
 > Navigate to: `Manage -> Client Scopes -> misp-oidc -> Mappers -> Add Mapper -> From Predefined Mapper`
-  - Select: `email`, `username`
+
+- Select: `email`, `username`
 
 3. **Configure Roles Client Mapper**
+
 > Navigate to: `Manage -> Client Scopes -> misp-oidc -> Mappers -> Add Mapper -> By Configuration`
-  - **Name**: `roles`
-  - **Mapper Type**: `User Client Role`
-  - **Client ID**: Select `misp` from dropdown
-  - **Client Role Prefix**: Leave blank
-  - **Multivalued**: On
-  - **Token Claim Name**: `roles`
-  - **Claim JSON Type**: String
-  - **Add to ID token**: On
-  - **Add to access token**: On
-  - **Add to lightweight access token**: Off
-  - **Add to userinfo**: On
-  - **Add to token introspection**: On
+
+- **Name**: `roles`
+- **Mapper Type**: `User Client Role`
+- **Client ID**: Select `misp` from dropdown
+- **Client Role Prefix**: Leave blank
+- **Multivalued**: On
+- **Token Claim Name**: `roles`
+- **Claim JSON Type**: String
+- **Add to ID token**: On
+- **Add to access token**: On
+- **Add to lightweight access token**: Off
+- **Add to userinfo**: On
+- **Add to token introspection**: On
 
 4. **Add Scope to Client**
+
 > Navigate to: `Manage -> Clients -> misp -> Client Scopes -> Add Client Scope`
-  - Select `misp-oidc` -> Click `Add` -> Set as `Default`
+
+- Select `misp-oidc` -> Click `Add` -> Set as `Default`
 
 ---
 
@@ -104,8 +114,10 @@ Configure MISP to use Keycloak as an OIDC provider by setting the appropriate en
 - `OIDC_ROLES_MAPPING`: `'{"admin":"1","user":"3"}'` — JSON mapping from Keycloak roles to MISP role IDs.
 - `OIDC_ROLES_PROPERTY`: `"realm_access.roles"` — The claim path in the token where roles are listed.
 - `OIDC_CLIENT_SECRET`: `<secret>` — The client secret from Keycloak (`Manage -> Clients -> misp -> Credentials -> Client Secret`)
+
 Example:
-```
+
+```yaml
   OIDC_ENABLE: "true"
   OIDC_CLIENT_ID: "misp"
   OIDC_DEFAULT_ORG: "ADMIN"
@@ -118,7 +130,7 @@ Example:
 
 ## Troubleshooting
 
->Authentication errors are logged to the MISP error log `app/tmp/logs/error.log`
+> Authentication errors are logged to the MISP error log `app/tmp/logs/error.log`
 
 **Warning: OIDC user 'user@example.com' - Role Property 'roles' is missing in claims, access prohibitied**
 

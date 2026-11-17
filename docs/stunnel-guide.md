@@ -1,10 +1,11 @@
-# MISP stunnel Guide #
+# MISP stunnel Guide
 
 This guide provides some basic examples of how to use the [stunnel](https://www.stunnel.org/) functionality provided in the misp-docker image.
 
-## Enabling ##
+## Enabling
 
 `template.env` contains two stunnel related variables:
+
 | Variable       | Values           | Default | Purpose                                                                    |
 | :------------- | :--------------- | :------ | :------------------------------------------------------------------------- |
 | STUNNEL        | `true`/`false`   | `false` | If true will start the stunnel service on container start, via supervisord |
@@ -12,11 +13,11 @@ This guide provides some basic examples of how to use the [stunnel](https://www.
 
 If `STUNNEL` is `true` but `STUNNEL_CONFIG` is unset, empty or otherwise does not point to a config file, supervisord will retry starting the service a few times before failing.
 
-## Configuration ##
+## Configuration
 
 You can find the stunnel configuration documentation [here](https://www.stunnel.org/static/stunnel.html), and general examples [here](https://www.stunnel.org/examples.html).
 
-## Example: Redis over TLS ##
+## Example: Redis over TLS
 
 This example demonstrates how misp-docker's Redis (Valkey) container might be configured to use TLS, and how to leverage the stunnel functionality to communicate with it over TLS.
 
@@ -24,9 +25,9 @@ The general idea here is that stunnel will expose a plaintext port for the MISP 
 
 This example largely builds on [this](https://redis.io/blog/stunnel-secure-redis-ssl/) redis.io blog post.
 
-### Steps: ###
+### Steps:
 
-#### Copy the example files into the root of your misp-docker project ####
+#### Copy the example files into the root of your misp-docker project
 
 If you have an existing directory named `misp_custom` or a `docker-compose.override.yml` file already, the below will mess with them. You may wish to manually add these things in that case.
 
@@ -39,7 +40,7 @@ cp docs/examples/stunnel/redis/docker-compose.override.yml .
 
 The `docker-compose.override.yml` file will reference the files within the `misp_custom` directory, tell Redis to use TLS key files for TLS communications, and tell the health check to use it as well.
 
-#### Roll some certificates ####
+#### Roll some certificates
 
 We will do this in the `misp_custom/redis_tls` directory using `gencerts.sh` which were copied from the last step:
 
@@ -71,7 +72,7 @@ misp_custom/
 3 directories, 11 files
 ```
 
-#### Update .env file with necessary values ####
+#### Update .env file with necessary values
 
 Edit your .env file so that the following envars are like this:
 
@@ -81,7 +82,7 @@ STUNNEL=true
 STUNNEL_CONFIG=/custom/stunnel/stunnel.conf
 ```
 
-#### Bring up the compose project ####
+#### Bring up the compose project
 
 ```
 docker compose up -d
@@ -91,10 +92,10 @@ You should now have TLS wrapped Redis, where the client and server are authentic
 
 Check the Administration -> Server Settings & Maintenance -> Diagnostics tool for system status.
 
-### Troubleshooting ###
+### Troubleshooting
 
 Places to look for clues if you run into trouble:
 
-* stunnel log files will appear in in the `logs` dir as `stunnel.log` and `stunnel-errors.log`
-* Redis/valkey log output can be found in the `redis` container
-* Supervisord log output can be found in the `misp-core` container
+- stunnel log files will appear in in the `logs` dir as `stunnel.log` and `stunnel-errors.log`
+- Redis/valkey log output can be found in the `redis` container
+- Supervisord log output can be found in the `misp-core` container

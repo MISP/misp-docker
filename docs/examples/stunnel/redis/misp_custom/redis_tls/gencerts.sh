@@ -49,4 +49,3 @@ openssl x509 -req \
 # --- PERMS ---
 chmod 600 ca-key.pem server-key.pem client-key.pem
 chmod 644 ca.pem server-cert.pem client-cert.pem
-
