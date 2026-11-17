@@ -22,7 +22,7 @@ USER 101
 
 # clone source code into /var/www/MISP directory
 RUN <<-EOF
-    if [ ! -z "${CORE_COMMIT}" ]; then
+    if [ -n "${CORE_COMMIT}" ]; then
         git clone https://github.com/MISP/MISP.git . && git checkout "${CORE_COMMIT}"
     else
         git clone --branch "${CORE_TAG}" --depth 1 https://github.com/MISP/MISP.git .
