@@ -1,4 +1,4 @@
-successfully downloaded text file (SHA: d437129412d5c2cb4e959730f5876276bad10dd3)services:
+services:
   # This is capable to relay via gmail, Amazon SES, or generic relays
   # See: https://gitlab.com/egos-tech/smtp
   mail:
