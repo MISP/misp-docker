@@ -1,0 +1,13 @@
+misconfiguration:
+  scanners:
+    - dockerfile
+
+secret:
+  enable: true
+
+severity:
+  - CRITICAL
+  - HIGH
+  - MEDIUM
+
+exit-code: 1
