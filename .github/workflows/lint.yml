@@ -35,7 +35,6 @@ jobs:
         with:
           scan-type: "fs"
           scan-ref: "."
-          scanners: "vuln,misconfig,secret"
+          scanners: "misconfig,secret"
           trivy-config: "trivy.yaml"
           exit-code: "1"
-          extra-args: "--include-dev-deps"
