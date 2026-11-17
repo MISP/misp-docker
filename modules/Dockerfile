@@ -28,7 +28,7 @@ RUN mkdir /wheels
 WORKDIR /srv/misp-modules
 
 RUN <<-EOF
-    if [ ! -z "${MODULES_COMMIT}" ]; then
+    if [ -n "${MODULES_COMMIT}" ]; then
         git clone https://github.com/MISP/misp-modules.git . && git checkout "${MODULES_COMMIT}"
     else
         git clone --branch "${MODULES_TAG}" --depth 1 https://github.com/MISP/misp-modules.git .

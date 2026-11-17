@@ -18,7 +18,7 @@ RUN mkdir /wheels
 WORKDIR /srv/misp-guard
 
 RUN <<-EOF
-    if [ ! -z "${GUARD_COMMIT}" ]; then
+    if [ -n "${GUARD_COMMIT}" ]; then
         git clone https://github.com/MISP/misp-guard.git . && git checkout "${GUARD_COMMIT}"
     else
         git clone --branch "${GUARD_TAG}" --depth 1 https://github.com/MISP/misp-guard.git .

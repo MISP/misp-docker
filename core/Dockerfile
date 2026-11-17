@@ -156,7 +156,7 @@ RUN apt-get install -y --no-install-recommends \
 WORKDIR /var/www/MISP
 
 RUN <<-EOF
-    if [ ! -z "${CORE_COMMIT}" ]; then
+    if [ -n "${CORE_COMMIT}" ]; then
         git clone https://github.com/MISP/MISP.git . && git checkout "${CORE_COMMIT}"
     else
         git clone --branch "${CORE_TAG}" --depth 1 https://github.com/MISP/MISP.git .
@@ -194,13 +194,13 @@ RUN <<-EOF
     for mod in "$@"; do
         mod_version_var=$(echo "PYPI_${mod}_VERSION" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
         mod_version=$(eval "echo \"\$$mod_version_var\"")
-        grep -q ${mod} /var/www/MISP/requirements.txt
+        grep -q "${mod}" /var/www/MISP/requirements.txt
         exists=$?
         if [ "${exists}" -eq "1" ]; then
             echo "Adding missing module ${mod} with version '${mod_version}'"
-            echo ${mod}${mod_version} >> /var/www/MISP/requirements.txt
+            echo "${mod}${mod_version}" >> /var/www/MISP/requirements.txt
         else
-            if [ "$(echo ${mod_version} | wc -m)" -gt 1 ]; then
+            if [ "$(echo "${mod_version}" | wc -m)" -gt 1 ]; then
                 echo "Overwriting existing module ${mod}, version '${mod_version}'"
                 sed -i "/${mod}/s/.*/${mod}${mod_version}/" /var/www/MISP/requirements.txt
             else

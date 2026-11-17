@@ -1,0 +1,2 @@
+# Ignore non-root user check for containers requiring root permissions (core and guard)
+DS-0002
