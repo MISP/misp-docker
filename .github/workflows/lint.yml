@@ -1,0 +1,38 @@
+name: Lint and Security Checks
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  hadolint:
+    name: Hadolint
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Run Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: "Dockerfile"
+          recursive: true
+          config: .hadolint.yaml
+          failure-threshold: error
+
+  trivy:
+    name: Trivy Misconfiguration Scan
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Run Trivy Dockerfile Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "config"
+          scan-ref: "."
+          trivy-config: "trivy.yaml"
+          exit-code: "1"
