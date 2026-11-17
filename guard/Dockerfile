@@ -15,11 +15,13 @@ EOF
 
     RUN mkdir /wheels
 
+    WORKDIR /srv/misp-guard
+
     RUN <<-EOF
-        if [ ! -z ${GUARD_COMMIT} ]; then
-            git clone https://github.com/MISP/misp-guard.git /srv/misp-guard && cd /srv/misp-guard && git checkout ${GUARD_COMMIT}
+        if [ ! -z "${GUARD_COMMIT}" ]; then
+            git clone https://github.com/MISP/misp-guard.git . && git checkout "${GUARD_COMMIT}"
         else
-            git clone --branch ${GUARD_TAG} --depth 1 https://github.com/MISP/misp-guard.git /srv/misp-guard
+            git clone --branch "${GUARD_TAG}" --depth 1 https://github.com/MISP/misp-guard.git .
         fi
 EOF
 
@@ -48,6 +50,12 @@ EOF
 
     COPY --from=python-build /srv /srv
     COPY files/ /
+
+    ENV GUARD_PORT=8888
+    EXPOSE 8888
+
+    HEALTHCHECK --interval=2m --timeout=5s --start-period=10s --retries=3 \
+        CMD [ "bash", "-c", "</dev/tcp/127.0.0.1/${GUARD_PORT} || exit 1" ]
 
     WORKDIR /srv/misp-guard/src
     ENTRYPOINT [ "/entrypoint.sh" ]
