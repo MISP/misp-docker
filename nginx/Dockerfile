@@ -16,7 +16,8 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends git && \
     apt-get autoremove -y && \
     apt-get clean -y && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    chown -R 101:101 /var/www
 USER 101
 
 # clone source code into /var/www/MISP directory
