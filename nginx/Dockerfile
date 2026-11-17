@@ -8,26 +8,26 @@ ARG CORE_COMMIT
 ENV DEBIAN_FRONTEND=noninteractive
 
 # ensure directory exists with permissions for nginx user
-WORKDIR /var/www
+WORKDIR /var/www/MISP
 
 # install git
-USER root
+USER 0
 RUN apt-get update && \
     apt-get install -y --no-install-recommends git && \
     apt-get autoremove -y && \
     apt-get clean -y && \
     rm -rf /var/lib/apt/lists/*
-USER nginx
+USER 101
 
-# clone source code into /var/www directory
+# clone source code into /var/www/MISP directory
 RUN <<-EOF
     if [ ! -z "${CORE_COMMIT}" ]; then
-        git clone https://github.com/MISP/MISP.git /var/www/MISP && cd /var/www/MISP && git checkout "${CORE_COMMIT}"
+        git clone https://github.com/MISP/MISP.git . && git checkout "${CORE_COMMIT}"
     else
-        git clone --branch "${CORE_TAG}" --depth 1 https://github.com/MISP/MISP.git /var/www/MISP
+        git clone --branch "${CORE_TAG}" --depth 1 https://github.com/MISP/MISP.git .
     fi
 
-    cd /var/www/MISP || exit; git submodule update --init --recursive ./app/webroot
+    git submodule update --init --recursive ./app/webroot
 EOF
 
 # --- final stage
@@ -61,4 +61,4 @@ EXPOSE ${NGINX_INTERNAL_HTTP_PORT} ${NGINX_INTERNAL_HTTPS_PORT}
 
 # health check via status page
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD bash -c 'exec 3<>/dev/tcp/127.0.0.1/${NGINX_INTERNAL_STATUS_PORT}; printf "GET / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3; head -1 <&3 | grep -q "200"' || exit 1
+    CMD [ "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/${NGINX_INTERNAL_STATUS_PORT}; printf \"GET / HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n\" >&3; head -1 <&3 | grep -q \"200\" || exit 1" ]
