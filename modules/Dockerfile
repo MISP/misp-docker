@@ -13,14 +13,14 @@ ARG MODULES_COMMIT
 # COPY ./cert.pem /usr/lib/ssl/cert.pem
 
 RUN <<-EOF
-        apt-get update
-        apt-get install -y --no-install-recommends \
-            ca-certificates \
-            git \
-            build-essential \
-            libfuzzy-dev \
-            libpoppler-cpp-dev
-        apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        git \
+        build-essential \
+        libfuzzy-dev \
+        libpoppler-cpp-dev
+    apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 EOF
 
 RUN mkdir /wheels
@@ -28,11 +28,11 @@ RUN mkdir /wheels
 WORKDIR /srv/misp-modules
 
 RUN <<-EOF
-        if [ ! -z "${MODULES_COMMIT}" ]; then
-            git clone https://github.com/MISP/misp-modules.git . && git checkout "${MODULES_COMMIT}"
-        else
-            git clone --branch "${MODULES_TAG}" --depth 1 https://github.com/MISP/misp-modules.git .
-        fi
+    if [ ! -z "${MODULES_COMMIT}" ]; then
+        git clone https://github.com/MISP/misp-modules.git . && git checkout "${MODULES_COMMIT}"
+    else
+        git clone --branch "${MODULES_TAG}" --depth 1 https://github.com/MISP/misp-modules.git .
+    fi
 EOF
 
 RUN pip install --no-cache-dir poetry poetry-plugin-bundle poetry-plugin-export && \
@@ -50,14 +50,14 @@ ARG MISP_UID
 ARG MISP_GID
 
 RUN <<-EOF
-        apt-get update
-        apt-get install -y --no-install-recommends \
-            libgl1 \
-            libfuzzy2 \
-            libpoppler-cpp2 \
-            libzbar0 \
-            tesseract-ocr
-        apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        libgl1 \
+        libfuzzy2 \
+        libpoppler-cpp2 \
+        libzbar0 \
+        tesseract-ocr
+    apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 EOF
 
 RUN groupadd -g "${MISP_GID}" misp && \
