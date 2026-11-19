@@ -1,5 +1,5 @@
 # --- sources stage
-FROM ghcr.io/nginx/nginx-unprivileged:1.31.8-trixie AS sources
+FROM ghcr.io/nginx/nginx-unprivileged:1.31.9-trixie AS sources
 
 ARG CORE_TAG
 ARG CORE_COMMIT
