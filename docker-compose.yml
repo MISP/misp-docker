@@ -298,6 +298,13 @@ services:
       - "REDIS_PORT=${REDIS_PORT:-6379}"
       - "REDIS_PASSWORD=${REDIS_PASSWORD:-redispassword}"
       - "ENABLE_REDIS_EMPTY_PASSWORD=${ENABLE_REDIS_EMPTY_PASSWORD:-false}"
+      # redis database index per subsystem (defaults preserve historical 13/1/1)
+      # set all to 0 for single-DB backends such as Azure Managed Redis
+      - "MISP_REDIS_DATABASE=${MISP_REDIS_DATABASE:-13}"
+      - "BACKGROUND_JOBS_REDIS_DATABASE=${BACKGROUND_JOBS_REDIS_DATABASE:-1}"
+      - "ZEROMQ_REDIS_DATABASE=${ZEROMQ_REDIS_DATABASE:-1}"
+      # redis key namespace for background jobs (for shared Redis instances)
+      - "BACKGROUND_JOBS_REDIS_NAMESPACE=${BACKGROUND_JOBS_REDIS_NAMESPACE:-background_jobs}"
       # debug setting
       - "DEBUG=${DEBUG}"
       # SMTP setting
@@ -325,6 +332,8 @@ services:
       - "PHP_SESSION_CHECK_AGENT=${PHP_SESSION_CHECK_AGENT:-false}"
       - "PHP_SESSION_COOKIE_DOMAIN=${PHP_SESSION_COOKIE_DOMAIN}"
       - "PHP_SESSION_COOKIE_SAMESITE=${PHP_SESSION_COOKIE_SAMESITE:-Lax}"
+      # optional phpredis session key prefix (for shared Redis instances)
+      - "PHP_REDIS_SESSION_PREFIX=${PHP_REDIS_SESSION_PREFIX}"
       # compose profiles
       - "COMPOSE_PROFILES=${COMPOSE_PROFILES}"
 

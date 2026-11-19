@@ -40,5 +40,17 @@
   },
   "SimpleBackgroundJobs.redis_password": {
     "default_value": "${REDIS_PASSWORD}"
+  },
+  "SimpleBackgroundJobs.redis_namespace": {
+    "default_value": "${BACKGROUND_JOBS_REDIS_NAMESPACE}"
+  },
+  "MISP.redis_database": {
+    "default_value": "${MISP_REDIS_DATABASE}"
+  },
+  "SimpleBackgroundJobs.redis_database": {
+    "default_value": "${BACKGROUND_JOBS_REDIS_DATABASE}"
+  },
+  "Plugin.ZeroMQ_redis_database": {
+    "default_value": "${ZEROMQ_REDIS_DATABASE}"
   }
 }

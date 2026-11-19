@@ -78,6 +78,18 @@ change_php_vars() {
             echo "ERROR: REDIS_PASSWORD is not set but ENABLE_REDIS_EMPTY_PASSWORD is false. Please set REDIS_PASSWORD or enable ENABLE_REDIS_EMPTY_PASSWORD=true for passwordless Redis."
             exit 1
         fi
+        # Optionally namespace the phpredis session keys (default prefix PHPREDIS_SESSION:).
+        # Appends prefix=<value> to the session.save_path query string so sessions can be
+        # isolated when Redis is shared with other applications.
+        if [[ -n "$PHP_REDIS_SESSION_PREFIX" ]]; then
+            if grep -qE "session.save_path = '[^']*\\?" "$FILE"; then
+                SESSION_PATH_SEP='&'
+            else
+                SESSION_PATH_SEP='?'
+            fi
+            sed -i "s|\(session.save_path = '[^']*\)'|\1${SESSION_PATH_SEP}prefix=${PHP_REDIS_SESSION_PREFIX}'|" "$FILE"
+            echo "Configure PHP | Setting session key prefix 'prefix=${PHP_REDIS_SESSION_PREFIX}'"
+        fi
         sed -i "s/session.sid_length = .*/session.sid_length = 64/" "$FILE"
         sed -i "s/session.use_strict_mode = .*/session.use_strict_mode = 1/" "$FILE"
         echo "Configure PHP | Setting 'date.timezone = ${TZ}'"
