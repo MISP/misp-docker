@@ -155,8 +155,9 @@ PROXY_PORT=8888
 > [!WARNING]
 > **Important:** You must create the `guard/config.json` file **before** starting the container.
 > If the file does not exist, Docker/Podman will automatically create it as an empty **directory**, which will cause the misp-guard container to fail and continuously restart.
-> 
+>
 > Create it first:
+>
 > ```bash
 > mkdir -p guard
 > touch guard/config.json
@@ -257,7 +258,6 @@ LDAPAUTH_LDAPTLSPROTOCOLMIN=LDAP_OPT_X_TLS_PROTOCOL_TLS1_2
 
 STARTTLS is set to false as it's meant to upgrade an unencrypted connection (LDAP) to a secure one if possible automatically (LDAPS).
 As we use LDAPS (hardcoded) or no connection at all, this isn't desired.
-
 
 #### OIDC Authentication
 
@@ -791,3 +791,51 @@ RUN bash <<-'EOF'
 to ensure variables are expanded as expected. For reference, this problem first occurred after successfully building an image but getting a `/usr/local/bin/supervisord: No such file or directory` error after starting the container. See [265](https://github.com/MISP/misp-docker/issues/265) and [273](https://github.com/MISP/misp-docker/pull/273) for more details.
 
 By following these steps, you can efficiently troubleshoot and resolve build issues. If problems persist, include your build log and environment details when opening an issue for assistance.
+
+## Running Linters and Security Checks Locally
+
+To catch Dockerfile linting issues and configuration security misconfigurations before committing or opening a pull request, you can run the same linters configured in the CI workflow locally using Docker, Podman, or standalone CLI binaries.
+
+### Hadolint (Dockerfile Linter)
+
+Hadolint inspects Dockerfiles against best practices and the configuration defined in `.hadolint.yaml`.
+
+Using Docker:
+
+```bash
+docker run --rm -v "$(pwd):/work" -w /work ghcr.io/hadolint/hadolint hadolint --failure-threshold warning -c .hadolint.yaml core/Dockerfile modules/Dockerfile guard/Dockerfile nginx/Dockerfile
+```
+
+Using Podman:
+
+```bash
+podman run --rm -v "$(pwd):/work:Z" -w /work ghcr.io/hadolint/hadolint hadolint --failure-threshold warning -c .hadolint.yaml core/Dockerfile modules/Dockerfile guard/Dockerfile nginx/Dockerfile
+```
+
+Or using locally installed `hadolint`:
+
+```bash
+hadolint --failure-threshold warning -c .hadolint.yaml core/Dockerfile modules/Dockerfile guard/Dockerfile nginx/Dockerfile
+```
+
+### Trivy (Security Scanner)
+
+Trivy scans the repository filesystem for misconfigurations, secrets, and vulnerabilities using `trivy.yaml`.
+
+Using Docker:
+
+```bash
+docker run --rm -v "$(pwd):/work" -w /work aquasecurity/trivy:latest fs --config trivy.yaml .
+```
+
+Using Podman:
+
+```bash
+podman run --rm -v "$(pwd):/work:Z" -w /work aquasecurity/trivy:latest fs --config trivy.yaml .
+```
+
+Or using locally installed `trivy`:
+
+```bash
+trivy fs --config trivy.yaml .
+```

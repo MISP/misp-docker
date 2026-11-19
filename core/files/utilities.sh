@@ -33,7 +33,7 @@ setting_is_set_alt() {
     local setting="$1"
     local config_json=$(echo '<?php require_once "/var/www/MISP/app/Config/config.php"; echo json_encode($config, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>'|/usr/bin/php)
     local db_settings_enabled=$(jq -e 'getpath(("MISP.system_setting_db" | split("."))) // false' <<< $config_json)
-    local setting_in_config_file=$(jq -e 'getpath(("'"$setting"'" | split("."))) != null' <<< $config_json) 
+    local setting_in_config_file=$(jq -e 'getpath(("'"$setting"'" | split("."))) != null' <<< $config_json)
     if $setting_in_config_file; then
         return 0
     elif $db_settings_enabled; then

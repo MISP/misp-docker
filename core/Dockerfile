@@ -121,6 +121,7 @@ RUN update-alternatives --set php /usr/bin/php${PHP_PACKAGE_VERSION} && \
     update-alternatives --set php-config /usr/bin/php-config${PHP_PACKAGE_VERSION} && \
     update-alternatives --set phpize /usr/bin/phpize${PHP_PACKAGE_VERSION}
 
+WORKDIR /tmp/pecl-text-ssdeep
 RUN --mount=type=bind,from=ghcr.io/php/pie:bin,source=/pie,target=/usr/local/bin/pie <<-EOF
     cp "/usr/lib/$(gcc -dumpmachine)"/libfuzzy.* /usr/lib
     pie install --no-cache \
@@ -128,8 +129,8 @@ RUN --mount=type=bind,from=ghcr.io/php/pie:bin,source=/pie,target=/usr/local/bin
         kjdev/zstd \
         kjdev/brotli \
         awesome/simdjson_plus
-    git clone --recursive --depth=1 https://github.com/JakubOnderka/pecl-text-ssdeep.git /tmp/pecl-text-ssdeep
-    cd /tmp/pecl-text-ssdeep && phpize && ./configure && make && make install
+    git clone --recursive --depth=1 https://github.com/JakubOnderka/pecl-text-ssdeep.git .
+    phpize && ./configure && make && make install
     tar -czf /pecl_libs.tar.gz \
         /usr/lib/php/${PHP_API_VERSION}/ssdeep.so \
         /usr/lib/php/${PHP_API_VERSION}/rdkafka.so \
@@ -152,13 +153,15 @@ RUN apt-get install -y --no-install-recommends \
     && apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Download MISP using git in the /var/www/ directory. Remove unnecessary items.
+WORKDIR /var/www/MISP
+
 RUN <<-EOF
-    if [ ! -z "${CORE_COMMIT}" ]; then
-        git clone https://github.com/MISP/MISP.git /var/www/MISP && cd /var/www/MISP && git checkout "${CORE_COMMIT}"
+    if [ -n "${CORE_COMMIT}" ]; then
+        git clone https://github.com/MISP/MISP.git . && git checkout "${CORE_COMMIT}"
     else
-        git clone --branch "${CORE_TAG}" --depth 1 https://github.com/MISP/MISP.git /var/www/MISP
+        git clone --branch "${CORE_TAG}" --depth 1 https://github.com/MISP/MISP.git .
     fi
-    cd /var/www/MISP || exit; git submodule update --init --recursive --depth 1 .
+    git submodule update --init --recursive --depth 1 .
 EOF
 
 ARG PYPI_SETUPTOOLS_VERSION
@@ -191,13 +194,13 @@ RUN <<-EOF
     for mod in "$@"; do
         mod_version_var=$(echo "PYPI_${mod}_VERSION" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
         mod_version=$(eval "echo \"\$$mod_version_var\"")
-        grep -q ${mod} /var/www/MISP/requirements.txt
+        grep -q "${mod}" /var/www/MISP/requirements.txt
         exists=$?
         if [ "${exists}" -eq "1" ]; then
             echo "Adding missing module ${mod} with version '${mod_version}'"
-            echo ${mod}${mod_version} >> /var/www/MISP/requirements.txt
+            echo "${mod}${mod_version}" >> /var/www/MISP/requirements.txt
         else
-            if [ "$(echo ${mod_version} | wc -m)" -gt 1 ]; then
+            if [ "$(echo "${mod_version}" | wc -m)" -gt 1 ]; then
                 echo "Overwriting existing module ${mod}, version '${mod_version}'"
                 sed -i "/${mod}/s/.*/${mod}${mod_version}/" /var/www/MISP/requirements.txt
             else
@@ -244,10 +247,10 @@ ARG PHP_PACKAGE_VERSION
 ENV PATH="/var/www/MISP/app/Console:${PATH}"
 
 # Remove some defaults (kernel logging) and fix alternatives
-RUN sed -i '/imklog/s/^/#/' /etc/rsyslog.conf
-RUN update-alternatives --set php /usr/bin/php${PHP_PACKAGE_VERSION}
-RUN ln -sf /usr/sbin/php-fpm${PHP_PACKAGE_VERSION} /usr/local/sbin/php-fpm
-RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+RUN sed -i '/imklog/s/^/#/' /etc/rsyslog.conf && \
+    update-alternatives --set php /usr/bin/php${PHP_PACKAGE_VERSION} && \
+    ln -sf /usr/sbin/php-fpm${PHP_PACKAGE_VERSION} /usr/local/sbin/php-fpm && \
+    apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Install python modules.
 #
@@ -306,6 +309,13 @@ EOF
 
 # Copy all our image specific files to appropriate locations
 COPY files/ /
+
+# expose fastcgi port
+EXPOSE 9002
+
+# health check via fastcgi port
+HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+    CMD [ "bash", "-c", "echo > /dev/tcp/127.0.0.1/9002 || exit 1" ]
 
 # define entrypoint
 ENTRYPOINT [ "/entrypoint.sh" ]

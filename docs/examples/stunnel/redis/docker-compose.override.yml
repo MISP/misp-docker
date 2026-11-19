@@ -7,7 +7,7 @@ services:
       sh -c '
         if [ "$${ENABLE_REDIS_EMPTY_PASSWORD:-false}" = "true" ]; then
           exec valkey-server \
-            --port 0 \ 
+            --port 0 \
             --tls-port 6379 \
             --tls-cert-file /custom/server-cert.pem \
             --tls-key-file /custom/server-key.pem \

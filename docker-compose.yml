@@ -24,9 +24,9 @@ services:
     command: |
       sh -c '
         if [ "$${DISABLE_REDIS_SNAPSHOT}" = "true" ] ; then
-            redis_snapshot="--save \"\""
+          redis_snapshot="--save \"\""
         else
-            redis_snapshot=""
+          redis_snapshot=""
         fi
         if [ "$${ENABLE_REDIS_EMPTY_PASSWORD:-false}" = "true" ]; then
           exec valkey-server $${redis_snapshot}
