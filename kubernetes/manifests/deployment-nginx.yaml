@@ -17,14 +17,24 @@ spec:
         app.kubernetes.io/name: nginx
     spec:
       enableServiceLinks: false
+      # No fixed runAsUser/fsGroup - see the misp Deployment in
+      # deployment-misp.yaml for why (arbitrary-UID/group-0 support).
       securityContext:
-        runAsUser: 101
-        runAsGroup: 101
         runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: nginx
           image: "ghcr.io/misp/misp-docker/misp-nginx:latest"
           imagePullPolicy: IfNotPresent
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
+            capabilities:
+              drop:
+                - ALL
           readinessProbe:
             tcpSocket:
               port: 8080
@@ -46,14 +56,6 @@ spec:
             - name: misp-http
               containerPort: 8080
               protocol: TCP
-          securityContext:
-            readOnlyRootFilesystem: true
-            allowPrivilegeEscalation: false
-            seccompProfile:
-              type: RuntimeDefault
-            capabilities:
-              drop:
-                - ALL
           resources:
             limits:
               memory: 2048Mi

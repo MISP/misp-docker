@@ -11,6 +11,9 @@ spec:
   resources:
     requests:
       storage: {{ $.Values.misp.mispConfig.persistence.size | default "10Gi" }}
-  storageClassName: {{ $.Values.misp.mispConfig.persistence.spec.storageClassName | default "local-path" }}
+  {{- $storageClassName := $.Values.misp.mispConfig.persistence.spec.storageClassName }}
+  {{- if $storageClassName }}
+  storageClassName: {{ eq $storageClassName "-" | ternary "\"\"" $storageClassName }}
+  {{- end }}
 {{- end }}
 {{- end }}

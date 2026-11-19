@@ -1,6 +1,5 @@
 [supervisord]
 nodaemon=true
-user=root
 
 [inet_http_server]
 port=127.0.0.1:9001

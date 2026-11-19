@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help build build-core build-nginx build-modules build-guard bake up down logs shellcheck clean prune
+.PHONY: help build build-core build-nginx build-modules build-guard bake up down logs shellcheck clean prune init-dirs
 
 help:
 	@echo "Usage: make <target>"

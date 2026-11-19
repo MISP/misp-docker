@@ -105,11 +105,11 @@ Skripte werden in der Reihenfolge ausgeführt, wie sie in der `scripts` Liste de
 **Lösung:** Bereits gelöst - Skripte werden automatisch nach `/tmp` kopiert
 
 ### Problem: "Plugin SysLogLogable could not be found"
-**Gelöst:** Skripte warten jetzt auf `/misp/readiness/ready.log` - die gleiche Prüfung wie Kubernetes Readiness Probe
+**Gelöst:** Skripte warten jetzt auf eine HTTP-Antwort von MISP (`http://localhost:8080/users/heartbeat`) - die gleiche Prüfung wie die Kubernetes Readiness Probe
 
 ### Problem: Cake-Kommandos schlagen fehl
 **Gelöst:** 
-- Skripte warten auf `grep -i 'MISP is ready' /misp/readiness/ready.log`
+- Skripte warten auf `curl http://localhost:8080/users/heartbeat`
 - Cake-Kommandos funktionieren zuverlässig nach dieser Prüfung
 - API-Fallback verfügbar falls trotzdem Probleme auftreten
 

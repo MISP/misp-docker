@@ -20,6 +20,10 @@ spec:
   {{- if not .Values.misp.autoscaling.enabled }}
   replicas: {{ .Values.misp.replicaCount }}
   {{- end }}
+  {{- with .Values.misp.updateStrategy }}
+  strategy:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "misp.selectorLabels" . | nindent 6 }}
@@ -65,10 +69,11 @@ spec:
           {{- toYaml .Values.misp.initContainers.resources | nindent 12 }}
           {{- end }}
           securityContext:
-            runAsUser: 1337
             runAsNonRoot: true
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
+            seccompProfile:
+              type: RuntimeDefault
             capabilities:
               drop:
                 - ALL
@@ -211,8 +216,18 @@ spec:
               fi
 
               {{- if or .Values.misp.keycloakSecret.enabled (or .Values.misp.mispConfig.extraCerts.enabled .Values.misp.updateCaCertificatesOnStart) }}
-              update-ca-certificates --fresh --verbose
-              echo "CA Certificates updated."
+              # Updating the system-wide CA trust store requires root,
+              # which this container no longer runs as (nor does it have a
+              # writable root filesystem). This is only possible for
+              # anyone who has explicitly overridden misp.securityContext
+              # to run as root; otherwise, bake custom CAs into a custom
+              # misp-core image at build time instead.
+              if [ "$(id -u)" = "0" ]; then
+                update-ca-certificates --fresh --verbose
+                echo "CA Certificates updated."
+              else
+                echo "Skipping update-ca-certificates: not running as root."
+              fi
               {{- end }}
 
               exec /kubernetes/entrypoint_fpm.sh
@@ -229,6 +244,16 @@ spec:
                 secretKeyRef:
                   name: {{ include "misp.secretName" . }}
                   key: apikey
+            - name: SUPERVISOR_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ printf "%s-supervisor" (include "common.names.fullname" .) }}
+                  key: username
+            - name: SUPERVISOR_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ printf "%s-supervisor" (include "common.names.fullname" .) }}
+                  key: password
             {{- if .Values.misp.mispConfig.disableInitialAdmin.enabled }}
             - name: CONFIG_USERNAME
               value: {{ .Values.misp.mispConfig.disableInitialAdmin.username | quote }}
@@ -260,8 +285,11 @@ spec:
             # Valkey Connection Details
             - name: REDIS_HOST
               value: {{ .Values.misp.valkey.host | default (printf "%s-valkey-master" .Release.Name) | quote }}
-            - name: REDIS_PASSWORD_FILE
-              value: /vault/valkey/password
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ printf "%s-valkey" (include "common.names.fullname" .) }}
+                  key: password
             # MySQL Connection Details
             - name: MYSQL_HOST
               value: {{ .Values.misp.mariadb.host | default (printf "%s-mariadb" .Release.Name) | quote }}
@@ -269,10 +297,11 @@ spec:
               value: {{ .Values.misp.mariadb.database | default .Values.mariadb.auth.database | quote }}
             - name: MYSQL_USER
               value: {{ .Values.misp.mariadb.user | default .Values.mariadb.auth.username | quote }}
-            - name: MYSQL_PASSWORD_FILE
-              value: /vault/mariadb/mariadb-password
-            - name: MYSQL_PASSWORD_FILE_BACKUP
-              value: /vault/mariadb/mariadb-backup-password
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ printf "%s-mariadb" (include "common.names.fullname" .) }}
+                  key: mariadb-password
             # MISP Related Environment Variables
             - name: BASE_URL
             {{- if and .Values.misp.ingress.enabled .Values.misp.ingress.hosts }}
