@@ -247,10 +247,10 @@ ARG PHP_PACKAGE_VERSION
 ENV PATH="/var/www/MISP/app/Console:${PATH}"
 
 # Remove some defaults (kernel logging) and fix alternatives
-RUN sed -i '/imklog/s/^/#/' /etc/rsyslog.conf
-RUN update-alternatives --set php /usr/bin/php${PHP_PACKAGE_VERSION}
-RUN ln -sf /usr/sbin/php-fpm${PHP_PACKAGE_VERSION} /usr/local/sbin/php-fpm
-RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+RUN sed -i '/imklog/s/^/#/' /etc/rsyslog.conf && \
+    update-alternatives --set php /usr/bin/php${PHP_PACKAGE_VERSION} && \
+    ln -sf /usr/sbin/php-fpm${PHP_PACKAGE_VERSION} /usr/local/sbin/php-fpm && \
+    apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Install python modules.
 #
